@@ -1,7 +1,7 @@
 -- Database Schema for Absensi Digital
 
-CREATE DATABASE IF NOT EXISTS absensi_digital;
-USE absensi_digital;
+CREATE DATABASE IF NOT EXISTS db_absensi_digital;
+USE db_absensi_digital;
 
 -- 1. Tabel Admin
 -- Untuk login halaman admin panel
