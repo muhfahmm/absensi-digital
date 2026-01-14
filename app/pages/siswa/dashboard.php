@@ -242,11 +242,19 @@ $absensi_hari_ini = $stmt->fetch();
                     <div id="qr-siswa-modal" class="flex justify-center"></div>
                 </div>
                 
-                <div class="bg-gray-50 rounded-xl p-4">
+                <div class="bg-gray-50 rounded-xl p-4 mb-4">
                     <p class="text-xs text-gray-600 font-mono"><?= $siswa_kode_qr ?></p>
                 </div>
                 
-                <p class="text-xs text-gray-400 mt-4">Pastikan QR Code terlihat jelas</p>
+                <!-- Download Button -->
+                <button onclick="downloadQR()" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white py-3 px-6 rounded-xl font-semibold shadow-lg transition transform hover:scale-105 flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Download QR Code
+                </button>
+                
+                <p class="text-xs text-gray-400 mt-4 text-center">Download QR ke HP, lalu tampilkan saat absensi</p>
             </div>
         </div>
     </div>
@@ -316,6 +324,40 @@ function closeQRModal() {
         modal.classList.add('hidden');
     }, 200);
 }
+
+function downloadQR() {
+    // Get QR code canvas
+    const qrContainer = document.getElementById('qr-siswa-modal');
+    const canvas = qrContainer.querySelector('canvas');
+    
+    if (!canvas) {
+        alert('QR Code belum di-generate. Silakan buka modal QR terlebih dahulu.');
+        return;
+    }
+    
+    // Create download link
+    const link = document.createElement('a');
+    link.download = 'QR-Absensi-<?= $siswa_nama ?>.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    
+    // Show success message
+    const btn = event.target.closest('button');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = `
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+        Downloaded!
+    `;
+    btn.classList.add('bg-green-600');
+    
+    setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.classList.remove('bg-green-600');
+    }, 2000);
+}
+
 
 function openPhotoModal() {
     const modal = document.getElementById('photoModal');

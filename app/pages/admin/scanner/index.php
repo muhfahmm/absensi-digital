@@ -105,7 +105,56 @@ $admin_nama = $_SESSION['nama'];
 let html5QrCode = null;
 let isScanning = false;
 let isProcessing = false;
-let scanCallback = null;  // Store callback reference
+let detectionCount = 0;
+
+function playBeep() {
+    // Create beep sound
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 800;
+    oscillator.type = 'sine';
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+}
+
+function showLockOverlay() {
+    const overlay = document.createElement('div');
+    overlay.id = 'lock-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 255, 0.3);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: flash 0.5s ease-in-out;
+    `;
+    overlay.innerHTML = `
+        <div style="background: white; padding: 30px; border-radius: 20px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+            <div style="font-size: 60px; margin-bottom: 10px;">🔒</div>
+            <div style="font-size: 24px; font-weight: bold; color: #2563eb;">LOCKED!</div>
+            <div style="font-size: 14px; color: #6b7280; margin-top: 10px;">Scanner terkunci, memproses QR...</div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    
+    setTimeout(() => {
+        overlay.remove();
+    }, 2000);
+}
 
 function startScanner() {
     const startBtn = document.getElementById('start-scan');
@@ -113,15 +162,20 @@ function startScanner() {
     const statusDiv = document.getElementById('scan-status');
     
     if (isScanning) {
-        console.log('Scanner already running');
+        alert('⚠️ Scanner sudah berjalan!');
         return;
     }
     
     if (html5QrCode) {
-        html5QrCode.clear();
+        try {
+            html5QrCode.clear();
+        } catch(e) {
+            console.log('Clear error:', e);
+        }
     }
     
     isProcessing = false;
+    detectionCount = 0;
     html5QrCode = new Html5Qrcode("qr-reader");
     
     const config = {
@@ -136,46 +190,77 @@ function startScanner() {
         </div>
     `;
     
-    // Define callback
-    scanCallback = (decodedText, decodedResult) => {
-        // IMMEDIATE BLOCK - cegah callback dipanggil lagi
-        if (isProcessing) {
-            return false;  // Return false untuk stop processing
-        }
-        
-        isProcessing = true;
-        console.log(`🔒 QR LOCKED: ${decodedText}`);
-        
-        // Update UI immediately
-        statusDiv.innerHTML = `
-            <div class="bg-blue-600 bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm flex items-center">
-                <div class="w-2 h-2 bg-white rounded-full mr-2"></div>
-                <span>🔒 LOCKED! Memproses...</span>
-            </div>
-        `;
-        
-        // Force stop immediately - don't wait
-        if (html5QrCode) {
-            html5QrCode.stop().then(() => {
-                console.log('Scanner stopped');
-                isScanning = false;
-                startBtn.classList.remove('hidden');
-                stopBtn.classList.add('hidden');
-            }).catch(err => {
-                console.error('Stop error:', err);
-            });
-        }
-        
-        // Process QR
-        processQRCode(decodedText);
-        
-        return false;  // Tell library to stop calling this callback
-    };
-    
     html5QrCode.start(
         { facingMode: "environment" },
         config,
-        scanCallback,
+        (decodedText, decodedResult) => {
+            detectionCount++;
+            console.log(`Detection #${detectionCount}: ${decodedText}`);
+            
+            // HANYA proses deteksi pertama
+            if (detectionCount > 1) {
+                console.log(`❌ IGNORED - Already locked`);
+                return;
+            }
+            
+            if (isProcessing) {
+                console.log('❌ IGNORED - Already processing');
+                return;
+            }
+            
+            isProcessing = true;
+            console.log(`✅ 🔒 LOCKED! First detection accepted`);
+            
+            // BEEP SOUND
+            try {
+                playBeep();
+            } catch(e) {
+                console.log('Beep error:', e);
+            }
+            
+            // VISUAL OVERLAY
+            showLockOverlay();
+            
+            // Update UI IMMEDIATELY
+            statusDiv.innerHTML = `
+                <div class="bg-blue-600 bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm flex items-center animate-pulse">
+                    <div class="w-3 h-3 bg-white rounded-full mr-2"></div>
+                    <span style="font-weight: bold;">🔒 LOCKED! Memproses...</span>
+                </div>
+            `;
+            
+            // FREEZE SCANNER - set FPS to 0
+            try {
+                html5QrCode.applyVideoConstraints({
+                    frameRate: { ideal: 0, max: 0 }
+                });
+            } catch(e) {
+                console.log('Freeze error:', e);
+            }
+            
+            // CLEAR after 500ms
+            setTimeout(() => {
+                html5QrCode.clear().then(() => {
+                    console.log('✅ Scanner cleared');
+                    isScanning = false;
+                    startBtn.classList.remove('hidden');
+                    stopBtn.classList.add('hidden');
+                    
+                    statusDiv.innerHTML = `
+                        <div class="bg-green-600 bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm flex items-center">
+                            <div class="w-2 h-2 bg-white rounded-full mr-2"></div>
+                            <span>✅ QR Code berhasil di-scan!</span>
+                        </div>
+                    `;
+                    
+                    // Process QR
+                    processQRCode(decodedText);
+                }).catch(err => {
+                    console.error('Clear error:', err);
+                    processQRCode(decodedText);
+                });
+            }, 500);
+        },
         (errorMessage) => {
             // Ignore scan errors
         }
@@ -186,18 +271,21 @@ function startScanner() {
         statusDiv.innerHTML = `
             <div class="bg-green-600 bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm flex items-center">
                 <div class="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></div>
-                <span>Scanning... Arahkan ke QR Code</span>
+                <span>✅ Scanning aktif... Arahkan ke QR Code</span>
             </div>
         `;
+        
+        // Alert konfirmasi
+        console.log('✅ Scanner berhasil dimulai!');
     }).catch((err) => {
-        console.error('Error starting scanner:', err);
+        console.error('❌ Error starting scanner:', err);
         statusDiv.innerHTML = `
             <div class="bg-red-600 bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm flex items-center">
                 <div class="w-2 h-2 bg-white rounded-full mr-2"></div>
-                <span>Gagal akses kamera. Izinkan akses kamera di browser.</span>
+                <span>❌ Gagal akses kamera</span>
             </div>
         `;
-        alert('Gagal mengakses kamera.\n\nPastikan:\n1. Browser memiliki izin kamera\n2. Kamera tidak digunakan aplikasi lain\n3. Menggunakan HTTPS atau localhost');
+        alert('❌ Gagal mengakses kamera.\n\nPastikan:\n1. Browser memiliki izin kamera\n2. Kamera tidak digunakan aplikasi lain\n3. Menggunakan HTTPS atau localhost');
     });
 }
 

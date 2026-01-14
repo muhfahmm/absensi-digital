@@ -138,6 +138,11 @@ $siswa = $stmt->fetchAll();
                                 </td>
                                 <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-center">
                                     <div class="flex justify-center space-x-2">
+                                        <a href="print-qr.php?id=<?= $row['id'] ?>" target="_blank" 
+                                           class="text-purple-600 hover:text-purple-900 bg-purple-100 px-3 py-1 rounded-md transition hover:bg-purple-200" 
+                                           title="Print QR Card">
+                                            🖨️ Print
+                                        </a>
                                         <a href="edit.php?id=<?= $row['id'] ?>" class="text-blue-600 hover:text-blue-900 bg-blue-100 px-3 py-1 rounded-md transition hover:bg-blue-200">Edit</a>
                                         <a href="delete.php?id=<?= $row['id'] ?>" onclick="return confirm('Yakin ingin menghapus data siswa ini?')" class="text-red-600 hover:text-red-900 bg-red-100 px-3 py-1 rounded-md transition hover:bg-red-200">Hapus</a>
                                     </div>
