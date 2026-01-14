@@ -50,9 +50,13 @@ require_once '../../layouts/header.php';
             </button>
             
             <div class="text-center mt-6">
-                <a href="#" class="text-sm text-gray-300 hover:text-white transition block mb-2">Lupa password? Hubungi Admin.</a>
-                <span class="text-sm text-gray-300">Belum punya akun? </span>
-                <a href="<?= base_url('app/pages/auth/register.php') ?>" class="text-sm font-bold text-white hover:underline transition">Daftar Siswa/Guru</a>
+                <a href="#" class="text-sm text-gray-300 hover:text-white transition block mb-3">Lupa password? Hubungi Admin.</a>
+                
+                <div class="border-t border-white/20 pt-4">
+                    <p class="text-xs text-gray-300 mb-2">Belum punya akun Admin?</p>
+                    <a href="<?= base_url('app/pages/auth/register.php') ?>" class="text-sm font-bold text-white hover:underline transition">Daftar Admin</a>
+                    <p class="text-xs text-gray-400 mt-3">Siswa & Guru didaftarkan oleh Admin</p>
+                </div>
             </div>
         </form>
     </div>

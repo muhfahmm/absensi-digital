@@ -38,31 +38,16 @@ unset($_SESSION['success']);
             </div>
         <?php endif; ?>
         
-        <!-- Toggle Role -->
-        <!-- Toggle Role -->
-        <div class="flex justify-center mb-6 bg-white bg-opacity-20 rounded-lg p-1" x-data="{ role: 'siswa' }">
-            <button type="button" 
-                onclick="setRole('siswa')"
-                id="btnSiswa"
-                class="flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 bg-white text-indigo-600 shadow-sm">
-                Siswa
-            </button>
-            <button type="button" 
-                onclick="setRole('guru')"
-                id="btnGuru"
-                class="flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 text-white hover:bg-white/10">
-                Guru
-            </button>
-            <button type="button" 
-                onclick="setRole('admin')"
-                id="btnAdmin"
-                class="flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 text-white hover:bg-white/10">
-                Admin
-            </button>
+        <!-- Info: Admin Only Registration -->
+        <div class="mb-6 p-4 bg-white/10 rounded-lg border border-white/20">
+            <p class="text-white text-sm text-center">
+                <strong>Registrasi Admin</strong><br>
+                Guru dan Siswa didaftarkan oleh Admin melalui panel admin.
+            </p>
         </div>
 
         <form action="<?= base_url('app/auth/api-register.php') ?>" method="POST" class="space-y-4">
-            <input type="hidden" name="role" id="roleInput" value="siswa">
+            <input type="hidden" name="role" id="roleInput" value="admin">
             
             <!-- Nama Lengkap -->
             <div>
@@ -70,37 +55,11 @@ unset($_SESSION['success']);
                 <input type="text" name="nama_lengkap" class="w-full px-4 py-3 bg-white bg-opacity-20 border border-gray-300 border-opacity-30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="Contoh: Budi Santoso" required>
             </div>
 
-            <!-- Form Khusus Siswa -->
-            <div id="roleSiswaForm">
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-200 mb-1">NIS (Nomor Induk Siswa)</label>
-                    <input type="number" name="u_id" class="w-full px-4 py-3 bg-white bg-opacity-20 border border-gray-300 border-opacity-30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="Masukkan NIS">
-                </div>
-                
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-200 mb-1">Kelas</label>
-                    <select name="id_kelas" class="w-full px-4 py-3 bg-white bg-opacity-20 border border-gray-300 border-opacity-30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition [&>option]:text-gray-900">
-                        <option value="">-- Pilih Kelas --</option>
-                        <?php foreach($kelas_list as $k): ?>
-                            <option value="<?= $k['id'] ?>"><?= $k['nama_kelas'] ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Form Khusus Guru -->
-            <div id="roleGuruForm" class="hidden">
-                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-200 mb-1">NIP (Nomor Induk Pegawai)</label>
-                    <input type="number" name="nip_guru" class="w-full px-4 py-3 bg-white bg-opacity-20 border border-gray-300 border-opacity-30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="Masukkan NIP">
-                </div>
-            </div>
-
             <!-- Form Khusus Admin -->
-            <div id="roleAdminForm" class="hidden">
+            <div>
                  <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-200 mb-1">Username</label>
-                    <input type="text" name="username_admin" class="w-full px-4 py-3 bg-white bg-opacity-20 border border-gray-300 border-opacity-30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="Buat Username">
+                    <input type="text" name="username_admin" class="w-full px-4 py-3 bg-white bg-opacity-20 border border-gray-300 border-opacity-30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="Buat Username" required>
                 </div>
             </div>
 
@@ -121,49 +80,5 @@ unset($_SESSION['success']);
         </form>
     </div>
 </div>
-
-<script>
-    function setRole(role) {
-        document.getElementById('roleInput').value = role;
-        
-        // Reset Styles
-        ['btnSiswa', 'btnGuru', 'btnAdmin'].forEach(id => {
-            document.getElementById(id).classList.remove('bg-white', 'text-indigo-600');
-            document.getElementById(id).classList.add('text-white', 'hover:bg-white/10');
-        });
-
-        // Set Active Style
-        let activeBtn = role === 'siswa' ? 'btnSiswa' : (role === 'guru' ? 'btnGuru' : 'btnAdmin');
-        document.getElementById(activeBtn).classList.remove('text-white', 'hover:bg-white/10');
-        document.getElementById(activeBtn).classList.add('bg-white', 'text-indigo-600');
-
-        // Toggle Forms
-        document.getElementById('roleSiswaForm').classList.add('hidden');
-        document.getElementById('roleGuruForm').classList.add('hidden');
-        document.getElementById('roleAdminForm').classList.add('hidden');
-        
-        // Disable all specific inputs first to avoid submitting empty wrong data
-        document.querySelector('input[name="u_id"]').disabled = true; // NIS Siswa
-        document.querySelector('input[name="nip_guru"]').disabled = true;
-        document.querySelector('input[name="username_admin"]').disabled = true;
-
-        if(role === 'siswa') {
-            document.getElementById('roleSiswaForm').classList.remove('hidden');
-            document.querySelector('input[name="u_id"]').disabled = false;
-            document.querySelector('input[name="u_id"]').required = true;
-        } else if(role === 'guru') {
-            document.getElementById('roleGuruForm').classList.remove('hidden');
-            document.querySelector('input[name="nip_guru"]').disabled = false;
-            document.querySelector('input[name="nip_guru"]').required = true;
-        } else if(role === 'admin') {
-            document.getElementById('roleAdminForm').classList.remove('hidden');
-            document.querySelector('input[name="username_admin"]').disabled = false;
-            document.querySelector('input[name="username_admin"]').required = true;
-        }
-    }
-
-    // Init
-    setRole('siswa');
-</script>
 
 <?php require_once '../../layouts/footer.php'; ?>

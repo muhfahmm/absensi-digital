@@ -48,6 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $_SESSION['user_id'] = $guru['id'];
             $_SESSION['role'] = 'guru';
             $_SESSION['nama'] = $guru['nama_lengkap'];
+            $_SESSION['kode_qr'] = $guru['kode_qr'];
             $_SESSION['logged_in'] = true;
             redirect('app/pages/guru/dashboard.php');
         }

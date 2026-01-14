@@ -12,12 +12,12 @@ $id = $_GET['id'] ?? null;
 if ($id) {
     try {
         // Hapus foto fisik file jika ada
-        $stmt = $pdo->prepare("SELECT foto FROM tb_siswa WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT foto_profil FROM tb_siswa WHERE id = ?");
         $stmt->execute([$id]);
         $row = $stmt->fetch();
         
-        if ($row && !empty($row['foto'])) {
-            $file = "../../../../uploads/siswa/" . $row['foto'];
+        if ($row && !empty($row['foto_profil'])) {
+            $file = "../../../../uploads/siswa/" . $row['foto_profil'];
             if (file_exists($file)) unlink($file);
         }
 

@@ -49,12 +49,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $allowed = ['jpg', 'jpeg', 'png'];
         if (in_array(strtolower($file_extension), $allowed)) {
              if (move_uploaded_file($_FILES['foto']['tmp_name'], $target_file)) {
-                 $foto_query = ", foto = :foto";
+                 $foto_query = ", foto_profil = :foto";
                  $params[':foto'] = $new_filename;
                  
                  // Hapus foto lama jika ada
-                 if (!empty($data['foto']) && file_exists($target_dir . $data['foto'])) {
-                     unlink($target_dir . $data['foto']);
+                 if (!empty($data['foto_profil']) && file_exists($target_dir . $data['foto_profil'])) {
+                     unlink($target_dir . $data['foto_profil']);
                  }
              } else {
                  $error = "Gagal mengupload foto.";
@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     if (!$error) {
         try {
-            $sql = "UPDATE tb_siswa SET nis = :nis, nama_lengkap = :nama, id_kelas = :kelas $foto_query WHERE id = :id";
+            $sql = "UPDATE tb_siswa SET nis = :nis, nama_lengkap = :nama, id_kelas = :kelas $foto_query $password_query WHERE id = :id";
             $stmt = $pdo->prepare($sql);
             $stmt->execute($params);
             
@@ -119,9 +119,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Foto Siswa (Opsional)</label>
-                        <?php if(!empty($data['foto'])): ?>
+                        <?php if(!empty($data['foto_profil'])): ?>
                             <div class="mb-2">
-                                <img src="<?= base_url('uploads/siswa/' . $data['foto']) ?>" class="w-20 h-20 rounded-lg object-cover border">
+                                <img src="<?= base_url('uploads/siswa/' . $data['foto_profil']) ?>" class="w-20 h-20 rounded-lg object-cover border">
                             </div>
                         <?php endif; ?>
                         <input type="file" name="foto" accept="image/*" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">

@@ -50,15 +50,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     if (!$error) {
         try {
-            // Password tidak diset (null) sesuai request
-            $sql = "INSERT INTO tb_siswa (nis, nama_lengkap, id_kelas, kode_qr, foto) VALUES (:nis, :nama, :kelas, :qr, :foto)";
+            // Password Default jika tidak diisi atau input password
+            $pass_hash = password_hash($_POST['password'], PASSWORD_DEFAULT);
+            
+            $sql = "INSERT INTO tb_siswa (nis, nama_lengkap, id_kelas, kode_qr, foto_profil, password) VALUES (:nis, :nama, :kelas, :qr, :foto, :pass)";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
                 ':nis' => $nis,
                 ':nama' => $nama,
                 ':kelas' => $id_kelas,
                 ':qr' => $kode_qr,
-                ':foto' => $foto_name
+                ':foto' => $foto_name,
+                ':pass' => $pass_hash
             ]);
             
             echo "<script>alert('Siswa Berhasil Ditambahkan!'); window.location.href='index.php';</script>";
@@ -110,6 +113,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 <option value="<?= $k['id'] ?>"><?= $k['nama_kelas'] ?></option>
                             <?php endforeach; ?>
                         </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                        <input type="password" name="password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Masukkan password" required>
                     </div>
 
                     <div>

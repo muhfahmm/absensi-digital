@@ -1,4 +1,4 @@
-<?php
+    <?php
 // app/functions/auth.php
 
 if (session_status() == PHP_SESSION_NONE) {

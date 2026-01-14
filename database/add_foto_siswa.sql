@@ -1,2 +1,0 @@
-ALTER TABLE tb_siswa ADD COLUMN foto VARCHAR(255) NULL DEFAULT 'default.jpg';
-ALTER TABLE tb_siswa MODIFY password VARCHAR(255) NULL;
