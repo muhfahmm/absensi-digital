@@ -1,0 +1,152 @@
+2026-01-16 17:11:21,077 - INFO - Kamera Aktif: 1280x720
+2026-01-16 17:11:21,119 - INFO - --- SCANNER SIAP DIGUNAKAN ---
+2026-01-16 17:11:27,360 - INFO - --- DETEKSI BARU: 'SISWA-1-696a09826d84a' ---
+2026-01-16 17:11:27,427 - INFO - User Berhasil Diidentifikasi: siswa 1 (siswa)
+2026-01-16 17:11:27,434 - INFO - Memproses Absen MASUK untuk siswa 1 | Status: terlambat
+2026-01-16 17:11:27,446 - INFO - Hasil: BERHASIL MASUK (terlambat)
+2026-01-16 17:11:58,640 - INFO - --- DETEKSI BARU: 'SISWA-1-696a09826d84a' ---
+2026-01-16 17:11:58,644 - INFO - User Berhasil Diidentifikasi: siswa 1 (siswa)
+2026-01-16 17:11:58,648 - INFO - Absen Masuk Ditemukan. Memproses Absen PULANG untuk siswa 1...
+2026-01-16 17:11:58,664 - INFO - Hasil: BERHASIL PULANG (17:11:58)
+2026-01-16 17:17:15,409 - INFO - --- SCANNER SIAP DIGUNAKAN ---
+2026-01-16 17:17:15,422 - ERROR - Gagal membaca frame dari kamera. Exiting...
+2026-01-16 17:17:40,710 - INFO - Kamera Aktif: 1280x720
+2026-01-16 17:17:40,736 - INFO - --- SCANNER SIAP DIGUNAKAN ---
+2026-01-16 17:18:06,020 - INFO - --- DETEKSI BARU: 'SISWA-1-696a09826d84a' ---
+2026-01-16 17:18:06,066 - INFO - User Berhasil Diidentifikasi: siswa 1 (siswa)
+2026-01-16 17:18:06,070 - INFO - Hasil: DUPLIKAT (User sudah absen masuk & pulang)
+2026-01-16 17:18:08,981 - INFO - --- DETEKSI BARU: 'SISWA-1-696a09826d84a' ---
+2026-01-16 17:18:08,984 - INFO - User Berhasil Diidentifikasi: siswa 1 (siswa)
+2026-01-16 17:18:08,986 - INFO - Hasil: DUPLIKAT (User sudah absen masuk & pulang)
+2026-01-16 17:29:53,555 - INFO - Kamera Aktif: 1280x720
+2026-01-16 17:29:53,598 - INFO - --- SCANNER SIAP DIGUNAKAN ---
+2026-01-16 17:33:38,975 - INFO - Kamera Aktif: 1280x720
+2026-01-16 17:33:39,031 - INFO - --- SCANNER SIAP DIGUNAKAN ---
+2026-01-16 17:34:00,219 - INFO - Kamera Aktif: 1280x720
+2026-01-16 17:34:00,235 - INFO - --- SCANNER SIAP DIGUNAKAN ---
+2026-01-16 17:34:56,859 - INFO - Kamera Aktif: 1280x720
+2026-01-16 17:34:56,902 - INFO - --- SCANNER SIAP DIGUNAKAN ---
+2026-01-16 17:41:00,517 - INFO - Kamera Aktif: 1280x720
+2026-01-16 17:41:00,569 - INFO - --- SCANNER SIAP DIGUNAKAN ---
+2026-01-16 17:41:15,988 - INFO - --- DETEKSI BARU: 'SISWA-1-696a09826d84a' ---
+2026-01-16 17:41:16,054 - INFO - User Berhasil Diidentifikasi: siswa 1 (siswa)
+2026-01-16 17:41:16,059 - INFO - Memproses Absen MASUK untuk siswa 1 | Status: terlambat
+2026-01-16 17:41:16,071 - INFO - Hasil: BERHASIL MASUK (terlambat)
+2026-01-16 17:41:29,778 - INFO - --- DETEKSI BARU: 'SISWA-1-696a09826d84a' ---
+2026-01-16 17:41:29,781 - INFO - User Berhasil Diidentifikasi: siswa 1 (siswa)
+2026-01-16 17:41:29,781 - INFO - Absen Masuk Ditemukan. Memproses Absen PULANG untuk siswa 1...
+2026-01-16 17:41:29,787 - INFO - Hasil: BERHASIL PULANG (17:41:29)
+2026-01-16 17:44:24,578 - INFO - --- DETEKSI BARU: 'SISWA-1-696a09826d84a' ---
+2026-01-16 17:44:24,617 - INFO - User Berhasil Diidentifikasi: siswa 1 (siswa)
+2026-01-16 17:44:24,620 - INFO - Memproses Absen MASUK untuk siswa 1 | Status: terlambat
+2026-01-16 17:44:24,624 - INFO - Hasil: BERHASIL MASUK (terlambat)
+2026-01-16 17:47:43,247 - INFO - --- DETEKSI BARU: 'SISWA-1-696a09826d84a' ---
+2026-01-16 17:47:43,272 - INFO - User Berhasil Diidentifikasi: siswa 1 (siswa)
+2026-01-16 17:47:43,279 - INFO - Absen Masuk Ditemukan. Memproses Absen PULANG untuk siswa 1...
+2026-01-16 17:47:43,294 - INFO - Hasil: BERHASIL PULANG (17:47:43)
+2026-01-16 17:47:46,174 - INFO - --- DETEKSI BARU: 'SISWA-1-696a09826d84a' ---
+2026-01-16 17:47:46,176 - INFO - User Berhasil Diidentifikasi: siswa 1 (siswa)
+2026-01-16 17:47:46,177 - INFO - Hasil: DUPLIKAT (User sudah absen masuk & pulang)
+2026-01-16 18:23:51,377 - INFO - Kamera Aktif: 1280x720
+2026-01-16 18:23:51,417 - INFO - --- SCANNER SIAP DIGUNAKAN ---
+2026-01-16 18:25:39,724 - INFO - Kamera Aktif: 1280x720
+2026-01-16 18:25:39,770 - INFO - --- SCANNER SIAP DIGUNAKAN ---
+2026-01-16 18:25:48,321 - INFO - Kamera Aktif: 1280x720
+2026-01-16 18:25:48,361 - INFO - --- SCANNER SIAP DIGUNAKAN ---
+2026-01-16 18:27:17,292 - INFO - --- DETEKSI BARU: 'SISWA-1-696a09826d84a' ---
+2026-01-16 18:27:17,341 - INFO - User Berhasil Diidentifikasi: siswa 1 (siswa)
+2026-01-16 18:27:17,346 - INFO - Hasil: DUPLIKAT (User sudah absen masuk & pulang)
+2026-01-16 18:28:50,817 - INFO - --- DETEKSI BARU: 'SISWA-2-696a20d0c33fb' ---
+2026-01-16 18:28:50,825 - INFO - User Berhasil Diidentifikasi: siswa 2 (siswa)
+2026-01-16 18:28:50,826 - INFO - Memproses Absen MASUK untuk siswa 2 | Status: terlambat
+2026-01-16 18:28:50,831 - INFO - Hasil: BERHASIL MASUK (terlambat)
+2026-01-16 18:28:53,767 - INFO - --- DETEKSI BARU: 'SISWA-2-696a20d0c33fb' ---
+2026-01-16 18:28:53,770 - INFO - User Berhasil Diidentifikasi: siswa 2 (siswa)
+2026-01-16 18:28:53,770 - INFO - Absen Masuk Ditemukan. Memproses Absen PULANG untuk siswa 2...
+2026-01-16 18:28:53,774 - INFO - Hasil: BERHASIL PULANG (18:28:53)
+2026-01-16 18:29:21,330 - INFO - --- DETEKSI BARU: 'SISWA-2-696a20d0c33fb' ---
+2026-01-16 18:29:21,335 - INFO - User Berhasil Diidentifikasi: siswa 2 (siswa)
+2026-01-16 18:29:21,338 - INFO - Memproses Absen MASUK untuk siswa 2 | Status: terlambat
+2026-01-16 18:29:21,341 - INFO - Hasil: BERHASIL MASUK (terlambat)
+2026-01-16 18:29:24,293 - INFO - --- DETEKSI BARU: 'SISWA-2-696a20d0c33fb' ---
+2026-01-16 18:29:24,296 - INFO - User Berhasil Diidentifikasi: siswa 2 (siswa)
+2026-01-16 18:29:24,297 - INFO - Absen Masuk Ditemukan. Memproses Absen PULANG untuk siswa 2...
+2026-01-16 18:29:24,300 - INFO - Hasil: BERHASIL PULANG (18:29:24)
+2026-01-16 18:32:08,922 - INFO - --- DETEKSI BARU: 'SISWA-2-696a20d0c33fb' ---
+2026-01-16 18:32:08,939 - INFO - User Berhasil Diidentifikasi: siswa 2 (siswa)
+2026-01-16 18:32:08,944 - INFO - Memproses Absen MASUK untuk siswa 2 | Status: terlambat
+2026-01-16 18:32:08,949 - INFO - Hasil: BERHASIL MASUK (terlambat)
+2026-01-16 18:32:11,870 - INFO - --- DETEKSI BARU: 'SISWA-2-696a20d0c33fb' ---
+2026-01-16 18:32:11,874 - INFO - User Berhasil Diidentifikasi: siswa 2 (siswa)
+2026-01-16 18:32:11,875 - INFO - Absen Masuk Ditemukan. Memproses Absen PULANG untuk siswa 2...
+2026-01-16 18:32:11,881 - INFO - Hasil: BERHASIL PULANG (18:32:11)
+2026-01-16 18:32:37,416 - INFO - Kamera Aktif: 1280x720
+2026-01-16 18:32:37,456 - INFO - --- SCANNER SIAP DIGUNAKAN ---
+2026-01-16 18:32:57,845 - INFO - --- DETEKSI BARU: 'SISWA-2-696a20d0c33fb' ---
+2026-01-16 18:32:57,849 - INFO - User Berhasil Diidentifikasi: siswa 2 (siswa)
+2026-01-16 18:32:57,849 - INFO - Memproses Absen MASUK untuk siswa 2 | Status: terlambat
+2026-01-16 18:32:57,851 - INFO - Hasil: BERHASIL MASUK (terlambat)
+2026-01-16 18:33:20,635 - INFO - Kamera Aktif: 1280x720
+2026-01-16 18:33:20,670 - INFO - --- SCANNER SIAP DIGUNAKAN ---
+2026-01-16 18:33:22,379 - INFO - --- DETEKSI BARU: 'SISWA-2-696a20d0c33fb' ---
+2026-01-16 18:33:22,382 - INFO - User Berhasil Diidentifikasi: siswa 2 (siswa)
+2026-01-16 18:33:22,383 - INFO - Absen Masuk Ditemukan. Memproses Absen PULANG untuk siswa 2...
+2026-01-16 18:33:22,385 - INFO - Hasil: BERHASIL PULANG (18:33:22)
+2026-01-16 18:34:59,862 - INFO - Kamera Aktif: 1280x720
+2026-01-16 18:34:59,911 - INFO - --- SCANNER SIAP DIGUNAKAN ---
+2026-01-16 18:35:31,029 - INFO - Kamera Aktif: 1280x720
+2026-01-16 18:35:31,096 - INFO - --- SCANNER SIAP DIGUNAKAN ---
+2026-01-16 18:35:36,169 - INFO - --- DETEKSI BARU: 'SISWA-2-696a20d0c33fb' ---
+2026-01-16 18:35:36,209 - INFO - User Berhasil Diidentifikasi: siswa 2 (siswa)
+2026-01-16 18:35:36,209 - INFO - Memproses Absen MASUK untuk siswa 2 | Status: terlambat
+2026-01-16 18:35:36,212 - INFO - Hasil: BERHASIL MASUK (terlambat)
+2026-01-16 18:35:39,144 - INFO - --- DETEKSI BARU: 'SISWA-2-696a20d0c33fb' ---
+2026-01-16 18:35:39,146 - INFO - User Berhasil Diidentifikasi: siswa 2 (siswa)
+2026-01-16 18:35:39,147 - INFO - Scan ditolak: Belum 1 jam (Wait: 59m)
+2026-01-16 18:35:49,461 - INFO - --- DETEKSI BARU: 'SISWA-2-696a20d0c33fb' ---
+2026-01-16 18:35:49,464 - INFO - User Berhasil Diidentifikasi: siswa 2 (siswa)
+2026-01-16 18:35:49,465 - INFO - Scan ditolak: Belum 1 jam (Wait: 59m)
+2026-01-16 18:35:52,431 - INFO - --- DETEKSI BARU: 'SISWA-2-696a20d0c33fb' ---
+2026-01-16 18:35:52,435 - INFO - User Berhasil Diidentifikasi: siswa 2 (siswa)
+2026-01-16 18:35:52,435 - INFO - Scan ditolak: Belum 1 jam (Wait: 59m)
+2026-01-16 18:51:45,359 - INFO - Kamera Aktif: 1280x720
+2026-01-16 18:51:45,417 - INFO - --- SCANNER SIAP DIGUNAKAN ---
+2026-01-16 18:52:03,624 - INFO - Kamera Aktif: 1280x720
+2026-01-16 18:52:03,678 - INFO - --- SCANNER SIAP DIGUNAKAN ---
+2026-01-16 18:53:15,248 - INFO - Kamera Aktif: 1280x720
+2026-01-16 18:53:15,271 - INFO - --- SCANNER SIAP DIGUNAKAN ---
+2026-01-16 18:53:50,306 - INFO - Kamera Aktif: 1280x720
+2026-01-16 18:53:50,379 - INFO - --- SCANNER SIAP DIGUNAKAN ---
+2026-01-16 18:54:56,122 - INFO - Kamera Aktif: 1280x720
+2026-01-16 18:54:56,159 - INFO - --- SCANNER SIAP DIGUNAKAN ---
+2026-01-16 18:55:00,493 - INFO - --- DETEKSI BARU: 'SISWA-1-696a09826d84a' ---
+2026-01-16 18:55:00,539 - INFO - User Berhasil Diidentifikasi: siswa 1 (siswa)
+2026-01-16 18:55:00,540 - INFO - Memproses Absen MASUK untuk siswa 1 | Status: terlambat
+2026-01-16 18:55:00,541 - INFO - Hasil: BERHASIL MASUK (terlambat)
+2026-01-16 18:55:03,457 - INFO - --- DETEKSI BARU: 'SISWA-1-696a09826d84a' ---
+2026-01-16 18:55:03,460 - INFO - User Berhasil Diidentifikasi: siswa 1 (siswa)
+2026-01-16 18:55:03,463 - INFO - Scan ditolak: Belum 1 jam (Wait: 59m)
+2026-01-16 18:55:23,721 - INFO - --- DETEKSI BARU: 'SISWA-2-696a20d0c33fb' ---
+2026-01-16 18:55:23,726 - INFO - User Berhasil Diidentifikasi: siswa 2 (siswa)
+2026-01-16 18:55:23,727 - INFO - Memproses Absen MASUK untuk siswa 2 | Status: terlambat
+2026-01-16 18:55:23,728 - INFO - Hasil: BERHASIL MASUK (terlambat)
+2026-01-16 18:55:49,532 - INFO - --- DETEKSI BARU: 'GURU-11-696a25e811c6f' ---
+2026-01-16 18:55:49,538 - INFO - User Berhasil Diidentifikasi: guru 1 (guru)
+2026-01-16 18:55:49,538 - INFO - Memproses Absen MASUK untuk guru 1 | Status: terlambat
+2026-01-16 18:55:49,541 - INFO - Hasil: BERHASIL MASUK (terlambat)
+2026-01-16 19:54:20,904 - INFO - Kamera Aktif: 1280x720
+2026-01-16 19:54:20,966 - INFO - --- SCANNER SIAP DIGUNAKAN ---
+2026-01-16 19:54:58,951 - INFO - Kamera Aktif: 1280x720
+2026-01-16 19:54:59,042 - INFO - --- SCANNER SIAP DIGUNAKAN ---
+2026-01-16 20:09:18,814 - INFO - --- DETEKSI BARU: 'SISWA-1-696a09826d84a' ---
+2026-01-16 20:09:18,925 - INFO - User Berhasil Diidentifikasi: siswa 1 (siswa)
+2026-01-16 20:09:18,929 - INFO - Memproses Absen MASUK untuk siswa 1 | Status: terlambat
+2026-01-16 20:09:18,948 - INFO - Hasil: BERHASIL MASUK (terlambat)
+2026-01-16 20:09:25,768 - INFO - --- DETEKSI BARU: 'SISWA-1-696a09826d84a' ---
+2026-01-16 20:09:25,772 - INFO - User Berhasil Diidentifikasi: siswa 1 (siswa)
+2026-01-16 20:09:25,773 - INFO - Scan ditolak: Belum 1 jam (Wait: 59m)
+2026-01-16 20:09:28,725 - INFO - --- DETEKSI BARU: 'SISWA-1-696a09826d84a' ---
+2026-01-16 20:09:28,728 - INFO - User Berhasil Diidentifikasi: siswa 1 (siswa)
+2026-01-16 20:09:28,731 - INFO - Scan ditolak: Belum 1 jam (Wait: 59m)
+2026-01-16 20:22:04,679 - INFO - Kamera Aktif: 1280x720
+2026-01-16 20:22:04,731 - INFO - --- SCANNER SIAP DIGUNAKAN ---

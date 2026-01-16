@@ -87,7 +87,39 @@ def process_qr_code(qr_data):
         # --- LOGIKA ABSEN PULANG ---
         if existing_absensi:
             # Jika sudah scan masuk tapi BELUM scan pulang
+            # Jika sudah scan masuk tapi BELUM scan pulang
             if existing_absensi['jam_keluar'] is None:
+                # --- CEK WAKTU PULANG (JEDA 1 JAM) ---
+                jam_masuk = existing_absensi['jam_masuk']
+                
+                # Konversi jam_masuk ke detik sejak tengah malam
+                seconds_masuk = 0
+                if hasattr(jam_masuk, 'total_seconds'):
+                    seconds_masuk = jam_masuk.total_seconds()
+                else:
+                    # Fallback jika format string "HH:MM:SS"
+                    try:
+                        t_str = str(jam_masuk)
+                        h, m, s = map(int, t_str.split(':'))
+                        seconds_masuk = h * 3600 + m * 60 + s
+                    except:
+                        seconds_masuk = 0 # Ignore check if parse fails
+
+                # Konversi waktu sekarang ke detik sejak tengah malam
+                seconds_now = now.hour * 3600 + now.minute * 60 + now.second
+                
+                diff_seconds = seconds_now - seconds_masuk
+                
+                if diff_seconds < 3600: # Kurang dari 1 jam (3600 detik)
+                    wait_minutes = int((3600 - diff_seconds) / 60)
+                    logging.info(f"Scan ditolak: Belum 1 jam (Wait: {wait_minutes}m)")
+                    return {
+                        'success': True,
+                        'already_present': True, # Tampilkan sebagai Info (Orange)
+                        'message': f"BARU SAJA MASUK. TUNGGU {wait_minutes} MENIT UNTUK PULANG.",
+                        'user': user
+                    }
+
                 logging.info(f"Absen Masuk Ditemukan. Memproses Absen PULANG untuk {user['nama_lengkap']}...")
                 
                 cursor.execute(
@@ -156,7 +188,7 @@ def draw_modern_ui(frame, is_locked, message="", color=(0,0,0), result_cache=Non
     
     # 1. Premium Header (Navy)
     cv2.rectangle(frame, (0, 0), (w, 80), (60, 30, 20), -1) 
-    cv2.putText(frame, "E-ABSENSI SYSTEM", (30, 45), font, 1, (255, 255, 255), 3)
+    cv2.putText(frame, "Absensi Digital", (30, 45), font, 1, (255, 255, 255), 3)
     cv2.putText(frame, "Status: Scanner Aktif & Siap", (32, 70), font, 0.5, (180, 180, 180), 1)
 
     # 2. Scanning Box Components
@@ -212,29 +244,42 @@ def draw_modern_ui(frame, is_locked, message="", color=(0,0,0), result_cache=Non
         
         # Line 2: Status & Jam
         if result_cache and not result_cache.get('already_present') and result_cache.get('success'):
-            status_text = f"Status: {result_cache.get('status_label')}"
-            jam_text = f"Waktu: {result_cache.get('jam', result_cache.get('status'))}" # Fallback to status if jam is not there
+            status_label = result_cache.get('status_label') or "BELUM ABSEN"
+            status_text = f"Status: {status_label.upper()}"
+            jam_text = f"Waktu: {result_cache.get('jam', '--:--')}"
             
             # Show Type (Masuk/Pulang)
             if result_cache.get('type') == 'pulang':
-                cv2.putText(frame, "KEPULANGAN DICATAT", (cx1+45, cy1+200), font, 0.9, (200, 100, 0), 2)
-                cv2.putText(frame, jam_text, (cx1+45, cy1+250), font, 0.7, (100, 100, 100), 1)
+                cv2.rectangle(frame, (cx1+45, cy1+175), (cx1+250, cy1+215), (255, 230, 200), -1)
+                cv2.putText(frame, "PULANG", (cx1+55, cy1+205), font, 0.8, (180, 100, 0), 2)
+                cv2.putText(frame, jam_text, (cx1+45, cy1+255), font, 0.7, (80, 80, 80), 1)
             else:
                 cv2.putText(frame, status_text, (cx1+45, cy1+200), font, 0.9, color, 2)
+                cv2.putText(frame, jam_text, (cx1+45, cy1+250), font, 0.7, (80, 80, 80), 1)
             
         cv2.putText(frame, "Sistem terkunci sementara...", (cx1+45, cy2-35), font, 0.5, (120, 120, 120), 1)
 
 def main():
-    cap = cv2.VideoCapture(0)
+    # Menggunakan cv2.CAP_DSHOW untuk mengatasi error MSMF di Windows
+    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    
+    # Set Resolution (Aktifkan kembali aman dengan DSHOW)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
     
+    if not cap.isOpened():
+        logging.error("GAGAL: Tidak bisa membuka kamera. Pastikan kamera terpasang dan tidak digunakan aplikasi lain.")
+        print("\n[ERROR] Tidak bisa akses kamera. Coba tutup aplikasi lain yang menggunakan kamera.\n")
+        return
+
     actual_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     actual_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     logging.info(f"Kamera Aktif: {actual_w}x{actual_h}")
     
     window_name = "Presence Scanner v2.0"
     cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+    # Force window to appear immediately
+    cv2.resizeWindow(window_name, 800, 600)
     
     is_locked = False
     locked_until = 0
@@ -244,19 +289,31 @@ def main():
     result_cache = None
     
     logging.info("--- SCANNER SIAP DIGUNAKAN ---")
+    print("Tekan 'q' atau 'Esc' untuk keluar.")
+    print("Memulai loop kamera...")
+
+    frame_count = 0
     
     while True:
         current_time = time.time()
         
         if not is_locked:
+            # print("Membaca frame...", end='\r')
             ret, frame = cap.read()
-            if not ret: break
+            if not ret: 
+                logging.error("Gagal membaca frame dari kamera. Exiting...")
+                print("\nError: Stream kamera terputus.")
+                break
+            
+            # if frame_count % 30 == 0:
+            #     print(f"Frame {frame_count} berhasil dibaca.")
             
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             decoded_objects = decode(gray)
             display_frame = cv2.flip(frame, 1)
             
             if decoded_objects:
+                print(f"\nQR Terdeteksi! Jumlah: {len(decoded_objects)}")
                 for obj in decoded_objects:
                     qr_data = obj.data.decode('utf-8')
                     result = process_qr_code(qr_data)
@@ -297,6 +354,7 @@ def main():
         
         draw_modern_ui(display_frame, is_locked, message, message_color, result_cache)
         cv2.imshow(window_name, display_frame)
+        frame_count += 1
         
         if cv2.waitKey(1) & 0xFF in [ord('q'), 27]: break
             
