@@ -164,7 +164,7 @@ File `database/schema.sql` dengan tabel-tabel:
 ## 📁 Struktur Folder
 
 ```
-absensi-digital/
+absensi digital 3/
 ├── app/
 │   ├── auth/
 │   │   ├── api-login.php ✅

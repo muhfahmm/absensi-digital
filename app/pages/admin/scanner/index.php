@@ -158,153 +158,46 @@ function showLockOverlay() {
 
 function startScanner() {
     const startBtn = document.getElementById('start-scan');
-    const stopBtn = document.getElementById('stop-scan');
     const statusDiv = document.getElementById('scan-status');
-    
-    if (isScanning) {
-        alert('⚠️ Scanner sudah berjalan!');
-        return;
-    }
-    
-    if (html5QrCode) {
-        try {
-            html5QrCode.clear();
-        } catch(e) {
-            console.log('Clear error:', e);
-        }
-    }
-    
-    isProcessing = false;
-    detectionCount = 0;
-    html5QrCode = new Html5Qrcode("qr-reader");
-    
-    const config = {
-        fps: 10,
-        qrbox: { width: 350, height: 350 }
-    };
-    
+
     statusDiv.innerHTML = `
-        <div class="bg-yellow-600 bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm flex items-center">
-            <div class="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></div>
-            <span>Meminta akses kamera...</span>
+        <div class="bg-blue-600 bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm flex items-center animate-pulse">
+            <div class="w-2 h-2 bg-white rounded-full mr-2"></div>
+            <span>Membuka Scanner Python...</span>
         </div>
     `;
-    
-    html5QrCode.start(
-        { facingMode: "environment" },
-        config,
-        (decodedText, decodedResult) => {
-            detectionCount++;
-            console.log(`Detection #${detectionCount}: ${decodedText}`);
-            
-            // HANYA proses deteksi pertama
-            if (detectionCount > 1) {
-                console.log(`❌ IGNORED - Already locked`);
-                return;
+
+    fetch('<?= base_url('app/pages/admin/scanner/launch_python.php') ?>')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                statusDiv.innerHTML = `
+                    <div class="bg-green-600 bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm flex items-center">
+                        <div class="w-2 h-2 bg-white rounded-full mr-2"></div>
+                        <span>✅ Scanner Desktop Berjalan! Silakan cek taskbar.</span>
+                    </div>
+                `;
+                console.log('Scanner launched:', data);
+                
+                // Auto reload recent scans every 5 seconds to show updates from python
+                setInterval(loadRecentScans, 5000);
+            } else {
+                alert('Gagal membuka scanner: ' + data.message);
+                statusDiv.innerHTML = `
+                    <div class="bg-red-600 bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm flex items-center">
+                        <span>❌ Gagal: ${data.message}</span>
+                    </div>
+                `;
             }
-            
-            if (isProcessing) {
-                console.log('❌ IGNORED - Already processing');
-                return;
-            }
-            
-            isProcessing = true;
-            console.log(`✅ 🔒 LOCKED! First detection accepted`);
-            
-            // BEEP SOUND
-            try {
-                playBeep();
-            } catch(e) {
-                console.log('Beep error:', e);
-            }
-            
-            // VISUAL OVERLAY
-            showLockOverlay();
-            
-            // Update UI IMMEDIATELY
-            statusDiv.innerHTML = `
-                <div class="bg-blue-600 bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm flex items-center animate-pulse">
-                    <div class="w-3 h-3 bg-white rounded-full mr-2"></div>
-                    <span style="font-weight: bold;">🔒 LOCKED! Memproses...</span>
-                </div>
-            `;
-            
-            // FREEZE SCANNER - set FPS to 0
-            try {
-                html5QrCode.applyVideoConstraints({
-                    frameRate: { ideal: 0, max: 0 }
-                });
-            } catch(e) {
-                console.log('Freeze error:', e);
-            }
-            
-            // CLEAR after 500ms
-            setTimeout(() => {
-                html5QrCode.clear().then(() => {
-                    console.log('✅ Scanner cleared');
-                    isScanning = false;
-                    startBtn.classList.remove('hidden');
-                    stopBtn.classList.add('hidden');
-                    
-                    statusDiv.innerHTML = `
-                        <div class="bg-green-600 bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm flex items-center">
-                            <div class="w-2 h-2 bg-white rounded-full mr-2"></div>
-                            <span>✅ QR Code berhasil di-scan!</span>
-                        </div>
-                    `;
-                    
-                    // Process QR
-                    processQRCode(decodedText);
-                }).catch(err => {
-                    console.error('Clear error:', err);
-                    processQRCode(decodedText);
-                });
-            }, 500);
-        },
-        (errorMessage) => {
-            // Ignore scan errors
-        }
-    ).then(() => {
-        isScanning = true;
-        startBtn.classList.add('hidden');
-        stopBtn.classList.remove('hidden');
-        statusDiv.innerHTML = `
-            <div class="bg-green-600 bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm flex items-center">
-                <div class="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></div>
-                <span>✅ Scanning aktif... Arahkan ke QR Code</span>
-            </div>
-        `;
-        
-        // Alert konfirmasi
-        console.log('✅ Scanner berhasil dimulai!');
-    }).catch((err) => {
-        console.error('❌ Error starting scanner:', err);
-        statusDiv.innerHTML = `
-            <div class="bg-red-600 bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm flex items-center">
-                <div class="w-2 h-2 bg-white rounded-full mr-2"></div>
-                <span>❌ Gagal akses kamera</span>
-            </div>
-        `;
-        alert('❌ Gagal mengakses kamera.\n\nPastikan:\n1. Browser memiliki izin kamera\n2. Kamera tidak digunakan aplikasi lain\n3. Menggunakan HTTPS atau localhost');
-    });
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Error connecting to server');
+        });
 }
 
 function stopScanner() {
-    if (html5QrCode && isScanning) {
-        html5QrCode.stop().then(() => {
-            isScanning = false;
-            document.getElementById('start-scan').classList.remove('hidden');
-            document.getElementById('stop-scan').classList.add('hidden');
-            document.getElementById('scan-status').innerHTML = `
-                <div class="bg-black bg-opacity-70 text-white px-4 py-2 rounded-lg text-sm flex items-center">
-                    <div class="w-2 h-2 bg-gray-500 rounded-full mr-2"></div>
-                    <span>Scanner stopped</span>
-                </div>
-            `;
-        }).catch((err) => {
-            console.error('Error stopping scanner:', err);
-        });
-    }
+    alert('Silakan tutup jendela Python Scanner manual (Tekan Q pada window kamera).');
 }
 
 function processQRCode(qrData) {

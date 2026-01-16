@@ -19,7 +19,7 @@ Berikut adalah rancangan struktur folder yang dimodifikasi agar lebih rapi, tero
 ## 🌳 Detail Struktur File
 
 ```text
-absensi digital/
+absensi digital 3/
 ├── app/                     # Folder utama aplikasi
 │   ├── config/
 │   │   └── database.php     # Koneksi ke MySQL

@@ -5,7 +5,7 @@
 ### ✅ Solusi & Testing:
 
 #### 1. **Test dengan QR Code Generator**
-Buka file: `http://localhost/absensi%20digital/test-qr.html`
+Buka file: `http://localhost/absensi-digital%203/test-qr.html`
 
 **Langkah:**
 1. Generate QR code dengan kode yang ada di database (contoh: `SISWA-001`)
@@ -55,7 +55,7 @@ Contoh: `SISWA-12345-65a1b2c3d4e5f`
 4. Gunakan kertas putih
 
 **D. Test Scanner:**
-1. Buka: `http://localhost/absensi%20digital/app/pages/admin/scanner/index.php`
+1. Buka: `http://localhost/absensi-digital%203/app/pages/admin/scanner/index.php`
 2. Klik "Mulai Scan"
 3. Izinkan akses kamera
 4. Arahkan ke QR code yang sudah di-print

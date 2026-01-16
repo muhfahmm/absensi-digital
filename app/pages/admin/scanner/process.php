@@ -66,6 +66,12 @@ try {
         $status = 'terlambat';
     }
     
+    // Ensure role matches ENUM exactly
+    $valid_roles = ['siswa', 'guru', 'karyawan'];
+    if (!in_array($user['role'], $valid_roles)) {
+        throw new Exception("Invalid role: " . $user['role']);
+    }
+
     $stmt = $pdo->prepare("
         INSERT INTO tb_absensi (user_id, role, tanggal, jam_masuk, status, created_at) 
         VALUES (?, ?, ?, ?, ?, NOW())
