@@ -49,6 +49,7 @@ export default function App() {
     const [currentView, setCurrentView] = useState('login'); // login, dashboard, scanner, kehadiran, profil, pembayaran, pengumuman
     const [userData, setUserData] = useState(null);
     const [attendanceStatus, setAttendanceStatus] = useState(null);
+    const [attendanceHistory, setAttendanceHistory] = useState({ history: [], summary: null });
 
     // Login State
     const [username, setUsername] = useState('');
@@ -86,7 +87,29 @@ export default function App() {
         if (userData && currentView === 'dashboard') {
             fetchAttendanceStatus();
         }
+        if (userData && currentView === 'kehadiran') {
+            fetchAttendanceHistory();
+        }
     }, [userData, currentView]);
+
+    const fetchAttendanceHistory = async () => {
+        try {
+            const response = await fetch(`${BASE_URL}/app/api/attendance_history.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: userData.user.id,
+                    role: userData.role
+                }),
+            });
+            const result = await response.json();
+            if (result.success) {
+                setAttendanceHistory(result.data);
+            }
+        } catch (error) {
+            console.error("Fetch history error:", error);
+        }
+    };
 
     const fetchAttendanceStatus = async () => {
         try {
@@ -171,7 +194,7 @@ export default function App() {
     };
 
     // View Components
-    const ScreenTemplate = ({ title, subtitle, showBack = true, children }) => (
+    const ScreenTemplate = ({ title, subtitle, showBack = true, children, headerOverlap = true }) => (
         <View style={[styles.dashboardWrapper, { backgroundColor: theme.bg }]}>
             <View style={styles.webHeader}>
                 <View style={styles.headerFlex}>
@@ -187,7 +210,7 @@ export default function App() {
                 </View>
             </View>
             <ScrollView style={styles.scrollView} bounces={false}>
-                <View style={[styles.mainContent, { paddingBottom: 120 }]}>
+                <View style={[styles.mainContent, { paddingBottom: 120 }, !headerOverlap && { marginTop: 0 }]}>
                     {children}
                 </View>
             </ScrollView>
@@ -456,9 +479,9 @@ export default function App() {
         const user = userData?.user;
         const role = userData?.role;
         return (
-            <ScreenTemplate title="Profil Saya" subtitle="Informasi data pribadi">
+            <ScreenTemplate title="Profil Saya" subtitle="Informasi data pribadi" headerOverlap={false}>
                 {/* Main Profile Image Card */}
-                <View style={[styles.webStatusContainer, { backgroundColor: theme.card, alignItems: 'center', padding: 40, marginTop: 10 }]}>
+                <View style={[styles.webStatusContainer, { backgroundColor: theme.card, alignItems: 'center', padding: 40, marginTop: 20 }]}>
                     <View style={[styles.avatarCircleLarge, { borderColor: 'white', elevation: 10, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 }]}>
                         {user.foto_profil ? (
                             <Image source={{ uri: `${BASE_URL}/uploads/${role}/${user.foto_profil}` }} style={styles.avatarImgLarge} />
@@ -486,6 +509,72 @@ export default function App() {
             </ScreenTemplate>
         );
     };
+
+    const renderKehadiran = () => {
+        const summary = attendanceHistory.summary || { hadir: 0, terlambat: 0, izin: 0, sakit: 0, alpa: 0 };
+        const history = attendanceHistory.history || [];
+
+        return (
+            <ScreenTemplate title="Riwayat Kehadiran" subtitle="Data absensi bulan ini" headerOverlap={false}>
+                {/* Summary Section */}
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 20 }}>
+                    <SummaryMiniCard label="Hadir" value={summary.hadir} color="#16a34a" theme={theme} />
+                    <SummaryMiniCard label="Telat" value={summary.terlambat} color="#ea580c" theme={theme} />
+                    <SummaryMiniCard label="Izin" value={summary.izin} color="#3b82f6" theme={theme} />
+                    <SummaryMiniCard label="Sakit" value={summary.sakit} color="#7c3aed" theme={theme} />
+                </View>
+
+                {/* History List */}
+                <View style={{ marginTop: 25 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+                        <Text style={{ color: theme.text, fontSize: 18, fontWeight: 'bold' }}>Aktivitas Terbaru</Text>
+                        <Text style={{ color: theme.primary, fontSize: 13, fontWeight: '600' }}>30 Hari Terakhir</Text>
+                    </View>
+
+                    {history.length === 0 ? (
+                        <View style={{ padding: 40, alignItems: 'center' }}>
+                            <WebIcon name="clipboard" size={40} color={theme.textMuted} />
+                            <Text style={{ color: theme.textMuted, marginTop: 15 }}>Belum ada riwayat absensi</Text>
+                        </View>
+                    ) : (
+                        history.map((item, index) => (
+                            <View key={index} style={[styles.infoItemCard, { backgroundColor: theme.card, marginBottom: 15, padding: 16 }]}>
+                                <View style={{ flex: 1 }}>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <Text style={{ color: theme.text, fontSize: 16, fontWeight: 'bold' }}>
+                                            {new Date(item.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                        </Text>
+                                        <View style={{ backgroundColor: item.status === 'hadir' ? '#dcfce7' : (item.status === 'terlambat' ? '#ffedd5' : '#f1f5f9'), paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
+                                            <Text style={{ color: item.status === 'hadir' ? '#16a34a' : (item.status === 'terlambat' ? '#ea580c' : '#64748b'), fontSize: 11, fontWeight: 'bold' }}>
+                                                {item.status.toUpperCase()}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                    <View style={{ flexDirection: 'row', marginTop: 12 }}>
+                                        <View style={{ marginRight: 25 }}>
+                                            <Text style={{ color: theme.textMuted, fontSize: 11 }}>MASUK</Text>
+                                            <Text style={{ color: theme.text, fontSize: 14, fontWeight: '700', marginTop: 2 }}>{item.jam_masuk ? item.jam_masuk.substring(0, 5) : '--:--'}</Text>
+                                        </View>
+                                        <View>
+                                            <Text style={{ color: theme.textMuted, fontSize: 11 }}>PULANG</Text>
+                                            <Text style={{ color: theme.text, fontSize: 14, fontWeight: '700', marginTop: 2 }}>{item.jam_keluar ? item.jam_keluar.substring(0, 5) : '--:--'}</Text>
+                                        </View>
+                                    </View>
+                                </View>
+                            </View>
+                        ))
+                    )}
+                </View>
+            </ScreenTemplate>
+        );
+    };
+
+    const SummaryMiniCard = ({ label, value, color, theme }) => (
+        <View style={{ width: (width - 60) / 2, backgroundColor: theme.card, padding: 20, borderRadius: 20, marginBottom: 15, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2 }}>
+            <Text style={{ color: theme.textMuted, fontSize: 12, fontWeight: 'bold' }}>{label.toUpperCase()}</Text>
+            <Text style={{ color: color, fontSize: 24, fontWeight: '900', marginTop: 4 }}>{value}</Text>
+        </View>
+    );
 
     const InfoCard = ({ icon, iconBg, iconColor, label, value, theme, isDarkMode, mono }) => (
         <View style={[styles.infoItemCard, { backgroundColor: theme.card }]}>
@@ -526,7 +615,7 @@ export default function App() {
             {currentView === 'dashboard' && renderDashboard()}
             {currentView === 'scanner' && renderScanner()}
             {currentView === 'profil' && renderProfil()}
-            {currentView === 'kehadiran' && renderPlaceholder('Kehadiran')}
+            {currentView === 'kehadiran' && renderKehadiran()}
             {currentView === 'pembayaran' && renderPlaceholder('Pembayaran')}
             {currentView === 'pengumuman' && renderPlaceholder('Pengumuman')}
         </SafeAreaView>

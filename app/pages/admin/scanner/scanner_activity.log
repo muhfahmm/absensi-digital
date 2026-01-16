@@ -33,3 +33,7 @@
 2026-01-16 14:49:59,788 - INFO - User Berhasil Diidentifikasi: siswa 1 (siswa)
 2026-01-16 14:49:59,790 - INFO - Memproses Absen MASUK untuk siswa 1 | Status: terlambat
 2026-01-16 14:49:59,793 - INFO - Hasil: BERHASIL MASUK (terlambat)
+2026-01-16 14:52:22,959 - INFO - --- DETEKSI BARU: 'SISWA-1-6969e2164d12c' ---
+2026-01-16 14:52:22,979 - INFO - User Berhasil Diidentifikasi: siswa 1 (siswa)
+2026-01-16 14:52:22,984 - INFO - Absen Masuk Ditemukan. Memproses Absen PULANG untuk siswa 1...
+2026-01-16 14:52:22,991 - INFO - Hasil: BERHASIL PULANG (14:52:22)
