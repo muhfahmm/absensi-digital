@@ -40,7 +40,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         // 2. Cek Login Siswa
-        $stmt = $pdo->prepare("SELECT * FROM tb_siswa WHERE nis = :user");
+        $stmt = $pdo->prepare("SELECT s.*, k.nama_kelas 
+                              FROM tb_siswa s 
+                              LEFT JOIN tb_kelas k ON s.id_kelas = k.id 
+                              WHERE s.nis = :user");
         $stmt->execute([':user' => $username]);
         $siswa = $stmt->fetch();
 
@@ -53,7 +56,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     'nama' => $siswa['nama_lengkap'],
                     'nis' => $siswa['nis'],
                     'kelas_id' => $siswa['id_kelas'],
-                    'kode_qr' => $siswa['kode_qr']
+                    'nama_kelas' => $siswa['nama_kelas'] ?? '-',
+                    'kode_qr' => $siswa['kode_qr'],
+                    'foto_profil' => $siswa['foto_profil']
                 ]
             ]);
             exit;
@@ -72,7 +77,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     'id' => $guru['id'],
                     'nama' => $guru['nama_lengkap'],
                     'nip' => $guru['nip'],
-                    'kode_qr' => $guru['kode_qr']
+                    'kode_qr' => $guru['kode_qr'],
+                    'foto_profil' => $guru['foto_profil']
                 ]
             ]);
             exit;
