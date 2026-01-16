@@ -285,15 +285,28 @@ function loadRecentScans() {
             const container = document.getElementById('recent-scans');
             if (data.length > 0) {
                 container.innerHTML = data.map(scan => `
-                    <div class="p-4 hover:bg-gray-50 transition">
+                    <div class="p-5 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition">
                         <div class="flex justify-between items-center">
-                            <div>
-                                <div class="font-semibold text-gray-900">${scan.nama}</div>
-                                <div class="text-sm text-gray-500">${scan.role} • ${scan.waktu}</div>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-lg font-bold text-gray-900">${scan.nama}</span>
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${scan.type === 'Masuk' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}">
+                                        ${scan.type}
+                                    </span>
+                                </div>
+                                <div class="text-sm text-gray-500 font-medium">
+                                    ${scan.role} • ${scan.waktu}
+                                </div>
                             </div>
-                            <span class="px-3 py-1 ${scan.status === 'Hadir' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'} rounded-full text-xs font-semibold">
-                                ${scan.status}
-                            </span>
+                            <div class="flex flex-col items-end gap-2">
+                                <span class="px-4 py-1.5 rounded-full text-xs font-bold ${
+                                    scan.status === 'Hadir' 
+                                    ? 'bg-green-100 text-green-700' 
+                                    : (scan.status === 'Terlambat' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700')
+                                }">
+                                    ${scan.type === 'Pulang' ? 'Selesai' : scan.status}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 `).join('');

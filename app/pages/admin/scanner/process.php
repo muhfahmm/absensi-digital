@@ -43,46 +43,61 @@ try {
     
     // Check if already present today
     $today = date('Y-m-d');
-    $stmt = $pdo->prepare("SELECT id FROM tb_absensi WHERE user_id = ? AND role = ? AND tanggal = ?");
+    $stmt = $pdo->prepare("SELECT id, jam_masuk, jam_keluar FROM tb_absensi WHERE user_id = ? AND role = ? AND tanggal = ?");
     $stmt->execute([$user['id'], $user['role'], $today]);
     $existing = $stmt->fetch();
     
+    $now_time = date('H:i:s');
+
     if ($existing) {
-        echo json_encode([
-            'success' => false, 
-            'message' => 'Sudah absen hari ini',
-            'nama' => $user['nama_lengkap'],
-            'role' => $user['role']
-        ]);
-        exit;
+        // Jika sudah scan masuk tapi BELUM scan pulang
+        if ($existing['jam_keluar'] == null) {
+            $stmt = $pdo->prepare("UPDATE tb_absensi SET jam_keluar = ? WHERE id = ?");
+            $stmt->execute([$now_time, $existing['id']]);
+
+            echo json_encode([
+                'success' => true, 
+                'type' => 'pulang',
+                'message' => 'Presensi Pulang Diterima',
+                'nama' => $user['nama_lengkap'],
+                'role' => $user['role'],
+                'jam' => $now_time
+            ]);
+            exit;
+        } else {
+            // Jika sudah scan masuk DAN sudah scan pulang
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Presensi sudah lengkap hari ini',
+                'nama' => $user['nama_lengkap'],
+                'role' => $user['role']
+            ]);
+            exit;
+        }
     }
     
-    // Insert absensi
-    $jam_masuk = date('H:i:s');
+    // Insert absensi MASUK
     $status = 'hadir';
+    # Aturan Telat: Senin 06:45, lainnya 07:00 (Matching Python Scanner)
+    $day_of_week = date('N'); // 1 (Mon) to 7 (Sun)
+    $cutoff = ($day_of_week == 1) ? '06:45:00' : '07:00:00';
     
-    // Check if late (after 07:30)
-    if (strtotime($jam_masuk) > strtotime('07:30:00')) {
+    if (strtotime($now_time) > strtotime($cutoff)) {
         $status = 'terlambat';
     }
     
-    // Ensure role matches ENUM exactly
-    $valid_roles = ['siswa', 'guru', 'karyawan'];
-    if (!in_array($user['role'], $valid_roles)) {
-        throw new Exception("Invalid role: " . $user['role']);
-    }
-
     $stmt = $pdo->prepare("
         INSERT INTO tb_absensi (user_id, role, tanggal, jam_masuk, status, created_at) 
         VALUES (?, ?, ?, ?, ?, NOW())
     ");
-    $stmt->execute([$user['id'], $user['role'], $today, $jam_masuk, $status]);
+    $stmt->execute([$user['id'], $user['role'], $today, $now_time, $status]);
     
     echo json_encode([
         'success' => true,
+        'type' => 'masuk',
         'nama' => $user['nama_lengkap'],
         'role' => $user['role'],
-        'jam_masuk' => $jam_masuk,
+        'jam' => $now_time,
         'status' => $status
     ]);
     

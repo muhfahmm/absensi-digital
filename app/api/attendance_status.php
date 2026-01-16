@@ -27,6 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 'data' => [
                     'status' => $absensi['status'],
                     'jam_masuk' => $absensi['jam_masuk'],
+                    'jam_keluar' => $absensi['jam_keluar'],
                     'tanggal' => $absensi['tanggal']
                 ]
             ]);

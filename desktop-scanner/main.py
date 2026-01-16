@@ -73,26 +73,50 @@ def process_qr_code(qr_data):
             
         logging.info(f"User Berhasil Diidentifikasi: {user['nama_lengkap']} ({user['role']})")
 
-        # 2. Check Duplikasi
+        # 2. Check Absensi Hari Ini (Masuk/Pulang)
         today = datetime.now().strftime('%Y-%m-%d')
         cursor.execute(
-            "SELECT id FROM tb_absensi WHERE user_id = %s AND role = %s AND tanggal = %s",
+            "SELECT id, jam_masuk, jam_keluar FROM tb_absensi WHERE user_id = %s AND role = %s AND tanggal = %s",
             (user['id'], user['role'], today)
         )
-        if cursor.fetchone():
-            logging.info(f"Hasil: DUPLIKAT (User sudah absen hari ini)")
-            return {
-                'success': True,
-                'already_present': True,
-                'message': f"PRESENSI '{user['nama_lengkap']}' SUDAH DITERIMA SEBELUMNYA",
-                'user': user
-            }
-            
-        # 3. Logic Absensi
-        now = datetime.now()
-        jam_masuk = now.strftime('%H:%M:%S')
-        status = 'hadir'
+        existing_absensi = cursor.fetchone()
         
+        now = datetime.now()
+        timestamp_sekarang = now.strftime('%H:%M:%S')
+
+        # --- LOGIKA ABSEN PULANG ---
+        if existing_absensi:
+            # Jika sudah scan masuk tapi BELUM scan pulang
+            if existing_absensi['jam_keluar'] is None:
+                logging.info(f"Absen Masuk Ditemukan. Memproses Absen PULANG untuk {user['nama_lengkap']}...")
+                
+                cursor.execute(
+                    "UPDATE tb_absensi SET jam_keluar = %s WHERE id = %s",
+                    (timestamp_sekarang, existing_absensi['id'])
+                )
+                conn.commit()
+                
+                logging.info(f"Hasil: BERHASIL PULANG ({timestamp_sekarang})")
+                return {
+                    'success': True,
+                    'type': 'pulang',
+                    'message': f"PRESENSI PULANG \"{user['nama_lengkap']}\" DITERIMA",
+                    'status_label': "PULANG",
+                    'jam': timestamp_sekarang,
+                    'user': user
+                }
+            else:
+                # Jika sudah scan masuk DAN sudah scan pulang
+                logging.info(f"Hasil: DUPLIKAT (User sudah absen masuk & pulang)")
+                return {
+                    'success': True,
+                    'already_present': True,
+                    'message': f"PRESENSI '{user['nama_lengkap']}' SUDAH LENGKAP HARI INI",
+                    'user': user
+                }
+            
+        # --- LOGIKA ABSEN MASUK (Jika belum ada record hari ini) ---
+        status = 'hadir'
         # Aturan Telat: Senin 06:45, lainnya 07:00
         cutoff_h, cutoff_m = (6, 45) if now.weekday() == 0 else (7, 0)
         cutoff_time = now.replace(hour=cutoff_h, minute=cutoff_m, second=0, microsecond=0)
@@ -100,19 +124,19 @@ def process_qr_code(qr_data):
         if now > cutoff_time:
             status = 'terlambat'
         
-        # 4. Insert ke Database
-        logging.info(f"Menyimpan ke Database: {user['nama_lengkap']} | Status: {status}")
+        logging.info(f"Memproses Absen MASUK untuk {user['nama_lengkap']} | Status: {status}")
         cursor.execute(
             "INSERT INTO tb_absensi (user_id, role, tanggal, jam_masuk, status, created_at) VALUES (%s, %s, %s, %s, %s, NOW())",
-            (user['id'], user['role'], today, jam_masuk, status)
+            (user['id'], user['role'], today, timestamp_sekarang, status)
         )
         conn.commit()
         
-        logging.info(f"Hasil: BERHASIL DISIMPAN ({status})")
+        logging.info(f"Hasil: BERHASIL MASUK ({status})")
         return {
             'success': True,
+            'type': 'masuk',
             'already_present': False,
-            'message': f"PRESENSI MASUK/KELUAR \"{user['nama_lengkap']}\" DITERIMA",
+            'message': f"PRESENSI MASUK \"{user['nama_lengkap']}\" DITERIMA",
             'status_label': status.upper(),
             'status': status,
             'user': user
@@ -164,7 +188,7 @@ def draw_modern_ui(frame, is_locked, message="", color=(0,0,0), result_cache=Non
 
     # 3. Result Overlay (Popup Card)
     if is_locked:
-        cw, ch = 650, 300
+        cw, ch = 650, 320
         cx1, cy1 = (w - cw) // 2, (h - ch) // 2
         cx2, cy2 = cx1 + cw, cy1 + ch
         
@@ -183,17 +207,20 @@ def draw_modern_ui(frame, is_locked, message="", color=(0,0,0), result_cache=Non
             
         cv2.putText(frame, header_text, (cx1+45, cy1+65), font, 1.4, color, 4)
         
-        # First Line: PRESENSI MASUK/KELUAR "nama" DITERIMA
-        # Using a slightly smaller font to fit names
+        # Line 1: Pesan (Diterima)
         cv2.putText(frame, message, (cx1+45, cy1+140), font, 0.75, (40, 40, 40), 2)
         
-        # Second Line: Status Label
+        # Line 2: Status & Jam
         if result_cache and not result_cache.get('already_present') and result_cache.get('success'):
             status_text = f"Status: {result_cache.get('status_label')}"
-            cv2.putText(frame, status_text, (cx1+45, cy1+200), font, 0.9, color, 2)
-        elif result_cache and result_cache.get('already_present'):
-            # For double scans, just show the message line
-            pass
+            jam_text = f"Waktu: {result_cache.get('jam', result_cache.get('status'))}" # Fallback to status if jam is not there
+            
+            # Show Type (Masuk/Pulang)
+            if result_cache.get('type') == 'pulang':
+                cv2.putText(frame, "KEPULANGAN DICATAT", (cx1+45, cy1+200), font, 0.9, (200, 100, 0), 2)
+                cv2.putText(frame, jam_text, (cx1+45, cy1+250), font, 0.7, (100, 100, 100), 1)
+            else:
+                cv2.putText(frame, status_text, (cx1+45, cy1+200), font, 0.9, color, 2)
             
         cv2.putText(frame, "Sistem terkunci sementara...", (cx1+45, cy2-35), font, 0.5, (120, 120, 120), 1)
 
@@ -239,19 +266,22 @@ def main():
                             message = result['message']
                             message_color = (0, 165, 255) # Orange for info
                         else:
-                            status = result.get('status')
+                            # Masuk atau Pulang
+                            res_type = result.get('type')
                             message = result['message']
                             
-                            # Logic Warna sesuai request:
-                            # "jika tidak terlambat berwarna hijau" (0, 200, 0)
-                            # "jika terlambat berwarna merah" (0, 0, 220)
-                            if status == 'terlambat':
-                                message_color = (0, 0, 220) # RED (BGR)
+                            if res_type == 'pulang':
+                                message_color = (255, 100, 0) # Blue-ish for Pulang
                             else:
-                                message_color = (0, 200, 0) # GREEN (BGR)
+                                status = result.get('status')
+                                # Logic Warna sesuai request sebelumnya
+                                if status == 'terlambat':
+                                    message_color = (0, 0, 220) # RED
+                                else:
+                                    message_color = (0, 200, 0) # GREEN
                     else:
                         message = result['message']
-                        message_color = (0, 0, 230) # Red for system error
+                        message_color = (0, 0, 230) # Red
                     
                     is_locked = True
                     locked_until = current_time + 3.0

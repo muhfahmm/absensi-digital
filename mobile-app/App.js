@@ -343,19 +343,40 @@ export default function App() {
 
                         {/* Status Absensi Card */}
                         <View style={[styles.webStatusContainer, { backgroundColor: theme.card }]}>
-                            <Text style={[styles.sectionTitleWeb, { color: theme.text }]}>Status Absensi Hari Ini</Text>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                                <Text style={[styles.sectionTitleWeb, { color: theme.text }]}>Status Absensi Hari Ini</Text>
+                                <View style={[styles.typeBadge, { backgroundColor: attendanceStatus?.jam_keluar ? '#dbeafe' : (attendanceStatus?.jam_masuk ? '#fef3c7' : '#f3f4f6') }]}>
+                                    <Text style={[styles.typeBadgeTxt, { color: attendanceStatus?.jam_keluar ? '#1e40af' : (attendanceStatus?.jam_masuk ? '#92400e' : '#6b7280') }]}>
+                                        {attendanceStatus?.jam_keluar ? 'Sudah Pulang' : (attendanceStatus?.jam_masuk ? 'Sudah Masuk' : 'Belum Absen')}
+                                    </Text>
+                                </View>
+                            </View>
                             <Text style={styles.dateLabelWeb}>{new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</Text>
 
-                            <View style={[styles.statusInnerBox, { backgroundColor: statusStyle.bg, borderColor: statusStyle.border }]}>
-                                <View>
-                                    <Text style={[styles.statusMainLabel, { color: statusStyle.text }]}>
-                                        {attendanceStatus ? attendanceStatus.status.toUpperCase() : "BELUM ABSEN"}
-                                    </Text>
-                                    {attendanceStatus?.jam_masuk && <Text style={[styles.statusJam, { color: isDarkMode ? '#cbd5e1' : '#4b5563' }]}>Jam: {attendanceStatus.jam_masuk}</Text>}
-                                    {!attendanceStatus && <Text style={[styles.statusJam, { color: isDarkMode ? '#cbd5e1' : '#4b5563' }]}>Segera lakukan absensi</Text>}
+                            <View style={[styles.statusInnerBox, { backgroundColor: statusStyle.bg, borderColor: statusStyle.border, flexDirection: 'column', alignItems: 'flex-start' }]}>
+                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                                    <View>
+                                        <Text style={[styles.statusMainLabel, { color: statusStyle.text }]}>
+                                            {attendanceStatus ? attendanceStatus.status.toUpperCase() : "BELUM ABSEN"}
+                                        </Text>
+                                        <Text style={[styles.roleLabel, { color: isDarkMode ? '#94a3b8' : '#64748b' }]}>{role.charAt(0).toUpperCase() + role.slice(1)} • {user.nama}</Text>
+                                    </View>
+                                    <View style={[styles.checkCircle, { backgroundColor: attendanceStatus ? '#16a34a' : '#facc15' }]}>
+                                        <Text style={styles.checkIcon}>{attendanceStatus ? '✓' : '!'}</Text>
+                                    </View>
                                 </View>
-                                <View style={[styles.checkCircle, { backgroundColor: attendanceStatus ? '#b45309' : '#fef08a' }]}>
-                                    <Text style={styles.checkIcon}>{attendanceStatus ? '✓' : '!'}</Text>
+
+                                <View style={{ width: '100%', height: 1, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', marginVertical: 15 }} />
+
+                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
+                                    <View style={styles.timeInfoItem}>
+                                        <Text style={styles.timeLabel}>Jam Masuk</Text>
+                                        <Text style={[styles.timeValue, { color: theme.text }]}>{attendanceStatus?.jam_masuk ? attendanceStatus.jam_masuk.substring(0, 5) : '--:--'}</Text>
+                                    </View>
+                                    <View style={styles.timeInfoItem}>
+                                        <Text style={styles.timeLabel}>Jam Pulang</Text>
+                                        <Text style={[styles.timeValue, { color: theme.text }]}>{attendanceStatus?.jam_keluar ? attendanceStatus.jam_keluar.substring(0, 5) : '--:--'}</Text>
+                                    </View>
                                 </View>
                             </View>
                         </View>
@@ -563,6 +584,14 @@ const styles = StyleSheet.create({
     statusJam: { fontSize: 14, marginTop: 4 },
     checkCircle: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
     checkIcon: { fontSize: 20, color: 'white', fontWeight: 'bold' },
+
+    // New Status Styles
+    typeBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 10 },
+    typeBadgeTxt: { fontSize: 11, fontWeight: 'bold' },
+    roleLabel: { fontSize: 13, marginTop: 2 },
+    timeInfoItem: { flex: 1 },
+    timeLabel: { fontSize: 12, color: '#94a3b8', marginBottom: 2 },
+    timeValue: { fontSize: 18, fontWeight: 'bold' },
 
     // Menu Grid
     webGrid: { marginTop: 20, paddingBottom: 100 },

@@ -40,28 +40,48 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
         // Check if already present today
         $today = date('Y-m-d');
-        $stmt = $pdo->prepare("SELECT id FROM tb_absensi WHERE user_id = ? AND role = ? AND tanggal = ?");
+        $stmt = $pdo->prepare("SELECT id, jam_masuk, jam_keluar FROM tb_absensi WHERE user_id = ? AND role = ? AND tanggal = ?");
         $stmt->execute([$user['id'], $user['role'], $today]);
         $existing = $stmt->fetch();
         
+        $now_time = date('H:i:s');
+
         if ($existing) {
-            echo json_encode([
-                'success' => false, 
-                'message' => 'Sudah absen hari ini',
-                'data' => [
-                    'nama' => $user['nama_lengkap'],
-                    'role' => $user['role']
-                ]
-            ]);
-            exit;
+            // Logika PULANG
+            if ($existing['jam_keluar'] == null) {
+                $stmt = $pdo->prepare("UPDATE tb_absensi SET jam_keluar = ? WHERE id = ?");
+                $stmt->execute([$now_time, $existing['id']]);
+
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Absensi Pulang Berhasil',
+                    'data' => [
+                        'type' => 'pulang',
+                        'nama' => $user['nama_lengkap'],
+                        'role' => $user['role'],
+                        'jam' => $now_time
+                    ]
+                ]);
+                exit;
+            } else {
+                echo json_encode([
+                    'success' => false, 
+                    'message' => 'Sudah absen masuk & pulang hari ini',
+                    'data' => [
+                        'nama' => $user['nama_lengkap'],
+                        'role' => $user['role']
+                    ]
+                ]);
+                exit;
+            }
         }
         
-        // Insert absensi
-        $jam_masuk = date('H:i:s');
+        // Logika MASUK
         $status = 'hadir';
+        $day_of_week = date('N'); 
+        $cutoff = ($day_of_week == 1) ? '06:45:00' : '07:00:00';
         
-        // Check if late (after 07:30)
-        if (strtotime($jam_masuk) > strtotime('07:30:00')) {
+        if (strtotime($now_time) > strtotime($cutoff)) {
             $status = 'terlambat';
         }
         
@@ -69,15 +89,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             INSERT INTO tb_absensi (user_id, role, tanggal, jam_masuk, status, created_at) 
             VALUES (?, ?, ?, ?, ?, NOW())
         ");
-        $stmt->execute([$user['id'], $user['role'], $today, $jam_masuk, $status]);
+        $stmt->execute([$user['id'], $user['role'], $today, $now_time, $status]);
         
         echo json_encode([
             'success' => true,
-            'message' => 'Absensi Berhasil',
+            'message' => 'Absensi Masuk Berhasil',
             'data' => [
+                'type' => 'masuk',
                 'nama' => $user['nama_lengkap'],
                 'role' => $user['role'],
-                'jam_masuk' => $jam_masuk,
+                'jam' => $now_time,
                 'status' => $status
             ]
         ]);
