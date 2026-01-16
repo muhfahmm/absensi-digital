@@ -10,24 +10,36 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['role'] !== 'admin') {
     exit;
 }
 
-$python_script = realpath(__DIR__ . '/../../../../desktop-scanner/main.py');
-$command = "python \"$python_script\"";
-
-// Windows specific: start in background but visible if possible, or just start
-// Using 'start' command in Windows to open a new window
-// We use pclose(popen(...)) to fire and forget
-
 try {
-    // This command attempts to open a new command prompt window running the python script
-    // It requires Apache to be allowed to interact with desktop if running as service (rare for XAMPP users)
-    // If running XAMPP Control Panel, this usually renders the window visible.
-    pclose(popen("start /B cmd /c \"$command\"", "r")); 
+    // 1. Tentukan path script Python
+    $python_script = realpath(__DIR__ . '/../../../../desktop-scanner/main.py');
+    
+    if (!$python_script || !file_exists($python_script)) {
+        throw new Exception("File main.py tidak ditemukan. Cek path: " . $python_script);
+    }
+    
+    $working_dir = dirname($python_script);
+    
+    // 2. Susun Command Windows
+    // "start" membuka window baru (asynchronously)
+    // "/d" menentukan working directory (penting agar import/file relatif jalan)
+    // "cmd /k" menjaga window tetap terbuka (bisa diganti /c kalau mau auto-close)
+    $command = "start /d \"$working_dir\" cmd /k python \"$python_script\"";
+    
+    // 3. Eksekusi
+    pclose(popen($command, "r"));
     
     echo json_encode([
         'success' => true, 
         'message' => 'Scanner Python Sedang Dibuka...',
-        'debug_cmd' => $command
+        'path' => $python_script,
+        'cmd' => $command
     ]);
+    
 } catch (Exception $e) {
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    echo json_encode([
+        'success' => false, 
+        'message' => $e->getMessage()
+    ]);
 }
+?>

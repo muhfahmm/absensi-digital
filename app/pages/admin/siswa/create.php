@@ -14,8 +14,9 @@ $kelas_list = $stmt->fetchAll();
 
 $error = '';
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $nis = htmlspecialchars($_POST['nis']);
+    $username = htmlspecialchars($_POST['username']);
     $nama = htmlspecialchars($_POST['nama_lengkap']);
     $id_kelas = $_POST['id_kelas'];
     
@@ -53,10 +54,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Password Default jika tidak diisi atau input password
             $pass_hash = password_hash($_POST['password'], PASSWORD_DEFAULT);
             
-            $sql = "INSERT INTO tb_siswa (nis, nama_lengkap, id_kelas, kode_qr, foto_profil, password) VALUES (:nis, :nama, :kelas, :qr, :foto, :pass)";
+            $sql = "INSERT INTO tb_siswa (nis, username, nama_lengkap, id_kelas, kode_qr, foto_profil, password) VALUES (:nis, :username, :nama, :kelas, :qr, :foto, :pass)";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
                 ':nis' => $nis,
+                ':username' => $username,
                 ':nama' => $nama,
                 ':kelas' => $id_kelas,
                 ':qr' => $kode_qr,
@@ -68,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             exit;
         } catch (PDOException $e) {
             if ($e->getCode() == 23000) {
-                $error = "NIS sudah terdaftar!";
+                $error = "NIS atau Username sudah terdaftar!";
             } else {
                 $error = "Gagal menyimpan: " . $e->getMessage();
             }
@@ -98,6 +100,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">NIS</label>
                         <input type="number" name="nis" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Nomor Induk Siswa" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                        <input type="text" name="username" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Username untuk Login" required>
                     </div>
 
                     <div>

@@ -58,14 +58,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     'kelas_id' => $siswa['id_kelas'],
                     'nama_kelas' => $siswa['nama_kelas'] ?? '-',
                     'kode_qr' => $siswa['kode_qr'],
-                    'foto_profil' => $siswa['foto_profil']
+                    'foto_profil' => $siswa['foto_profil'],
+                    'poin' => $siswa['poin'] ?? 100 // Default 100 jika null
                 ]
             ]);
             exit;
         }
 
         // 3. Cek Login Guru
-        $stmt = $pdo->prepare("SELECT * FROM tb_guru WHERE nip = :user");
+        $stmt = $pdo->prepare("SELECT g.*, k.nama_kelas 
+                              FROM tb_guru g 
+                              LEFT JOIN tb_kelas k ON g.id_kelas_wali = k.id 
+                              WHERE g.nip = :user");
         $stmt->execute([':user' => $username]);
         $guru = $stmt->fetch();
 
@@ -77,6 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     'id' => $guru['id'],
                     'nama' => $guru['nama_lengkap'],
                     'nip' => $guru['nip'],
+                    'nama_kelas' => $guru['nama_kelas'] ? 'Wali Kelas ' . $guru['nama_kelas'] : 'Tenaga Pendidik',
                     'kode_qr' => $guru['kode_qr'],
                     'foto_profil' => $guru['foto_profil']
                 ]

@@ -9,6 +9,10 @@ require_once '../../layouts/header.php';
 $stmt = $pdo->query("SELECT * FROM tb_kelas ORDER BY nama_kelas ASC");
 $kelas_list = $stmt->fetchAll();
 
+// Fetch data mapel untuk dropdown guru
+$stmtMapel = $pdo->query("SELECT * FROM tb_mata_pelajaran ORDER BY nama_mapel ASC");
+$mapel_list = $stmtMapel->fetchAll();
+
 // Get Flash Messages
 $error = isset($_SESSION['error']) ? $_SESSION['error'] : '';
 $success = isset($_SESSION['success']) ? $_SESSION['success'] : '';
@@ -60,6 +64,26 @@ unset($_SESSION['success']);
                  <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-200 mb-1">Username</label>
                     <input type="text" name="username_admin" class="w-full px-4 py-3 bg-white bg-opacity-20 border border-gray-300 border-opacity-30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="Buat Username" required>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-200 mb-1">Wali Kelas (Pilih Kelas)</label>
+                    <select name="id_kelas" class="w-full px-4 py-3 bg-white bg-opacity-20 border border-gray-300 border-opacity-30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition appearance-none">
+                        <option value="" class="bg-gray-800">Bukan Wali Kelas (Admin Saja)</option>
+                        <?php foreach($kelas_list as $kelas): ?>
+                            <option value="<?= $kelas['id'] ?>" class="bg-gray-800"><?= $kelas['nama_kelas'] ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-200 mb-1">Mata Pelajaran (Khusus Guru)</label>
+                    <select name="guru_mapel_id" class="w-full px-4 py-3 bg-white bg-opacity-20 border border-gray-300 border-opacity-30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition appearance-none">
+                        <option value="" class="bg-gray-800">Pilih Mata Pelajaran...</option>
+                        <?php foreach($mapel_list as $mapel): ?>
+                            <option value="<?= $mapel['id'] ?>" class="bg-gray-800"><?= $mapel['nama_mapel'] ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
             </div>
 

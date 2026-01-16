@@ -61,7 +61,8 @@ try {
                 'message' => 'Presensi Pulang Diterima',
                 'nama' => $user['nama_lengkap'],
                 'role' => $user['role'],
-                'jam' => $now_time
+                'jam' => $now_time,
+                'status' => 'pulang'
             ]);
             exit;
         } else {

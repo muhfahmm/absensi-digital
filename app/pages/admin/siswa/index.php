@@ -98,6 +98,7 @@ $siswa = $stmt->fetchAll();
                             <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">No</th>
                             <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Foto</th>
                             <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">NIS</th>
+                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Username</th>
                             <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Nama Lengkap</th>
                             <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Password</th>
                             <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Kelas</th>
@@ -118,6 +119,7 @@ $siswa = $stmt->fetchAll();
                                     <?php endif; ?>
                                 </td>
                                 <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm"><?= htmlspecialchars($row['nis']) ?></td>
+                                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-gray-700"><?= htmlspecialchars($row['username'] ?? '-') ?></td>
                                 <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm font-semibold"><?= htmlspecialchars($row['nama_lengkap']) ?></td>
                                 <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-gray-500">••••••</td>
                                 <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
@@ -151,7 +153,7 @@ $siswa = $stmt->fetchAll();
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="8" class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-center text-gray-500">
+                                <td colspan="9" class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-center text-gray-500">
                                     <?php if($filter_kelas || $filter_siswa): ?>
                                         Tidak ada siswa ditemukan dengan filter ini. <a href="index.php" class="text-indigo-600 underline">Reset</a>
                                     <?php else: ?>

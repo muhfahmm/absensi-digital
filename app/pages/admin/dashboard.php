@@ -1,9 +1,44 @@
 <?php
 // app/pages/admin/dashboard.php
 require_once '../../functions/helpers.php';
+require_once '../../functions/auth.php';
 require_once '../../layouts/header.php';
 
-// Cek session admin di sini nanti (middleware)
+// Proteksi halaman admin
+check_login('admin');
+
+$admin_id = $_SESSION['user_id'] ?? null;
+$admin_name = $_SESSION['nama'] ?? 'Admin';
+$kelas_id = $_SESSION['kelas_id'] ?? null;
+$nama_peran = 'Admin Global';
+
+if ($admin_id) {
+    require_once '../../config/database.php';
+    
+    // Cek Mapel (Prioritas)
+    $stmtMapel = $pdo->prepare("
+        SELECT m.nama_mapel 
+        FROM tb_admin a 
+        JOIN tb_mata_pelajaran m ON a.guru_mapel_id = m.id 
+        WHERE a.id = ?
+    ");
+    $stmtMapel->execute([$admin_id]);
+    $mapel = $stmtMapel->fetch();
+    
+    if ($mapel) {
+        $nama_peran = "Admin Global - " . $mapel['nama_mapel'];
+    } elseif ($kelas_id) {
+        // Cek Wali Kelas jika tidak ada mapel
+        $stmtKelas = $pdo->prepare("SELECT nama_kelas FROM tb_kelas WHERE id = ?");
+        $stmtKelas->execute([$kelas_id]);
+        $kelas = $stmtKelas->fetch();
+        if ($kelas) {
+            $nama_peran = "Wali Kelas " . $kelas['nama_kelas'];
+        }
+    }
+}
+
+$initial = substr($admin_name, 0, 1);
 ?>
 
 <div class="flex h-screen bg-gray-50">
@@ -12,12 +47,18 @@ require_once '../../layouts/header.php';
     
     <!-- Content -->
     <div class="flex-1 flex flex-col overflow-hidden">
-        <!-- Top Header usually here -->
+        <!-- Top Header -->
         <header class="bg-white shadow-sm p-4 flex justify-between items-center">
             <h2 class="text-xl font-semibold text-gray-800">Admin Dashboard</h2>
             <div class="flex items-center space-x-4">
-                <span class="text-sm text-gray-600">Selamat datang, Admin</span>
-                <div class="h-8 w-8 rounded-full bg-indigo-500 text-white flex items-center justify-center font-bold">A</div>
+                <div class="text-right">
+                    <p class="text-sm font-bold text-gray-800"><?= $admin_name ?></p>
+                    <p class="text-xs text-indigo-500 font-medium bg-indigo-50 px-2 py-0.5 rounded-full inline-block mt-1">
+                        <svg class="w-3 h-3 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                        <?= $nama_peran ?>
+                    </p>
+                </div>
+                <div class="h-10 w-10 rounded-full bg-gradient-to-tr from-indigo-600 to-blue-500 text-white flex items-center justify-center font-bold shadow-md border-2 border-white"><?= $initial ?></div>
             </div>
         </header>
 

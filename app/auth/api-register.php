@@ -23,19 +23,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             
         } else if ($role == 'guru') {
             $nip = htmlspecialchars($_POST['nip_guru']); // NIP dari input baru
+            $guru_mapel_id = !empty($_POST['guru_mapel_id']) ? $_POST['guru_mapel_id'] : null; // ID Mapel
+
             // Generate simple QR token
             $kode_qr = "GURU-" . $nip . "-" . uniqid();
 
-            $sql = "INSERT INTO tb_guru (nip, nama_lengkap, password, kode_qr) VALUES (:id, :nama, :pass, :qr)";
+            $sql = "INSERT INTO tb_guru (nip, nama_lengkap, password, kode_qr, guru_mapel_id) VALUES (:id, :nama, :pass, :qr, :mapel)";
             $stmt = $pdo->prepare($sql);
-            $stmt->execute([':id' => $nip, ':nama' => $nama, ':pass' => $password, ':qr' => $kode_qr]);
+            $stmt->execute([':id' => $nip, ':nama' => $nama, ':pass' => $password, ':qr' => $kode_qr, ':mapel' => $guru_mapel_id]);
         
         } else if ($role == 'admin') {
             $username = htmlspecialchars($_POST['username_admin']); // Username Admin
+            $id_kelas = !empty($_POST['id_kelas']) ? $_POST['id_kelas'] : null;
             
-            $sql = "INSERT INTO tb_admin (username, password, nama_lengkap) VALUES (:user, :pass, :nama)";
+            $sql = "INSERT INTO tb_admin (username, password, nama_lengkap, id_kelas) VALUES (:user, :pass, :nama, :kelas)";
             $stmt = $pdo->prepare($sql);
-            $stmt->execute([':user' => $username, ':pass' => $password, ':nama' => $nama]);
+            $stmt->execute([':user' => $username, ':pass' => $password, ':nama' => $nama, ':kelas' => $id_kelas]);
         }
         
         // Simpan pesan sukses di session sementara (flash message)

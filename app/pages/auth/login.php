@@ -11,6 +11,10 @@ unset($_SESSION['error']);
 unset($_SESSION['success']);
 
 require_once '../../layouts/header.php';
+
+// Fetch data kelas untuk dropdown wali kelas
+$stmt = $pdo->query("SELECT * FROM tb_kelas ORDER BY nama_kelas ASC");
+$kelas_list = $stmt->fetchAll();
 ?>
 
 <div class="min-h-screen flex items-center justify-center bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1497294815431-9365093b7331?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');">
@@ -43,6 +47,16 @@ require_once '../../layouts/header.php';
             <div>
                 <label for="password" class="block text-sm font-medium text-gray-200 mb-1">Password</label>
                 <input type="password" id="password" name="password" class="w-full px-4 py-3 bg-white bg-opacity-20 border border-gray-300 border-opacity-30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition" placeholder="••••••••" required>
+            </div>
+
+            <div>
+                <label for="id_kelas" class="block text-sm font-medium text-gray-200 mb-1">Masuk Sebagai Wali Kelas (Pilih Kelas - Opsional)</label>
+                <select id="id_kelas" name="id_kelas" class="w-full px-4 py-3 bg-white bg-opacity-20 border border-gray-300 border-opacity-30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition appearance-none">
+                    <option value="" class="bg-gray-800">Semua Kelas (Default)</option>
+                    <?php foreach($kelas_list as $kelas): ?>
+                        <option value="<?= $kelas['id'] ?>" class="bg-gray-800"><?= $kelas['nama_kelas'] ?></option>
+                    <?php endforeach; ?>
+                </select>
             </div>
             
             <button type="submit" class="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold rounded-lg transform transition hover:scale-[1.02] shadow-lg">

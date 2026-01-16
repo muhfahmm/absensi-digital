@@ -20,6 +20,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $_SESSION['user_id'] = $admin['id'];
             $_SESSION['role'] = 'admin';
             $_SESSION['nama'] = $admin['nama_lengkap'];
+            
+            // Prioritaskan pilihan dari login form, jika tidak ada baru ambil dari database
+            $selected_kelas = !empty($_POST['id_kelas']) ? $_POST['id_kelas'] : $admin['id_kelas'];
+            $_SESSION['kelas_id'] = $selected_kelas;
+            
             $_SESSION['logged_in'] = true;
             redirect('app/pages/admin/dashboard.php');
         }

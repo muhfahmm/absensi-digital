@@ -23,12 +23,14 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $nip = htmlspecialchars($_POST['nip']);
     $nama = htmlspecialchars($_POST['nama_lengkap']);
+    $id_kelas_wali = !empty($_POST['id_kelas_wali']) ? $_POST['id_kelas_wali'] : null;
     
     // Password (Update jika diisi saja)
     $password_query = "";
     $params = [
         ':nip' => $nip, 
         ':nama' => $nama,
+        ':wali' => $id_kelas_wali,
         ':id' => $id
     ];
 
@@ -37,8 +39,32 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $params[':pass'] = password_hash($_POST['password'], PASSWORD_DEFAULT);
     }
 
+    // Handle Photo Upload
+    $foto_query = "";
+    if (isset($_FILES['foto']) && $_FILES['foto']['error'] == 0) {
+        $target_dir = "../../../../uploads/guru/";
+        if (!file_exists($target_dir)) mkdir($target_dir, 0777, true);
+
+        $file_extension = pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION);
+        $new_filename = "GURU_" . $nip . "_" . time() . "." . $file_extension;
+        $target_file = $target_dir . $new_filename;
+
+        $allowed = ['jpg', 'jpeg', 'png'];
+        if (in_array(strtolower($file_extension), $allowed)) {
+             if (move_uploaded_file($_FILES['foto']['tmp_name'], $target_file)) {
+                 $foto_query = ", foto_profil = :foto";
+                 $params[':foto'] = $new_filename;
+                 
+                 // Hapus foto lama jika ada
+                 if (!empty($data['foto_profil']) && file_exists($target_dir . $data['foto_profil'])) {
+                     unlink($target_dir . $data['foto_profil']);
+                 }
+             }
+        }
+    }
+
     try {
-        $sql = "UPDATE tb_guru SET nip = :nip, nama_lengkap = :nama $password_query WHERE id = :id";
+        $sql = "UPDATE tb_guru SET nip = :nip, nama_lengkap = :nama, id_kelas_wali = :wali $password_query $foto_query WHERE id = :id";
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         
@@ -68,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     </div>
                 <?php endif; ?>
 
-                <form action="" method="POST" class="space-y-6">
+                <form action="" method="POST" enctype="multipart/form-data" class="space-y-6">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">NIP</label>
                         <input type="number" name="nip" value="<?= htmlspecialchars($data['nip']) ?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
@@ -83,6 +109,33 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <label class="block text-sm font-medium text-gray-700 mb-1">Password Baru (Opsional)</label>
                         <input type="password" name="password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Kosongkan jika tidak ingin mengganti">
                     </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Foto Guru (Opsional)</label>
+                        <?php if(!empty($data['foto_profil'])): ?>
+                            <div class="mb-2">
+                                <img src="<?= base_url('uploads/guru/' . $data['foto_profil']) ?>" class="w-20 h-20 rounded-lg object-cover border">
+                            </div>
+                        <?php endif; ?>
+                        <input type="file" name="foto" accept="image/*" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <p class="text-xs text-gray-500 mt-1">Upload foto baru untuk mengganti.</p>
+                    </div>
+
+                    <!-- Input Wali Kelas (Optional) -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tugas Wali Kelas (Opsional)</label>
+                        <select name="id_kelas_wali" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">-- Bukan Wali Kelas --</option>
+                            <?php 
+                            $stmt_kelas = $pdo->query("SELECT * FROM tb_kelas ORDER BY nama_kelas ASC");
+                            while($kelas = $stmt_kelas->fetch()): 
+                                $selected = ($data['id_kelas_wali'] == $kelas['id']) ? 'selected' : '';
+                            ?>
+                                <option value="<?= $kelas['id'] ?>" <?= $selected ?>><?= $kelas['nama_kelas'] ?></option>
+                            <?php endwhile; ?>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1">Pilih kelas jika guru ini adalah wali kelas.</p>
+                    </div>  
 
                     <div class="flex justify-end space-x-3">
                         <a href="index.php" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">Batal</a>

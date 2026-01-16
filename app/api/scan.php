@@ -4,6 +4,7 @@ error_reporting(0);
 ini_set('display_errors', 0);
 header('Content-Type: application/json');
 require_once __DIR__ . '/../config/database.php';
+date_default_timezone_set('Asia/Jakarta'); // FORCE TIMEZONE
 
 // Allow CORS
 header("Access-Control-Allow-Origin: *");
@@ -21,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     try {
         // Check if QR code belongs to siswa
-        $stmt = $pdo->prepare("SELECT id, nama_lengkap, 'siswa' as role FROM tb_siswa WHERE kode_qr = ?");
+        $stmt = $pdo->prepare("SELECT id, nama_lengkap, 'siswa' as role, poin FROM tb_siswa WHERE kode_qr = ?");
         $stmt->execute([$qr_code]);
         $user = $stmt->fetch();
         
@@ -83,6 +84,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
         if (strtotime($now_time) > strtotime($cutoff)) {
             $status = 'terlambat';
+            // Kurangi poin siswa jika terlambat
+            if ($user['role'] == 'siswa') {
+                $updPoin = $pdo->prepare("UPDATE tb_siswa SET poin = poin - 1 WHERE id = ?");
+                $updPoin->execute([$user['id']]);
+            }
         }
         
         $stmt = $pdo->prepare("
@@ -90,6 +96,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             VALUES (?, ?, ?, ?, ?, NOW())
         ");
         $stmt->execute([$user['id'], $user['role'], $today, $now_time, $status]);
+
+        // RE-FETCH Poin terbaru untuk memastikan data akurat
+        $final_poin = $user['poin'];
+        if ($user['role'] == 'siswa') {
+            $stmtPoin = $pdo->prepare("SELECT poin FROM tb_siswa WHERE id = ?");
+            $stmtPoin->execute([$user['id']]);
+            $fetched = $stmtPoin->fetch();
+            $final_poin = $fetched['poin'];
+        }
         
         echo json_encode([
             'success' => true,
@@ -99,7 +114,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 'nama' => $user['nama_lengkap'],
                 'role' => $user['role'],
                 'jam' => $now_time,
-                'status' => $status
+                'status' => $status,
+                'poin' => $final_poin // Gunakan nilai terbaru dari DB
             ]
         ]);
         

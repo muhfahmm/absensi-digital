@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { CameraView, Camera } from "expo-camera";
 import QRCode from 'react-native-qrcode-svg';
 import Svg, { Path } from 'react-native-svg';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 
@@ -28,7 +29,10 @@ const PATHS = {
     moon: "M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z",
     sun: "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z",
     back: "M10 19l-7-7m0 0l7-7m-7 7h18",
-    calendar: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+    calendar: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z",
+    eye: "M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z",
+    book: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253",
+    globe: "M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
 };
 
 const WebIcon = ({ name, size = 24, color = "white", strokeWidth = 2, style }) => (
@@ -43,6 +47,121 @@ const WebIcon = ({ name, size = 24, color = "white", strokeWidth = 2, style }) =
     </Svg>
 );
 
+const translations = {
+    id: {
+        loginTitle: "Absensi Digital",
+        loginSubtitle: "Silakan login untuk melanjutkan",
+        usernameLabel: "Username / NIS / NIP",
+        passwordLabel: "Password",
+        loginBtn: "Masuk Ke Akun",
+        home: "Home",
+        qr: "QR Code",
+        profil: "Profil",
+        dashboard: "Dashboard",
+        statusAbsensi: "Status Absensi Hari Ini",
+        sudahPulang: "Sudah Pulang",
+        sudahMasuk: "Sudah Masuk",
+        belumAbsen: "Belum Absen",
+        jamMasuk: "Jam Masuk",
+        jamPulang: "Jam Pulang",
+        kehadiran: "Kehadiran",
+        riwayatAbsensi: "Riwayat absensi",
+        pembayaran: "Pembayaran",
+        statusSpp: "Status SPP",
+        pengumuman: "Pengumuman",
+        infoTerbaru: "Info terbaru",
+        profilSaya: "Profil Saya",
+        infoPribadi: "Informasi data pribadi",
+        nis: "Nomor Induk Siswa",
+        nip: "Nomor Induk Pegawai",
+        kelas: "Kelas",
+        kodeQr: "Kode QR",
+        terdaftarSejak: "Terdaftar Sejak",
+        scanQrSiswa: "Scan QR Siswa",
+        keluarAkun: "Keluar dari Akun",
+        riwayatKehadiran: "Riwayat Kehadiran",
+        dataAbsensiBulan: "Data absensi bulan ini",
+        aktivitasTerbaru: "Aktivitas Terbaru",
+        hariTerakhir: "30 Hari Terakhir",
+        tidakAdaRiwayat: "Belum ada 30 hari terakhir",
+        fitur: "Fitur",
+        dalamPengembangan: "Halaman ini sedang dalam pengembangan dan akan segera tersedia.",
+        selesai: "Selesai",
+        monitoringKelas: "Monitoring Kelas",
+        pantauSiswa: "Pantau kehadiran siswa",
+        totalSiswa: "Total Siswa",
+        sudahAbsen: "Sudah Absen",
+        terlambat: "Terlambat",
+        hadir: "Hadir",
+        izin: "Izin",
+        sakit: "Sakit",
+        batal: "Batal",
+        arahkanKamera: "Arahkan kamera ke QR Code Siswa",
+        downloadQr: "Download QR Code",
+        tunjukkanQr: "Tunjukkan QR Code ini untuk absensi",
+        jadwalPelajaran: "Jadwal Pelajaran",
+        lihatJadwal: "Lihat jadwal mingguan",
+        elearning: "E-Learning",
+        aksesMateri: "Akses materi pelajaran"
+    },
+    en: {
+        loginTitle: "Digital Attendance",
+        loginSubtitle: "Please login to continue",
+        usernameLabel: "Username / IDs",
+        passwordLabel: "Password",
+        loginBtn: "Sign In",
+        home: "Home",
+        qr: "QR Code",
+        profil: "Profile",
+        dashboard: "Dashboard",
+        statusAbsensi: "Today's Attendance Status",
+        sudahPulang: "Checked Out",
+        sudahMasuk: "Checked In",
+        belumAbsen: "Not Present",
+        jamMasuk: "Check In",
+        jamPulang: "Check Out",
+        kehadiran: "Attendance",
+        riwayatAbsensi: "Attendance history",
+        pembayaran: "Payments",
+        statusSpp: "Tuition status",
+        pengumuman: "Announcements",
+        infoTerbaru: "Latest info",
+        profilSaya: "My Profile",
+        infoPribadi: "Personal information",
+        nis: "Student ID",
+        nip: "Employee ID",
+        kelas: "Class",
+        kodeQr: "QR Code",
+        terdaftarSejak: "Registered Since",
+        scanQrSiswa: "Scan Student QR",
+        keluarAkun: "Sign Out",
+        riwayatKehadiran: "Attendance History",
+        dataAbsensiBulan: "Monthly data",
+        aktivitasTerbaru: "Recent Activity",
+        hariTerakhir: "Last 30 Days",
+        tidakAdaRiwayat: "No history found",
+        fitur: "Feature",
+        dalamPengembangan: "This page is under development and will be available soon.",
+        selesai: "Done",
+        monitoringKelas: "Class Monitoring",
+        pantauSiswa: "Monitor student attendance",
+        totalSiswa: "Total Students",
+        sudahAbsen: "Present",
+        terlambat: "Late",
+        hadir: "Present",
+        izin: "Permission",
+        sakit: "Sick",
+        batal: "Cancel",
+        arahkanKamera: "Point camera at Student QR Code",
+        downloadQr: "Download QR Code",
+        tunjukkanQr: "Show this QR Code for attendance",
+        jadwalPelajaran: "Class Schedule",
+        lihatJadwal: "View weekly schedule",
+        elearning: "E-Learning",
+        aksesMateri: "Access learning materials"
+    }
+};
+
 export default function App() {
     const systemTheme = useColorScheme();
     const [isDarkMode, setIsDarkMode] = useState(systemTheme === 'dark');
@@ -50,6 +169,25 @@ export default function App() {
     const [userData, setUserData] = useState(null);
     const [attendanceStatus, setAttendanceStatus] = useState(null);
     const [attendanceHistory, setAttendanceHistory] = useState({ history: [], summary: null });
+    const [classMonitoring, setClassMonitoring] = useState(null);
+    const [language, setLanguage] = useState('id'); // 'id' or 'en'
+    const [profileModalVisible, setProfileModalVisible] = useState(false);
+
+    useEffect(() => {
+        const loadLanguage = async () => {
+            try {
+                const savedLanguage = await AsyncStorage.getItem('user-language');
+                if (savedLanguage) {
+                    setLanguage(savedLanguage);
+                }
+            } catch (e) {
+                console.log('Failed to load language');
+            }
+        };
+        loadLanguage();
+    }, []);
+
+    const t = (key) => translations[language][key] || key;
 
     // Login State
     const [username, setUsername] = useState('');
@@ -90,7 +228,31 @@ export default function App() {
         if (userData && currentView === 'kehadiran') {
             fetchAttendanceHistory();
         }
+        if (userData && currentView === 'monitoring') {
+            fetchClassMonitoring();
+        }
     }, [userData, currentView]);
+
+    const fetchClassMonitoring = async () => {
+        try {
+            const response = await fetch(`${BASE_URL}/app/api/wali_kelas_monitoring.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    guru_id: userData.user.id
+                }),
+            });
+            const result = await response.json();
+            if (result.success) {
+                setClassMonitoring(result);
+            } else {
+                Alert.alert("Akses Ditolak", result.message);
+                setCurrentView('dashboard');
+            }
+        } catch (error) {
+            console.error("Fetch monitoring error:", error);
+        }
+    };
 
     const fetchAttendanceHistory = async () => {
         try {
@@ -184,7 +346,23 @@ export default function App() {
             const result = await response.json();
 
             if (result.success) {
-                Alert.alert("✅ Berhasil!", `${result.data.nama}\nStatus: ${result.data.status}\nJam: ${result.data.jam_masuk}`, [{ text: "OK", onPress: () => setScanned(false) }]);
+                const isPulang = result.data.type === 'pulang';
+                const statusLabel = result.data.status ? result.data.status.toUpperCase() : (isPulang ? 'PULANG' : 'BELUM ABSEN');
+                const timeLabel = result.data.jam || '--:--';
+
+                // Update local points if available
+                if (result.data.poin !== undefined && result.data.poin !== null) {
+                    setUserData(prev => ({
+                        ...prev,
+                        user: { ...prev.user, poin: result.data.poin }
+                    }));
+                }
+
+                Alert.alert(
+                    "✅ " + (isPulang ? "Presensi Pulang!" : "Presensi Masuk!"),
+                    `${result.data.nama}\nStatus: ${statusLabel}\nJam: ${timeLabel}`,
+                    [{ text: "OK", onPress: () => setScanned(false) }]
+                );
             } else {
                 Alert.alert("❌ Gagal", result.message || "QR Code tidak valid", [{ text: "Scan Lagi", onPress: () => setScanned(false) }]);
             }
@@ -226,22 +404,19 @@ export default function App() {
             <View style={[styles.webBottomNav, { backgroundColor: theme.bottomNav, borderTopColor: isDarkMode ? '#334155' : '#f3f4f6' }]}>
                 <TouchableOpacity style={styles.navBtn} onPress={() => setCurrentView('dashboard')}>
                     <WebIcon name="home" size={24} color={currentView === 'dashboard' ? '#3b82f6' : theme.navIconIdle} />
-                    <Text style={[styles.navLabelGray, currentView === 'dashboard' && styles.navLabelBlue, { color: currentView === 'dashboard' ? '#3b82f6' : theme.navIconIdle }]}>Home</Text>
+                    <Text style={[styles.navLabelGray, currentView === 'dashboard' && styles.navLabelBlue, { color: currentView === 'dashboard' ? '#3b82f6' : theme.navIconIdle }]}>{t('home')}</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.navBtnCenter} onPress={() => {
-                    if (role === 'siswa') setQrModalVisible(true);
-                    else setCurrentView('scanner');
-                }}>
+                <TouchableOpacity style={styles.navBtnCenter} onPress={() => setQrModalVisible(true)}>
                     <View style={styles.qrCircleFab}>
-                        <WebIcon name={role === 'siswa' ? "qr" : "search"} size={32} color="white" />
+                        <WebIcon name="qr" size={32} color="white" />
                     </View>
-                    <Text style={[styles.navLabelCenter, { color: theme.text }]}>QR Code</Text>
+                    <Text style={[styles.navLabelCenter, { color: theme.text }]}>{t('qr')}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.navBtn} onPress={() => setCurrentView('profil')}>
                     <WebIcon name="user" size={24} color={currentView === 'profil' ? '#3b82f6' : theme.navIconIdle} />
-                    <Text style={[styles.navLabelGray, currentView === 'profil' && styles.navLabelBlue, { color: currentView === 'profil' ? '#3b82f6' : theme.navIconIdle }]}>Profil</Text>
+                    <Text style={[styles.navLabelGray, currentView === 'profil' && styles.navLabelBlue, { color: currentView === 'profil' ? '#3b82f6' : theme.navIconIdle }]}>{t('profil')}</Text>
                 </TouchableOpacity>
             </View>
         );
@@ -254,13 +429,13 @@ export default function App() {
                 <View style={[styles.logoCircle, { backgroundColor: theme.primary }]}>
                     <WebIcon name="cap" size={40} color="white" />
                 </View>
-                <Text style={[styles.loginTitle, { color: theme.text }]}>Absensi Digital</Text>
-                <Text style={[styles.loginSubtitle, { color: theme.textMuted }]}>Silakan login untuk melanjutkan</Text>
+                <Text style={[styles.loginTitle, { color: theme.text }]}>{t('loginTitle')}</Text>
+                <Text style={[styles.loginSubtitle, { color: theme.textMuted }]}>{t('loginSubtitle')}</Text>
             </View>
 
             <View style={styles.loginForm}>
                 <View style={styles.inputWrapper}>
-                    <Text style={[styles.inputLabel, { color: theme.text }]}>Username / NIS / NIP</Text>
+                    <Text style={[styles.inputLabel, { color: theme.text }]}>{t('usernameLabel')}</Text>
                     <TextInput
                         style={[styles.input, { backgroundColor: isDarkMode ? '#0f172a' : '#f1f5f9', color: theme.text, borderColor: theme.border }]}
                         value={username}
@@ -272,7 +447,7 @@ export default function App() {
                 </View>
 
                 <View style={styles.inputWrapper}>
-                    <Text style={[styles.inputLabel, { color: theme.text }]}>Password</Text>
+                    <Text style={[styles.inputLabel, { color: theme.text }]}>{t('passwordLabel')}</Text>
                     <TextInput
                         style={[styles.input, { backgroundColor: isDarkMode ? '#0f172a' : '#f1f5f9', color: theme.text, borderColor: theme.border }]}
                         value={password}
@@ -284,7 +459,7 @@ export default function App() {
                 </View>
 
                 <TouchableOpacity style={[styles.loginButton, { backgroundColor: theme.primary }]} onPress={handleLogin} disabled={loading}>
-                    {loading ? <ActivityIndicator color="white" /> : <Text style={styles.loginButtonText}>Masuk Ke Akun</Text>}
+                    {loading ? <ActivityIndicator color="white" /> : <Text style={styles.loginButtonText}>{t('loginBtn')}</Text>}
                 </TouchableOpacity>
             </View>
         </View>
@@ -320,13 +495,13 @@ export default function App() {
 
         return (
             <View style={[styles.dashboardWrapper, { backgroundColor: theme.bg }]}>
-                <ScrollView style={styles.scrollView} bounces={false}>
+                <ScrollView style={styles.scrollView} bounces={false} stickyHeaderIndices={[1]}>
                     {/* Header */}
-                    <View style={styles.webHeader}>
+                    <View style={[styles.webHeader, { paddingTop: 80 }]}>
                         <View style={styles.headerFlex}>
-                            <View>
-                                <Text style={styles.webHeaderTitle}>Dashboard Siswa</Text>
-                                <Text style={styles.webHeaderSubtitle}>{user.nama} • {user.nama_kelas || role.toUpperCase()}</Text>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.webHeaderTitle}>{t('dashboard')} {role === 'siswa' ? (language === 'id' ? 'Siswa' : 'Student') : (language === 'id' ? 'Guru' : 'Teacher')}</Text>
+                                <Text style={styles.webHeaderSubtitle}>{user.nama} • {user.nama_kelas || (role === 'guru' ? (language === 'id' ? 'Tenaga Pendidik' : 'Teacher Staff') : 'Admin')}</Text>
                             </View>
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                 <TouchableOpacity style={{ marginRight: 15 }} onPress={() => setIsDarkMode(!isDarkMode)}>
@@ -339,48 +514,79 @@ export default function App() {
                         </View>
                     </View>
 
-                    <View style={styles.mainContent}>
-                        {/* Student Detail Card */}
-                        <TouchableOpacity style={styles.webProfileCard} onPress={() => setCurrentView('profil')}>
-                            <View style={styles.avatarCircle}>
+                    {/* Sticky Profile Card Container */}
+                    <View style={{ paddingHorizontal: 20, marginTop: -40, zIndex: 10, backgroundColor: theme.bg }}>
+                        <View style={styles.webProfileCard}>
+                            <TouchableOpacity
+                                style={[styles.avatarCircle, { overflow: 'hidden' }]}
+                                onPress={() => setProfileModalVisible(true)}
+                            >
                                 {user.foto_profil ? (
-                                    <Image source={{ uri: `${BASE_URL}/uploads/${role}/${user.foto_profil}` }} style={styles.avatarImg} />
+                                    <Image
+                                        source={{ uri: `${BASE_URL}/uploads/${role}/${encodeURIComponent(user.foto_profil)}` }}
+                                        style={styles.avatarImg}
+                                        resizeMode="cover"
+                                        onError={(e) => Alert.alert("Image Error", `Gagal memuat foto:\n${BASE_URL}/uploads/${role}/${user.foto_profil}\nError: ${e.nativeEvent.error}`)}
+                                    />
                                 ) : (
                                     <WebIcon name="user" size={32} color="white" />
                                 )}
-                            </View>
-                            <View style={styles.profileTextInfo}>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.profileTextInfo} onPress={() => setCurrentView('profil')}>
                                 <Text style={styles.profileNameTxt}>{user.nama}</Text>
                                 <View style={styles.badgeRow}>
                                     <WebIcon name="tag" size={14} color="#ddd6fe" style={{ marginRight: 8 }} />
-                                    <Text style={styles.badgeLabel}>NIS:</Text>
-                                    <Text style={styles.badgeValue}>{user.nis || '-'}</Text>
+                                    <Text style={styles.badgeLabel}>{role === 'guru' ? 'NIP:' : 'NIS:'}</Text>
+                                    <Text style={styles.badgeValue}>{user.nis || user.nip || '-'}</Text>
                                 </View>
                                 <View style={styles.badgeRow}>
                                     <WebIcon name="building" size={14} color="#ddd6fe" style={{ marginRight: 8 }} />
                                     <Text style={styles.badgeLabel}>Kelas:</Text>
                                     <Text style={styles.badgeValue}>{user.nama_kelas || '-'}</Text>
                                 </View>
-                            </View>
-                        </TouchableOpacity>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    {/* Main Content (Status & Menu) */}
+                    <View style={{ paddingHorizontal: 20, marginTop: 20, paddingBottom: 150 }}>
 
                         {/* Status Absensi Card */}
+                        {/* Tombol Monitoring Khusus Wali Kelas */}
+                        {role === 'guru' && user.nama_kelas && user.nama_kelas.includes('Wali Kelas') && (
+                            <TouchableOpacity
+                                style={[styles.webStatusContainer, { backgroundColor: theme.primary, marginBottom: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
+                                onPress={() => setCurrentView('monitoring')}
+                            >
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', marginRight: 16 }}>
+                                        <WebIcon name="eye" size={24} color="white" />
+                                    </View>
+                                    <View>
+                                        <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold' }}>{t('monitoringKelas')}</Text>
+                                        <Text style={{ color: '#ddd6fe', fontSize: 13 }}>{t('pantauSiswa')}</Text>
+                                    </View>
+                                </View>
+                                <WebIcon name="back" size={20} color="white" style={{ transform: [{ rotate: '180deg' }] }} />
+                            </TouchableOpacity>
+                        )}
+
                         <View style={[styles.webStatusContainer, { backgroundColor: theme.card }]}>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-                                <Text style={[styles.sectionTitleWeb, { color: theme.text }]}>Status Absensi Hari Ini</Text>
+                                <Text style={[styles.sectionTitleWeb, { color: theme.text }]}>{t('statusAbsensi')}</Text>
                                 <View style={[styles.typeBadge, { backgroundColor: attendanceStatus?.jam_keluar ? '#dbeafe' : (attendanceStatus?.jam_masuk ? '#fef3c7' : '#f3f4f6') }]}>
                                     <Text style={[styles.typeBadgeTxt, { color: attendanceStatus?.jam_keluar ? '#1e40af' : (attendanceStatus?.jam_masuk ? '#92400e' : '#6b7280') }]}>
-                                        {attendanceStatus?.jam_keluar ? 'Sudah Pulang' : (attendanceStatus?.jam_masuk ? 'Sudah Masuk' : 'Belum Absen')}
+                                        {attendanceStatus?.jam_keluar ? t('sudahPulang') : (attendanceStatus?.jam_masuk ? t('sudahMasuk') : t('belumAbsen'))}
                                     </Text>
                                 </View>
                             </View>
-                            <Text style={styles.dateLabelWeb}>{new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</Text>
+                            <Text style={styles.dateLabelWeb}>{new Date().toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</Text>
 
                             <View style={[styles.statusInnerBox, { backgroundColor: statusStyle.bg, borderColor: statusStyle.border, flexDirection: 'column', alignItems: 'flex-start' }]}>
                                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
                                     <View>
                                         <Text style={[styles.statusMainLabel, { color: statusStyle.text }]}>
-                                            {attendanceStatus ? attendanceStatus.status.toUpperCase() : "BELUM ABSEN"}
+                                            {attendanceStatus ? (translations[language][attendanceStatus.status] ? translations[language][attendanceStatus.status].toUpperCase() : attendanceStatus.status.toUpperCase()) : t('belumAbsen').toUpperCase()}
                                         </Text>
                                         <Text style={[styles.roleLabel, { color: isDarkMode ? '#94a3b8' : '#64748b' }]}>{role.charAt(0).toUpperCase() + role.slice(1)} • {user.nama}</Text>
                                     </View>
@@ -402,17 +608,22 @@ export default function App() {
                                     </View>
                                 </View>
                             </View>
+
                         </View>
 
                         {/* Menu Grid */}
                         <View style={styles.webGrid}>
                             <View style={styles.webRow}>
-                                <WebMenuItem iconName="clipboard" iconColor="#2563eb" iconBg="#dbeafe" title="Kehadiran" sub="Riwayat absensi" onPress={() => setCurrentView('kehadiran')} theme={theme} isDarkMode={isDarkMode} />
-                                <WebMenuItem iconName="user" iconColor="#7c3aed" iconBg="#f5f3ff" title="Profil" sub="Data pribadi" onPress={() => setCurrentView('profil')} theme={theme} isDarkMode={isDarkMode} />
+                                <WebMenuItem iconName="clipboard" iconColor="#2563eb" iconBg="#dbeafe" title={t('kehadiran')} sub={t('riwayatAbsensi')} onPress={() => setCurrentView('kehadiran')} theme={theme} isDarkMode={isDarkMode} />
+                                <WebMenuItem iconName="user" iconColor="#7c3aed" iconBg="#f5f3ff" title={t('profil')} sub={t('infoPribadi')} onPress={() => setCurrentView('profil')} theme={theme} isDarkMode={isDarkMode} />
                             </View>
                             <View style={styles.webRow}>
-                                <WebMenuItem iconName="card" iconColor="#16a34a" iconBg="#dcfce7" title="Pembayaran" sub="Status SPP" onPress={() => setCurrentView('pembayaran')} theme={theme} isDarkMode={isDarkMode} />
-                                <WebMenuItem iconName="speaker" iconColor="#ea580c" iconBg="#ffedd5" title="Pengumuman" sub="Info terbaru" onPress={() => setCurrentView('pengumuman')} theme={theme} isDarkMode={isDarkMode} />
+                                <WebMenuItem iconName="card" iconColor="#16a34a" iconBg="#dcfce7" title={t('pembayaran')} sub={t('statusSpp')} onPress={() => setCurrentView('pembayaran')} theme={theme} isDarkMode={isDarkMode} />
+                                <WebMenuItem iconName="speaker" iconColor="#ea580c" iconBg="#ffedd5" title={t('pengumuman')} sub={t('infoTerbaru')} onPress={() => setCurrentView('pengumuman')} theme={theme} isDarkMode={isDarkMode} />
+                            </View>
+                            <View style={styles.webRow}>
+                                <WebMenuItem iconName="book" iconColor="#e11d48" iconBg="#ffe4e6" title={t('jadwalPelajaran')} sub={t('lihatJadwal')} onPress={() => setCurrentView('jadwal')} theme={theme} isDarkMode={isDarkMode} />
+                                <WebMenuItem iconName="globe" iconColor="#0891b2" iconBg="#cffafe" title={t('elearning')} sub={t('aksesMateri')} onPress={() => setCurrentView('elearning')} theme={theme} isDarkMode={isDarkMode} />
                             </View>
                         </View>
                     </View>
@@ -420,31 +631,6 @@ export default function App() {
 
                 {/* Bottom Nav */}
                 {renderBottomNav()}
-
-                {/* QR Modal */}
-                <Modal visible={qrModalVisible} transparent animationType="fade">
-                    <View style={styles.modalOverlay}>
-                        <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
-                            <View style={styles.modalHeaderFlex}>
-                                <Text style={[styles.modalTitleWeb, { color: theme.text }]}>QR Code Absensi</Text>
-                                <TouchableOpacity onPress={() => setQrModalVisible(false)}>
-                                    <WebIcon name="close" size={24} color={theme.textMuted} />
-                                </TouchableOpacity>
-                            </View>
-                            <Text style={[styles.modalSubWeb, { color: theme.textMuted }]}>Tunjukkan QR Code ini untuk absensi</Text>
-                            <View style={[styles.qrInnerBox, { backgroundColor: isDarkMode ? '#0f172a' : '#f5f3ff' }]}>
-                                <QRCode value={user.kode_qr || 'EMPTY'} size={210} color={isDarkMode ? '#ffffff' : '#000000'} backgroundColor="transparent" />
-                            </View>
-                            <View style={[styles.qrValueBox, { backgroundColor: isDarkMode ? '#334155' : '#f9fafb' }]}><Text style={[styles.qrValueTxt, { color: isDarkMode ? '#e2e8f0' : '#4b5563' }]}>{user.kode_qr}</Text></View>
-                            <TouchableOpacity style={[styles.btnDownloadWeb, { backgroundColor: theme.primary }]}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                    <WebIcon name="download" size={20} color="white" style={{ marginRight: 10 }} />
-                                    <Text style={styles.btnDownloadTxt}>Download QR Code</Text>
-                                </View>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </Modal>
             </View>
         );
     };
@@ -466,9 +652,9 @@ export default function App() {
             <View style={styles.scannerContainer}>
                 <CameraView style={StyleSheet.absoluteFillObject} onBarcodeScanned={scanned ? undefined : handleBarCodeScanned} barcodeScannerSettings={{ barcodeTypes: ["qr"] }} />
                 <View style={styles.overlayScanner}>
-                    <Text style={styles.scanText}>Arahkan kamera ke QR Code Siswa</Text>
+                    <Text style={styles.scanText}>{t('arahkanKamera')}</Text>
                     <TouchableOpacity style={styles.closeBtnScanner} onPress={() => setCurrentView('dashboard')}>
-                        <Text style={styles.closeTxtScanner}>Batal</Text>
+                        <Text style={styles.closeTxtScanner}>{t('batal')}</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -479,12 +665,17 @@ export default function App() {
         const user = userData?.user;
         const role = userData?.role;
         return (
-            <ScreenTemplate title="Profil Saya" subtitle="Informasi data pribadi" headerOverlap={false}>
+            <ScreenTemplate title={t('profilSaya')} subtitle={t('infoPribadi')} headerOverlap={false}>
                 {/* Main Profile Image Card */}
                 <View style={[styles.webStatusContainer, { backgroundColor: theme.card, alignItems: 'center', padding: 40, marginTop: 20 }]}>
                     <View style={[styles.avatarCircleLarge, { borderColor: 'white', elevation: 10, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 }]}>
                         {user.foto_profil ? (
-                            <Image source={{ uri: `${BASE_URL}/uploads/${role}/${user.foto_profil}` }} style={styles.avatarImgLarge} />
+                            <Image
+                                source={{ uri: `${BASE_URL}/uploads/${role}/${encodeURIComponent(user.foto_profil)}` }}
+                                style={styles.avatarImgLarge}
+                                resizeMode="cover"
+                                onError={(e) => Alert.alert("Image Error", `Gagal memuat foto profil:\n${BASE_URL}/uploads/${role}/${user.foto_profil}`)}
+                            />
                         ) : (
                             <WebIcon name="user" size={80} color={isDarkMode ? theme.textMuted : "#cbd5e1"} />
                         )}
@@ -493,20 +684,51 @@ export default function App() {
                     <Text style={[styles.webHeaderSubtitle, { color: theme.textMuted, fontSize: 18, marginTop: 4 }]}>{user.nama_kelas || '-'}</Text>
                 </View>
 
-                {/* Info List */}
                 <View style={{ marginTop: 20 }}>
-                    <InfoCard icon="tag" iconBg="#eef2ff" iconColor="#4f46e5" label="Nomor Induk Siswa" value={user.nis || user.nip || '-'} theme={theme} isDarkMode={isDarkMode} />
-                    <InfoCard icon="building" iconBg="#f5f3ff" iconColor="#7c3aed" label="Kelas" value={user.nama_kelas || '-'} theme={theme} isDarkMode={isDarkMode} />
-                    <InfoCard icon="qr" iconBg="#f0fdf4" iconColor="#16a34a" label="Kode QR" value={user.kode_qr || '-'} theme={theme} isDarkMode={isDarkMode} mono />
-                    <InfoCard icon="calendar" iconBg="#eff6ff" iconColor="#3b82f6" label="Terdaftar Sejak" value={new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} theme={theme} isDarkMode={isDarkMode} />
+                    <InfoCard icon="tag" iconBg="#eef2ff" iconColor="#4f46e5" label={role === 'guru' ? t('nip') : t('nis')} value={user.nis || user.nip || '-'} theme={theme} isDarkMode={isDarkMode} />
+                    <InfoCard icon="building" iconBg="#f5f3ff" iconColor="#7c3aed" label={t('kelas')} value={user.nama_kelas || '-'} theme={theme} isDarkMode={isDarkMode} />
+                    <InfoCard icon="qr" iconBg="#f0fdf4" iconColor="#16a34a" label={t('kodeQr')} value={user.kode_qr || '-'} theme={theme} isDarkMode={isDarkMode} mono />
+                    <InfoCard icon="calendar" iconBg="#eff6ff" iconColor="#3b82f6" label={t('terdaftarSejak')} value={new Date().toLocaleDateString(language === 'id' ? 'id-ID' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} theme={theme} isDarkMode={isDarkMode} />
                 </View>
+
+                {/* Language Toggle Button */}
+                <TouchableOpacity
+                    style={[styles.logoutBtnFull, { backgroundColor: isDarkMode ? '#334155' : '#e2e8f0', marginBottom: 15, marginTop: 10, shadowColor: 'transparent' }]}
+                    onPress={async () => {
+                        const newLang = language === 'id' ? 'en' : 'id';
+                        setLanguage(newLang);
+                        try {
+                            await AsyncStorage.setItem('user-language', newLang);
+                        } catch (error) {
+                            console.log('Error saving language:', error);
+                        }
+                    }}
+                >
+                    <Text style={{ fontSize: 24, marginRight: 10 }}>🌐</Text>
+                    <Text style={[styles.logoutBtnText, { color: theme.text }]}>
+                        {language === 'id' ? 'Ganti Bahasa (ID)' : 'Switch Language (EN)'}
+                    </Text>
+                </TouchableOpacity>
+
+                {/* Scanner Button for Guru */}
+                {
+                    role === 'guru' && (
+                        <TouchableOpacity
+                            style={[styles.logoutBtnFull, { backgroundColor: theme.primary, marginBottom: 15, marginTop: 10, shadowColor: theme.primary }]}
+                            onPress={() => setCurrentView('scanner')}
+                        >
+                            <WebIcon name="search" size={20} color="white" style={{ marginRight: 10 }} />
+                            <Text style={styles.logoutBtnText}>{t('scanQrSiswa')}</Text>
+                        </TouchableOpacity>
+                    )
+                }
 
                 {/* Logout Button */}
                 <TouchableOpacity style={styles.logoutBtnFull} onPress={handleLogout}>
                     <WebIcon name="logout" size={20} color="white" style={{ marginRight: 10 }} />
-                    <Text style={styles.logoutBtnText}>Keluar dari Akun</Text>
+                    <Text style={styles.logoutBtnText}>{t('keluarAkun')}</Text>
                 </TouchableOpacity>
-            </ScreenTemplate>
+            </ScreenTemplate >
         );
     };
 
@@ -515,26 +737,26 @@ export default function App() {
         const history = attendanceHistory.history || [];
 
         return (
-            <ScreenTemplate title="Riwayat Kehadiran" subtitle="Data absensi bulan ini" headerOverlap={false}>
+            <ScreenTemplate title={t('riwayatKehadiran')} subtitle={t('dataAbsensiBulan')} headerOverlap={false}>
                 {/* Summary Section */}
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 20 }}>
-                    <SummaryMiniCard label="Hadir" value={summary.hadir} color="#16a34a" theme={theme} />
-                    <SummaryMiniCard label="Telat" value={summary.terlambat} color="#ea580c" theme={theme} />
-                    <SummaryMiniCard label="Izin" value={summary.izin} color="#3b82f6" theme={theme} />
-                    <SummaryMiniCard label="Sakit" value={summary.sakit} color="#7c3aed" theme={theme} />
+                    <SummaryMiniCard label={t('hadir')} value={summary.hadir} color="#16a34a" theme={theme} />
+                    <SummaryMiniCard label={t('terlambat')} value={summary.terlambat} color="#ea580c" theme={theme} />
+                    <SummaryMiniCard label={t('izin')} value={summary.izin} color="#3b82f6" theme={theme} />
+                    <SummaryMiniCard label={t('sakit')} value={summary.sakit} color="#7c3aed" theme={theme} />
                 </View>
 
                 {/* History List */}
                 <View style={{ marginTop: 25 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
-                        <Text style={{ color: theme.text, fontSize: 18, fontWeight: 'bold' }}>Aktivitas Terbaru</Text>
-                        <Text style={{ color: theme.primary, fontSize: 13, fontWeight: '600' }}>30 Hari Terakhir</Text>
+                        <Text style={{ color: theme.text, fontSize: 18, fontWeight: 'bold' }}>{t('aktivitasTerbaru')}</Text>
+                        <Text style={{ color: theme.primary, fontSize: 13, fontWeight: '600' }}>{t('hariTerakhir')}</Text>
                     </View>
 
                     {history.length === 0 ? (
                         <View style={{ padding: 40, alignItems: 'center' }}>
                             <WebIcon name="clipboard" size={40} color={theme.textMuted} />
-                            <Text style={{ color: theme.textMuted, marginTop: 15 }}>Belum ada riwayat absensi</Text>
+                            <Text style={{ color: theme.textMuted, marginTop: 15 }}>{t('tidakAdaRiwayat')}</Text>
                         </View>
                     ) : (
                         history.map((item, index) => (
@@ -542,7 +764,7 @@ export default function App() {
                                 <View style={{ flex: 1 }}>
                                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <Text style={{ color: theme.text, fontSize: 16, fontWeight: 'bold' }}>
-                                            {new Date(item.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                            {new Date(item.tanggal).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
                                         </Text>
                                         <View style={{ backgroundColor: item.status === 'hadir' ? '#dcfce7' : (item.status === 'terlambat' ? '#ffedd5' : '#f1f5f9'), paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
                                             <Text style={{ color: item.status === 'hadir' ? '#16a34a' : (item.status === 'terlambat' ? '#ea580c' : '#64748b'), fontSize: 11, fontWeight: 'bold' }}>
@@ -552,11 +774,11 @@ export default function App() {
                                     </View>
                                     <View style={{ flexDirection: 'row', marginTop: 12 }}>
                                         <View style={{ marginRight: 25 }}>
-                                            <Text style={{ color: theme.textMuted, fontSize: 11 }}>MASUK</Text>
+                                            <Text style={{ color: theme.textMuted, fontSize: 11 }}>{t('jamMasuk').toUpperCase()}</Text>
                                             <Text style={{ color: theme.text, fontSize: 14, fontWeight: '700', marginTop: 2 }}>{item.jam_masuk ? item.jam_masuk.substring(0, 5) : '--:--'}</Text>
                                         </View>
                                         <View>
-                                            <Text style={{ color: theme.textMuted, fontSize: 11 }}>PULANG</Text>
+                                            <Text style={{ color: theme.textMuted, fontSize: 11 }}>{t('jamPulang').toUpperCase()}</Text>
                                             <Text style={{ color: theme.text, fontSize: 14, fontWeight: '700', marginTop: 2 }}>{item.jam_keluar ? item.jam_keluar.substring(0, 5) : '--:--'}</Text>
                                         </View>
                                     </View>
@@ -564,6 +786,75 @@ export default function App() {
                             </View>
                         ))
                     )}
+                </View>
+            </ScreenTemplate>
+        );
+    };
+
+    const renderMonitoringKelas = () => {
+        const summary = classMonitoring?.summary || { total: 0, hadir: 0, belum: 0, terlambat: 0 };
+        const students = classMonitoring?.students || [];
+
+        // Filter tabs could be added here, for now listing all sorted by status
+        const presentStudents = students.filter(s => s.status !== 'belum');
+        const absentStudents = students.filter(s => s.status === 'belum');
+
+        // Styles specific
+        const cardBg = theme.card;
+
+        return (
+            <ScreenTemplate title={t('monitoringKelas')} subtitle={classMonitoring?.kelas || 'Memuat...'} headerOverlap={false}>
+                {/* Summary Cards */}
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 20 }}>
+                    <SummaryMiniCard label={t('totalSiswa')} value={summary.total} color={theme.text} theme={theme} />
+                    <SummaryMiniCard label={t('sudahAbsen')} value={summary.hadir} color="#16a34a" theme={theme} />
+                    <SummaryMiniCard label={t('belumAbsen')} value={summary.belum} color="#ef4444" theme={theme} />
+                    <SummaryMiniCard label={t('terlambat')} value={summary.terlambat} color="#ea580c" theme={theme} />
+                </View>
+
+                {/* Lists */}
+                <View style={{ marginTop: 10 }}>
+                    <Text style={{ color: theme.text, fontSize: 18, fontWeight: 'bold', marginBottom: 15 }}>{t('belumAbsen')} ({absentStudents.length})</Text>
+                    {absentStudents.map((item) => (
+                        <View key={item.id} style={[styles.infoItemCard, { backgroundColor: cardBg, padding: 12 }]}>
+                            <View style={[styles.avatarCircle, { width: 40, height: 40, borderRadius: 20, backgroundColor: '#f1f5f9', borderWidth: 0, marginRight: 12 }]}>
+                                {item.foto ? (
+                                    <Image source={{ uri: `${BASE_URL}/uploads/siswa/${encodeURIComponent(item.foto)}` }} style={{ width: 40, height: 40, borderRadius: 20 }} />
+                                ) : (
+                                    <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#94a3b8' }}>{item.nama.substring(0, 2).toUpperCase()}</Text>
+                                )}
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: 14 }}>{item.nama}</Text>
+                                <Text style={{ color: theme.textMuted, fontSize: 12 }}>{item.nis}</Text>
+                            </View>
+                            <View style={{ backgroundColor: '#fee2e2', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 }}>
+                                <Text style={{ color: '#991b1b', fontSize: 10, fontWeight: 'bold' }}>{t('belumAbsen').toUpperCase()}</Text>
+                            </View>
+                        </View>
+                    ))}
+
+                    <Text style={{ color: theme.text, fontSize: 18, fontWeight: 'bold', marginBottom: 15, marginTop: 25 }}>{t('sudahAbsen')} ({presentStudents.length})</Text>
+                    {presentStudents.map((item) => (
+                        <View key={item.id} style={[styles.infoItemCard, { backgroundColor: cardBg, padding: 12 }]}>
+                            <View style={[styles.avatarCircle, { width: 40, height: 40, borderRadius: 20, backgroundColor: '#f1f5f9', borderWidth: 0, marginRight: 12 }]}>
+                                {item.foto ? (
+                                    <Image source={{ uri: `${BASE_URL}/uploads/siswa/${encodeURIComponent(item.foto)}` }} style={{ width: 40, height: 40, borderRadius: 20 }} />
+                                ) : (
+                                    <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#94a3b8' }}>{item.nama.substring(0, 2).toUpperCase()}</Text>
+                                )}
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: 14 }}>{item.nama}</Text>
+                                <Text style={{ color: theme.textMuted, fontSize: 12 }}>{t('hadir')}: {item.jam_masuk?.substring(0, 5) || '-'}</Text>
+                            </View>
+                            <View style={{ backgroundColor: item.status === 'terlambat' ? '#ffedd5' : '#dcfce7', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 }}>
+                                <Text style={{ color: item.status === 'terlambat' ? '#9a3412' : '#166534', fontSize: 10, fontWeight: 'bold' }}>
+                                    {item.status.toUpperCase()}
+                                </Text>
+                            </View>
+                        </View>
+                    ))}
                 </View>
             </ScreenTemplate>
         );
@@ -589,20 +880,20 @@ export default function App() {
     );
 
     const renderPlaceholder = (title) => (
-        <ScreenTemplate title={title}>
+        <ScreenTemplate title={t('fitur') + " " + title}>
             <View style={[styles.webStatusContainer, { backgroundColor: theme.card, alignItems: 'center', padding: 50, marginTop: 10 }]}>
                 <WebIcon name="speaker" size={60} color={theme.textMuted} />
                 <Text style={{ color: theme.text, fontSize: 18, marginTop: 20, textAlign: 'center', fontWeight: 'bold' }}>
-                    Fitur {title}
+                    {t('fitur')} {title}
                 </Text>
                 <Text style={{ color: theme.textMuted, fontSize: 14, textAlign: 'center', marginTop: 8 }}>
-                    Halaman ini sedang dalam pengembangan dan akan segera tersedia.
+                    {t('dalamPengembangan')}
                 </Text>
                 <TouchableOpacity
                     style={[styles.loginButton, { backgroundColor: theme.primary, width: '100%', marginTop: 30 }]}
                     onPress={() => setCurrentView('dashboard')}
                 >
-                    <Text style={styles.loginButtonText}>Selesai</Text>
+                    <Text style={styles.loginButtonText}>{t('selesai')}</Text>
                 </TouchableOpacity>
             </View>
         </ScreenTemplate>
@@ -616,8 +907,66 @@ export default function App() {
             {currentView === 'scanner' && renderScanner()}
             {currentView === 'profil' && renderProfil()}
             {currentView === 'kehadiran' && renderKehadiran()}
+            {currentView === 'monitoring' && renderMonitoringKelas()}
+            {currentView === 'pembayaran' && renderPlaceholder('Pembayaran')}
             {currentView === 'pembayaran' && renderPlaceholder('Pembayaran')}
             {currentView === 'pengumuman' && renderPlaceholder('Pengumuman')}
+            {currentView === 'jadwal' && renderPlaceholder('Jadwal Pelajaran')}
+            {currentView === 'elearning' && renderPlaceholder('E-Learning')}
+
+            {/* Global QR Modal */}
+            <Modal visible={qrModalVisible} transparent animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
+                        <View style={styles.modalHeaderFlex}>
+                            <Text style={[styles.modalTitleWeb, { color: theme.text }]}>QR Code Absensi</Text>
+                            <TouchableOpacity onPress={() => setQrModalVisible(false)}>
+                                <WebIcon name="close" size={24} color={theme.textMuted} />
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={[styles.modalSubWeb, { color: theme.textMuted }]}>Tunjukkan QR Code ini untuk absensi</Text>
+                        <View style={[styles.qrInnerBox, { backgroundColor: isDarkMode ? '#0f172a' : '#f5f3ff' }]}>
+                            <QRCode value={userData?.user?.kode_qr || 'EMPTY'} size={210} color={isDarkMode ? '#ffffff' : '#000000'} backgroundColor="transparent" />
+                        </View>
+                        <View style={[styles.qrValueBox, { backgroundColor: isDarkMode ? '#334155' : '#f9fafb' }]}><Text style={[styles.qrValueTxt, { color: isDarkMode ? '#e2e8f0' : '#4b5563' }]}>{userData?.user?.kode_qr}</Text></View>
+                        <TouchableOpacity style={[styles.btnDownloadWeb, { backgroundColor: theme.primary }]}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <WebIcon name="download" size={20} color="white" style={{ marginRight: 10 }} />
+                                <Text style={styles.btnDownloadTxt}>Download QR Code</Text>
+                            </View>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Profile Photo Modal */}
+            <Modal visible={profileModalVisible} transparent animationType="slide">
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' }}>
+                    <TouchableOpacity
+                        style={{ position: 'absolute', top: 50, right: 20, zIndex: 10, padding: 10, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20 }}
+                        onPress={() => setProfileModalVisible(false)}
+                    >
+                        <WebIcon name="close" size={30} color="white" />
+                    </TouchableOpacity>
+
+                    <View style={{ width: width - 40, height: width - 40, borderRadius: 20, overflow: 'hidden', borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)', backgroundColor: '#1e293b' }}>
+                        {userData?.user?.foto_profil ? (
+                            <Image
+                                source={{ uri: `${BASE_URL}/uploads/${userData?.role}/${encodeURIComponent(userData?.user?.foto_profil)}` }}
+                                style={{ width: '100%', height: '100%' }}
+                                resizeMode="cover"
+                            />
+                        ) : (
+                            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                                <WebIcon name="user" size={100} color="#cbd5e1" />
+                            </View>
+                        )}
+                    </View>
+
+                    <Text style={{ color: 'white', fontSize: 24, fontWeight: 'bold', marginTop: 30 }}>{userData?.user?.nama}</Text>
+                    <Text style={{ color: '#94a3b8', fontSize: 16, marginTop: 5 }}>{userData?.user?.nama_kelas || (userData?.role === 'guru' ? 'Guru' : 'Siswa')}</Text>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -650,7 +999,7 @@ const styles = StyleSheet.create({
 
     // Profile Card
     webProfileCard: { backgroundColor: '#7c3aed', borderRadius: 24, padding: 24, flexDirection: 'row', alignItems: 'center', shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 15 },
-    avatarCircle: { width: 68, height: 68, borderRadius: 34, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' },
+    avatarCircle: { width: 68, height: 68, borderRadius: 34, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)', overflow: 'hidden' },
     avatarCircleLarge: { width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center', borderWidth: 6, borderColor: 'white', overflow: 'hidden' },
     avatarImg: { width: '100%', height: '100%', borderRadius: 34 },
     avatarImgLarge: { width: '100%', height: '100%' },

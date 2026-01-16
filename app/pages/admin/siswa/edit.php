@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     if (!$error) {
         try {
-            $sql = "UPDATE tb_siswa SET nis = :nis, nama_lengkap = :nama, id_kelas = :kelas $foto_query $password_query WHERE id = :id";
+            $sql = "UPDATE tb_siswa SET nis = :nis, nama_lengkap = :nama, id_kelas = :kelas $foto_query WHERE id = :id";
             $stmt = $pdo->prepare($sql);
             $stmt->execute($params);
             

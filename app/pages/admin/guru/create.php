@@ -12,7 +12,9 @@ $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $nip = htmlspecialchars($_POST['nip']);
+    $username = htmlspecialchars($_POST['username']);
     $nama = htmlspecialchars($_POST['nama_lengkap']);
+    $id_kelas_wali = !empty($_POST['id_kelas_wali']) ? $_POST['id_kelas_wali'] : null;
     
     // Generate QR Token
     $kode_qr = "GURU-" . $nip . "-" . uniqid();
@@ -20,14 +22,37 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Password
     $pass_hash = password_hash($_POST['password'], PASSWORD_DEFAULT);
 
+    // Upload Foto
+    $foto_name = null;
+    if (isset($_FILES['foto']) && $_FILES['foto']['error'] == 0) {
+        $target_dir = "../../../../uploads/guru/";
+        if (!file_exists($target_dir)) {
+            mkdir($target_dir, 0777, true);
+        }
+
+        $file_extension = pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION);
+        $new_filename = "GURU_" . $nip . "_" . time() . "." . $file_extension;
+        $target_file = $target_dir . $new_filename;
+
+        $allowed = ['jpg', 'jpeg', 'png'];
+        if (in_array(strtolower($file_extension), $allowed)) {
+             if (move_uploaded_file($_FILES['foto']['tmp_name'], $target_file)) {
+                 $foto_name = $new_filename;
+             }
+        }
+    }
+
     try {
-        $sql = "INSERT INTO tb_guru (nip, nama_lengkap, kode_qr, password) VALUES (:nip, :nama, :qr, :pass)";
+        $sql = "INSERT INTO tb_guru (nip, username, nama_lengkap, kode_qr, password, foto_profil, id_kelas_wali) VALUES (:nip, :username, :nama, :qr, :pass, :foto, :wali)";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
             ':nip' => $nip,
+            ':username' => $username,
             ':nama' => $nama,
             ':qr' => $kode_qr,
-            ':pass' => $pass_hash
+            ':pass' => $pass_hash,
+            ':foto' => $foto_name,
+            ':wali' => $id_kelas_wali
         ]);
         
         echo "<script>alert('Guru Berhasil Ditambahkan!'); window.location.href='index.php';</script>";
@@ -35,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     } catch (PDOException $e) {
         if ($e->getCode() == 23000) {
-            $error = "NIP sudah terdaftar!";
+            $error = "NIP atau Username sudah terdaftar!";
         } else {
             $error = "Gagal menyimpan: " . $e->getMessage();
         }
@@ -60,10 +85,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     </div>
                 <?php endif; ?>
 
-                <form action="" method="POST" class="space-y-6">
+                <form action="" method="POST" enctype="multipart/form-data" class="space-y-6">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">NIP (Nomor Induk Pegawai)</label>
                         <input type="number" name="nip" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="19xxxxxxxxxx" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                        <input type="text" name="username" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Username untuk Login" required>
                     </div>
 
                     <div>
@@ -74,6 +104,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
                         <input type="password" name="password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Masukkan password" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Foto Guru (Opsional)</label>
+                        <input type="file" name="foto" accept="image/*" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <p class="text-xs text-gray-500 mt-1">Format: JPG, PNG. Maks 2MB.</p>
+                    </div>
+
+                    <!-- Input Wali Kelas (Optional) -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tugas Wali Kelas (Opsional)</label>
+                        <select name="id_kelas_wali" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">-- Bukan Wali Kelas --</option>
+                            <?php 
+                            $stmt_kelas = $pdo->query("SELECT * FROM tb_kelas ORDER BY nama_kelas ASC");
+                            while($kelas = $stmt_kelas->fetch()): 
+                            ?>
+                                <option value="<?= $kelas['id'] ?>"><?= $kelas['nama_kelas'] ?></option>
+                            <?php endwhile; ?>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1">Pilih kelas jika guru ini adalah wali kelas.</p>
                     </div>
 
                     <div class="flex justify-end space-x-3">
