@@ -5,268 +5,270 @@ import numpy as np
 import time
 from datetime import datetime
 import threading
-# import winsound  # Built-in Windows sound
-
 import logging
+import sys
 
 # Setup Logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler("scanner_debug.log"),
-        logging.StreamHandler()
+        logging.FileHandler("scanner_activity.log"),
+        logging.StreamHandler(sys.stdout)
     ]
 )
 
-# --- CONFIGURASI DATABASE ---
+# --- DATABASE CONFIG ---
 db_config = {
     'host': 'localhost',
     'user': 'root',
     'password': '',
     'database': 'db_absensi_digital',
-    'autocommit': True  # IMPORTANT: Enable autocommit to ensure data is saved
+    'autocommit': True
 }
 
 def play_beep(success=True):
-    import winsound
-    if success:
-        winsound.Beep(1000, 200) # High pitch, short
-    else:
-        winsound.Beep(500, 500)  # Low pitch, long
+    try:
+        import winsound
+        if success:
+            winsound.Beep(1200, 200)
+        else:
+            winsound.Beep(400, 600)
+    except:
+        pass
 
 def get_db_connection():
-    return mysql.connector.connect(**db_config)
+    try:
+        conn = mysql.connector.connect(**db_config)
+        return conn
+    except Exception as e:
+        logging.error(f"Koneksi Database Gagal: {e}")
+        return None
 
 def process_qr_code(qr_data):
-    conn = None
-    logging.info(f"Processing QR: '{qr_data}'")
+    qr_data = qr_data.strip()
+    logging.info(f"--- DETEKSI BARU: '{qr_data}' ---")
+    
+    conn = get_db_connection()
+    if not conn:
+        return {'success': False, 'message': 'Gagal koneksi database'}
+        
     try:
-        conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
-        # 1. Cari User (Siswa/Guru)
-        logging.info("Searching in tb_siswa...")
+        # 1. Identity Check
+        user = None
+        # Cari di Siswa
         cursor.execute("SELECT id, nama_lengkap, 'siswa' as role FROM tb_siswa WHERE kode_qr = %s", (qr_data,))
         user = cursor.fetchone()
         
         if not user:
-            logging.info("Not found in tb_siswa. Searching in tb_guru...")
+            # Cari di Guru
             cursor.execute("SELECT id, nama_lengkap, 'guru' as role FROM tb_guru WHERE kode_qr = %s", (qr_data,))
             user = cursor.fetchone()
             
         if not user:
-            logging.warning(f"QR Not Found in DB: {qr_data}")
-            return {'success': False, 'message': 'QR Code Tidak Dikenal'}
+            logging.warning(f"Hasil: QR TIDAK DIKENAL")
+            return {'success': False, 'message': 'QR Code Tidak Terdaftar'}
             
-        logging.info(f"User Found: {user['nama_lengkap']} ({user['role']})")
+        logging.info(f"User Berhasil Diidentifikasi: {user['nama_lengkap']} ({user['role']})")
 
-        # 2. Cek Absensi Hari Ini
+        # 2. Check Duplikasi
         today = datetime.now().strftime('%Y-%m-%d')
         cursor.execute(
             "SELECT id FROM tb_absensi WHERE user_id = %s AND role = %s AND tanggal = %s",
             (user['id'], user['role'], today)
         )
-        existing = cursor.fetchone()
-        
-        if existing:
-            logging.info(f"User already present today.")
+        if cursor.fetchone():
+            logging.info(f"Hasil: DUPLIKAT (User sudah absen hari ini)")
             return {
-                'success': True, # Masih dianggap sukses scan, tapi statusnya info
+                'success': True,
                 'already_present': True,
-                'message': f"Sudah Absen: {user['nama_lengkap']}",
+                'message': f"PRESENSI '{user['nama_lengkap']}' SUDAH DITERIMA SEBELUMNYA",
                 'user': user
             }
             
-        # 3. Insert Absensi
-        jam_masuk = datetime.now().strftime('%H:%M:%S')
+        # 3. Logic Absensi
+        now = datetime.now()
+        jam_masuk = now.strftime('%H:%M:%S')
         status = 'hadir'
         
-        # Logika Telat
-        now = datetime.now()
-        day_of_week = now.weekday() # 0 = Senin, ... 6 = Minggu
-        
-        # Default Rule (Selasa-Jumat): 07:00
-        cutoff_hour = 7
-        cutoff_minute = 0
-        
-        # Khusus Senin: 06:45
-        if day_of_week == 0:
-            cutoff_hour = 6
-            cutoff_minute = 45
-            
-        cutoff_time = now.replace(hour=cutoff_hour, minute=cutoff_minute, second=0, microsecond=0)
+        # Aturan Telat: Senin 06:45, lainnya 07:00
+        cutoff_h, cutoff_m = (6, 45) if now.weekday() == 0 else (7, 0)
+        cutoff_time = now.replace(hour=cutoff_h, minute=cutoff_m, second=0, microsecond=0)
         
         if now > cutoff_time:
             status = 'terlambat'
-            logging.info(f"Status TERLAMBAT detected (Cutoff {cutoff_hour}:{cutoff_minute:02d})")
         
-        logging.info(f"Inserting attendance... Status: {status}")
+        # 4. Insert ke Database
+        logging.info(f"Menyimpan ke Database: {user['nama_lengkap']} | Status: {status}")
         cursor.execute(
             "INSERT INTO tb_absensi (user_id, role, tanggal, jam_masuk, status, created_at) VALUES (%s, %s, %s, %s, %s, NOW())",
             (user['id'], user['role'], today, jam_masuk, status)
         )
         conn.commit()
         
-        if cursor.rowcount > 0:
-            logging.info("Insert Success! Row Count: 1")
-        else:
-            logging.error("Insert failed, rowcount 0")
-
-        logging.info(f"Insert Success!")
-        
+        logging.info(f"Hasil: BERHASIL DISIMPAN ({status})")
         return {
             'success': True,
             'already_present': False,
-            'message': f"Berhasil: {user['nama_lengkap']}",
+            'message': f"PRESENSI MASUK/KELUAR \"{user['nama_lengkap']}\" DITERIMA",
+            'status_label': status.upper(),
             'status': status,
             'user': user
         }
         
-    except mysql.connector.Error as err:
-        logging.error(f"Database Error: {err}")
-        return {'success': False, 'message': f"DB Error: {err}"}
+    except Exception as e:
+        logging.error(f"DATABASE ERROR: {str(e)}")
+        return {'success': False, 'message': f"Sistem Error: {str(e)}"}
     finally:
         if conn and conn.is_connected():
             cursor.close()
             conn.close()
 
-def draw_modern_ui(frame, current_time, message, message_color, message_timer):
-    height, width, _ = frame.shape
-    
-    # --- STYLE MATCHING WEB THEME ---
-    # Warna Header: Blue-600 to Indigo-600 approximation
-    # BGR Format
-    header_color = (235, 99, 37) # Blue-ish
-    
-    # 1. Header Bar (Full Width)
-    header_h = 60
-    cv2.rectangle(frame, (0, 0), (width, header_h), header_color, -1)
-    
-    # Header Text
+def draw_modern_ui(frame, is_locked, message="", color=(0,0,0), result_cache=None):
+    h, w, _ = frame.shape
     font = cv2.FONT_HERSHEY_SIMPLEX
-    cv2.putText(frame, "Kamera Scanner", (20, 40), font, 1, (255, 255, 255), 2)
-    cv2.putText(frame, "Arahkan ke QR Code", (300, 40), font, 0.6, (230, 230, 230), 1)
-
-    # 2. Scan Guide / Corners (Clean White)
-    # Tidak perlu dimmed background, biar terlihat 'clean' seperti web
-    scan_size = 300
-    x1 = (width - scan_size) // 2
-    y1 = (height - scan_size) // 2 + 30 # Offset sedikit ke bawah karena ada header
-    x2 = x1 + scan_size
-    y2 = y1 + scan_size
     
-    corner_len = 20
-    corner_thk = 4
-    corner_col = (255, 255, 255)
-    
-    # Gambar Siku
-    # Top-Left
-    cv2.line(frame, (x1, y1), (x1 + corner_len, y1), corner_col, corner_thk)
-    cv2.line(frame, (x1, y1), (x1, y1 + corner_len), corner_col, corner_thk)
-    # Top-Right
-    cv2.line(frame, (x2, y1), (x2 - corner_len, y1), corner_col, corner_thk)
-    cv2.line(frame, (x2, y1), (x2, y1 + corner_len), corner_col, corner_thk)
-    # Bottom-Left
-    cv2.line(frame, (x1, y2), (x1 + corner_len, y2), corner_col, corner_thk)
-    cv2.line(frame, (x1, y2), (x1, y2 - corner_len), corner_col, corner_thk)
-    # Bottom-Right
-    cv2.line(frame, (x2, y2), (x2 - corner_len, y2), corner_col, corner_thk)
-    cv2.line(frame, (x2, y2), (x2, y2 - corner_len), corner_col, corner_thk)
+    # 1. Premium Header (Navy)
+    cv2.rectangle(frame, (0, 0), (w, 80), (60, 30, 20), -1) 
+    cv2.putText(frame, "E-ABSENSI SYSTEM", (30, 45), font, 1, (255, 255, 255), 3)
+    cv2.putText(frame, "Status: Scanner Aktif & Siap", (32, 70), font, 0.5, (180, 180, 180), 1)
 
-    # 3. Status Notification (Jika ada)
-    if current_time < message_timer:
-        # Status Box di Bawah
-        # Mirip alert component
-        bar_h = 80
-        y_bar = height - bar_h
+    # 2. Scanning Box Components
+    box_size = 350
+    x1, y1 = (w - box_size) // 2, (h - box_size) // 2 + 20
+    x2, y2 = x1 + box_size, y1 + box_size
+    
+    # Background Dimming (if not locked)
+    if not is_locked:
+        overlay = frame.copy()
+        cv2.rectangle(overlay, (0, 80), (w, h), (0, 0, 0), -1)
+        cv2.rectangle(overlay, (x1, y1), (x2, y2), (255, 255, 255), -1)
+        cv2.addWeighted(overlay, 0.5, frame, 0.5, 0, frame)
+    
+        # Scan Line (Moving Animation effect)
+        scan_line_y = y1 + int((time.time() * 200) % box_size)
+        cv2.line(frame, (x1, scan_line_y), (x2, scan_line_y), (0, 255, 0), 2)
+    
+    # Corners
+    c_len, c_col = 35, (255, 255, 255)
+    cv2.line(frame, (x1, y1), (x1+c_len, y1), c_col, 5)
+    cv2.line(frame, (x1, y1), (x1, y1+c_len), c_col, 5)
+    cv2.line(frame, (x2, y1), (x2-c_len, y1), c_col, 5)
+    cv2.line(frame, (x2, y1), (x2, y1+c_len), c_col, 5)
+    cv2.line(frame, (x1, y2), (x1+c_len, y2), c_col, 5)
+    cv2.line(frame, (x1, y2), (x1, y2-c_len), c_col, 5)
+    cv2.line(frame, (x2, y2), (x2-c_len, y2), c_col, 5)
+    cv2.line(frame, (x2, y2), (x2, y2-c_len), c_col, 5)
+
+    # 3. Result Overlay (Popup Card)
+    if is_locked:
+        cw, ch = 650, 300
+        cx1, cy1 = (w - cw) // 2, (h - ch) // 2
+        cx2, cy2 = cx1 + cw, cy1 + ch
         
-        # Background bar sesuai status
-        cv2.rectangle(frame, (0, y_bar), (width, height), message_color, -1)
+        # Shadow & Smooth Card
+        cv2.rectangle(frame, (cx1+10, cy1+10), (cx2+10, cy2+10), (20, 20, 20), -1)
+        cv2.rectangle(frame, (cx1, cy1), (cx2, cy2), (255, 255, 255), -1)
         
-        # Center message
-        text_size = cv2.getTextSize(message, font, 1, 2)[0]
-        tx = (width - text_size[0]) // 2
-        ty = y_bar + (bar_h + text_size[1]) // 2
+        # Status Sidebar
+        cv2.rectangle(frame, (cx1, cy1), (cx1+20, cy2), color, -1)
         
-        # Text Color (Hitam jika kuning, Putih jika yg lain)
-        text_col = (0,0,0) if message_color == (0,255,255) else (255,255,255)
+        # Result Header Text
+        header_text = "BERHASIL"
+        if result_cache:
+            if result_cache.get('already_present'): header_text = "INFO"
+            elif not result_cache.get('success'): header_text = "ERROR"
+            
+        cv2.putText(frame, header_text, (cx1+45, cy1+65), font, 1.4, color, 4)
         
-        cv2.putText(frame, message, (tx, ty), font, 1, text_col, 2)
-    else:
-        # Default Footer
-        cv2.rectangle(frame, (0, height-30), (width, height), (50, 50, 50), -1)
-        cv2.putText(frame, "Python Scanner Active", (10, height-10), font, 0.5, (200, 200, 200), 1)
+        # First Line: PRESENSI MASUK/KELUAR "nama" DITERIMA
+        # Using a slightly smaller font to fit names
+        cv2.putText(frame, message, (cx1+45, cy1+140), font, 0.75, (40, 40, 40), 2)
+        
+        # Second Line: Status Label
+        if result_cache and not result_cache.get('already_present') and result_cache.get('success'):
+            status_text = f"Status: {result_cache.get('status_label')}"
+            cv2.putText(frame, status_text, (cx1+45, cy1+200), font, 0.9, color, 2)
+        elif result_cache and result_cache.get('already_present'):
+            # For double scans, just show the message line
+            pass
+            
+        cv2.putText(frame, "Sistem terkunci sementara...", (cx1+45, cy2-35), font, 0.5, (120, 120, 120), 1)
 
 def main():
     cap = cv2.VideoCapture(0)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280) # Try HD
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
     
-    # If HD fails, it falls back to default. Check actual size
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    actual_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    actual_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    logging.info(f"Kamera Aktif: {actual_w}x{actual_h}")
     
-    # Window setup
-    window_name = "Scanner Absensi Digital"
+    window_name = "Presence Scanner v2.0"
     cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-    # cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN) # Optional: Enable for Kiosk
     
-    last_scan_time = 0
-    scan_cooldown = 2.0 
-    
+    is_locked = False
+    locked_until = 0
+    freeze_frame = None
     message = ""
     message_color = (0, 0, 0)
-    message_timer = 0
+    result_cache = None
     
-    logging.info("Starting Modern UI Scanner...")
+    logging.info("--- SCANNER SIAP DIGUNAKAN ---")
     
     while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-            
-        # Flip for mirror effect (optional, feels more natural)
-        frame = cv2.flip(frame, 1)
-        
         current_time = time.time()
         
-        # QR Code Detection
-        decoded_objects = decode(frame)
-        
-        # Logic Scan
-        if current_time - last_scan_time > scan_cooldown:
-            for obj in decoded_objects:
-                qr_data = obj.data.decode('utf-8')
-                result = process_qr_code(qr_data)
-                
-                if result['success']:
-                    last_scan_time = time.time()
-                    threading.Thread(target=play_beep, args=(True,)).start()
-                    
-                    if result.get('already_present'):
-                        message = f"SUDAH ABSEN: {result['user']['nama_lengkap']}"
-                        message_color = (0, 255, 255) # Yellow
-                    else:
-                        status_text = "TERLAMBAT" if result.get('status') == 'terlambat' else "HADIR"
-                        message = f"{status_text}: {result['user']['nama_lengkap']}"
-                        message_color = (0, 255, 0) # Green
-                else:
-                    threading.Thread(target=play_beep, args=(False,)).start()
-                    message = result['message']
-                    message_color = (0, 0, 255) # Red
-                
-                message_timer = current_time + 3.0
-                break # Only process one QR per frame
-        
-        # Draw UI
-        draw_modern_ui(frame, current_time, message, message_color, message_timer)
+        if not is_locked:
+            ret, frame = cap.read()
+            if not ret: break
             
-        cv2.imshow(window_name, frame)
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            decoded_objects = decode(gray)
+            display_frame = cv2.flip(frame, 1)
+            
+            if decoded_objects:
+                for obj in decoded_objects:
+                    qr_data = obj.data.decode('utf-8')
+                    result = process_qr_code(qr_data)
+                    
+                    if result['success']:
+                        if result.get('already_present'):
+                            message = result['message']
+                            message_color = (0, 165, 255) # Orange for info
+                        else:
+                            status = result.get('status')
+                            message = result['message']
+                            
+                            # Logic Warna sesuai request:
+                            # "jika tidak terlambat berwarna hijau" (0, 200, 0)
+                            # "jika terlambat berwarna merah" (0, 0, 220)
+                            if status == 'terlambat':
+                                message_color = (0, 0, 220) # RED (BGR)
+                            else:
+                                message_color = (0, 200, 0) # GREEN (BGR)
+                    else:
+                        message = result['message']
+                        message_color = (0, 0, 230) # Red for system error
+                    
+                    is_locked = True
+                    locked_until = current_time + 3.0
+                    freeze_frame = display_frame.copy()
+                    result_cache = result
+                    
+                    threading.Thread(target=play_beep, args=(result['success'],)).start()
+                    break 
+        else:
+            display_frame = freeze_frame.copy()
+            if current_time > locked_until:
+                is_locked = False
         
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord('q') or key == 27: # Q or ESC
-            break
+        draw_modern_ui(display_frame, is_locked, message, message_color, result_cache)
+        cv2.imshow(window_name, display_frame)
+        
+        if cv2.waitKey(1) & 0xFF in [ord('q'), 27]: break
             
     cap.release()
     cv2.destroyAllWindows()

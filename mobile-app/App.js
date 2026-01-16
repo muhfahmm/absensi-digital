@@ -5,12 +5,12 @@ import { CameraView, Camera } from "expo-camera";
 import QRCode from 'react-native-qrcode-svg';
 import Svg, { Path } from 'react-native-svg';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 // GANTI IP INI SESUAI IP KOMPUTER ANDA!
 const BASE_URL = 'http://192.168.0.103/absensi-digital%203';
 
-// Icon paths from dashboard.php
+// Icon paths from dashboard.php and reference image
 const PATHS = {
     logout: "M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1",
     tag: "M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z",
@@ -26,7 +26,9 @@ const PATHS = {
     close: "M6 18L18 6M6 6l12 12",
     download: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4",
     moon: "M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z",
-    sun: "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+    sun: "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z",
+    back: "M10 19l-7-7m0 0l7-7m-7 7h18",
+    calendar: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
 };
 
 const WebIcon = ({ name, size = 24, color = "white", strokeWidth = 2, style }) => (
@@ -44,7 +46,7 @@ const WebIcon = ({ name, size = 24, color = "white", strokeWidth = 2, style }) =
 export default function App() {
     const systemTheme = useColorScheme();
     const [isDarkMode, setIsDarkMode] = useState(systemTheme === 'dark');
-    const [currentView, setCurrentView] = useState('login'); // login, dashboard, scanner
+    const [currentView, setCurrentView] = useState('login'); // login, dashboard, scanner, kehadiran, profil, pembayaran, pengumuman
     const [userData, setUserData] = useState(null);
     const [attendanceStatus, setAttendanceStatus] = useState(null);
 
@@ -59,7 +61,6 @@ export default function App() {
 
     // Modal State
     const [qrModalVisible, setQrModalVisible] = useState(false);
-    const [photoModalVisible, setPhotoModalVisible] = useState(false);
 
     const theme = {
         bg: isDarkMode ? '#0f172a' : '#f3f4f6',
@@ -169,6 +170,60 @@ export default function App() {
         }
     };
 
+    // View Components
+    const ScreenTemplate = ({ title, subtitle, showBack = true, children }) => (
+        <View style={[styles.dashboardWrapper, { backgroundColor: theme.bg }]}>
+            <View style={styles.webHeader}>
+                <View style={styles.headerFlex}>
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.webHeaderTitle}>{title}</Text>
+                        {subtitle && <Text style={styles.webHeaderSubtitle}>{subtitle}</Text>}
+                    </View>
+                    {showBack && (
+                        <TouchableOpacity onPress={() => setCurrentView('dashboard')}>
+                            <WebIcon name="back" size={24} color="white" />
+                        </TouchableOpacity>
+                    )}
+                </View>
+            </View>
+            <ScrollView style={styles.scrollView} bounces={false}>
+                <View style={[styles.mainContent, { paddingBottom: 120 }]}>
+                    {children}
+                </View>
+            </ScrollView>
+
+            {/* Navigasi tetap tampil di semua view dashboard kecuali login/scanner */}
+            {renderBottomNav()}
+        </View>
+    );
+
+    const renderBottomNav = () => {
+        const role = userData?.role;
+        return (
+            <View style={[styles.webBottomNav, { backgroundColor: theme.bottomNav, borderTopColor: isDarkMode ? '#334155' : '#f3f4f6' }]}>
+                <TouchableOpacity style={styles.navBtn} onPress={() => setCurrentView('dashboard')}>
+                    <WebIcon name="home" size={24} color={currentView === 'dashboard' ? '#3b82f6' : theme.navIconIdle} />
+                    <Text style={[styles.navLabelGray, currentView === 'dashboard' && styles.navLabelBlue, { color: currentView === 'dashboard' ? '#3b82f6' : theme.navIconIdle }]}>Home</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.navBtnCenter} onPress={() => {
+                    if (role === 'siswa') setQrModalVisible(true);
+                    else setCurrentView('scanner');
+                }}>
+                    <View style={styles.qrCircleFab}>
+                        <WebIcon name={role === 'siswa' ? "qr" : "search"} size={32} color="white" />
+                    </View>
+                    <Text style={[styles.navLabelCenter, { color: theme.text }]}>QR Code</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.navBtn} onPress={() => setCurrentView('profil')}>
+                    <WebIcon name="user" size={24} color={currentView === 'profil' ? '#3b82f6' : theme.navIconIdle} />
+                    <Text style={[styles.navLabelGray, currentView === 'profil' && styles.navLabelBlue, { color: currentView === 'profil' ? '#3b82f6' : theme.navIconIdle }]}>Profil</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
+
     // UI Renders
     const renderLogin = () => (
         <View style={[styles.loginContainer, { backgroundColor: theme.card }]}>
@@ -263,14 +318,14 @@ export default function App() {
 
                     <View style={styles.mainContent}>
                         {/* Student Detail Card */}
-                        <View style={styles.webProfileCard}>
-                            <TouchableOpacity style={styles.avatarCircle} onPress={() => setPhotoModalVisible(true)}>
+                        <TouchableOpacity style={styles.webProfileCard} onPress={() => setCurrentView('profil')}>
+                            <View style={styles.avatarCircle}>
                                 {user.foto_profil ? (
                                     <Image source={{ uri: `${BASE_URL}/uploads/${role}/${user.foto_profil}` }} style={styles.avatarImg} />
                                 ) : (
                                     <WebIcon name="user" size={32} color="white" />
                                 )}
-                            </TouchableOpacity>
+                            </View>
                             <View style={styles.profileTextInfo}>
                                 <Text style={styles.profileNameTxt}>{user.nama}</Text>
                                 <View style={styles.badgeRow}>
@@ -284,12 +339,12 @@ export default function App() {
                                     <Text style={styles.badgeValue}>{user.nama_kelas || '-'}</Text>
                                 </View>
                             </View>
-                        </View>
+                        </TouchableOpacity>
 
                         {/* Status Absensi Card */}
                         <View style={[styles.webStatusContainer, { backgroundColor: theme.card }]}>
                             <Text style={[styles.sectionTitleWeb, { color: theme.text }]}>Status Absensi Hari Ini</Text>
-                            <Text style={styles.dateLabelWeb}>{new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</Text>
+                            <Text style={styles.dateLabelWeb}>{new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</Text>
 
                             <View style={[styles.statusInnerBox, { backgroundColor: statusStyle.bg, borderColor: statusStyle.border }]}>
                                 <View>
@@ -308,39 +363,19 @@ export default function App() {
                         {/* Menu Grid */}
                         <View style={styles.webGrid}>
                             <View style={styles.webRow}>
-                                <WebMenuItem iconName="clipboard" iconColor="#2563eb" iconBg="#dbeafe" title="Kehadiran" sub="Riwayat absensi" theme={theme} isDarkMode={isDarkMode} />
-                                <WebMenuItem iconName="user" iconColor="#7c3aed" iconBg="#f5f3ff" title="Profil" sub="Data pribadi" theme={theme} isDarkMode={isDarkMode} />
+                                <WebMenuItem iconName="clipboard" iconColor="#2563eb" iconBg="#dbeafe" title="Kehadiran" sub="Riwayat absensi" onPress={() => setCurrentView('kehadiran')} theme={theme} isDarkMode={isDarkMode} />
+                                <WebMenuItem iconName="user" iconColor="#7c3aed" iconBg="#f5f3ff" title="Profil" sub="Data pribadi" onPress={() => setCurrentView('profil')} theme={theme} isDarkMode={isDarkMode} />
                             </View>
                             <View style={styles.webRow}>
-                                <WebMenuItem iconName="card" iconColor="#16a34a" iconBg="#dcfce7" title="Pembayaran" sub="Status SPP" theme={theme} isDarkMode={isDarkMode} />
-                                <WebMenuItem iconName="speaker" iconColor="#ea580c" iconBg="#ffedd5" title="Pengumuman" sub="Info terbaru" theme={theme} isDarkMode={isDarkMode} />
+                                <WebMenuItem iconName="card" iconColor="#16a34a" iconBg="#dcfce7" title="Pembayaran" sub="Status SPP" onPress={() => setCurrentView('pembayaran')} theme={theme} isDarkMode={isDarkMode} />
+                                <WebMenuItem iconName="speaker" iconColor="#ea580c" iconBg="#ffedd5" title="Pengumuman" sub="Info terbaru" onPress={() => setCurrentView('pengumuman')} theme={theme} isDarkMode={isDarkMode} />
                             </View>
                         </View>
                     </View>
                 </ScrollView>
 
                 {/* Bottom Nav */}
-                <View style={[styles.webBottomNav, { backgroundColor: theme.bottomNav, borderTopColor: isDarkMode ? '#334155' : '#f3f4f6' }]}>
-                    <TouchableOpacity style={styles.navBtn}>
-                        <WebIcon name="home" size={24} color="#3b82f6" />
-                        <Text style={styles.navLabelBlue}>Home</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.navBtnCenter} onPress={() => {
-                        if (role === 'siswa') setQrModalVisible(true);
-                        else setCurrentView('scanner');
-                    }}>
-                        <View style={styles.qrCircleFab}>
-                            <WebIcon name={role === 'siswa' ? "qr" : "search"} size={32} color="white" />
-                        </View>
-                        <Text style={[styles.navLabelCenter, { color: theme.text }]}>{role === 'siswa' ? 'QR Code' : 'Scan'}</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.navBtn}>
-                        <WebIcon name="user" size={24} color={theme.navIconIdle} />
-                        <Text style={[styles.navLabelGray, { color: theme.navIconIdle }]}>Profil</Text>
-                    </TouchableOpacity>
-                </View>
+                {renderBottomNav()}
 
                 {/* QR Modal */}
                 <Modal visible={qrModalVisible} transparent animationType="fade">
@@ -354,7 +389,7 @@ export default function App() {
                             </View>
                             <Text style={[styles.modalSubWeb, { color: theme.textMuted }]}>Tunjukkan QR Code ini untuk absensi</Text>
                             <View style={[styles.qrInnerBox, { backgroundColor: isDarkMode ? '#0f172a' : '#f5f3ff' }]}>
-                                <QRCode value={user.kode_qr || 'EMPTY'} size={210} color={isDarkMode ? '#ffffff' : '#4f46e5'} backgroundColor="transparent" />
+                                <QRCode value={user.kode_qr || 'EMPTY'} size={210} color={isDarkMode ? '#ffffff' : '#000000'} backgroundColor="transparent" />
                             </View>
                             <View style={[styles.qrValueBox, { backgroundColor: isDarkMode ? '#334155' : '#f9fafb' }]}><Text style={[styles.qrValueTxt, { color: isDarkMode ? '#e2e8f0' : '#4b5563' }]}>{user.kode_qr}</Text></View>
                             <TouchableOpacity style={[styles.btnDownloadWeb, { backgroundColor: theme.primary }]}>
@@ -366,37 +401,12 @@ export default function App() {
                         </View>
                     </View>
                 </Modal>
-
-                {/* Photo Preview Modal */}
-                <Modal visible={photoModalVisible} transparent animationType="fade">
-                    <View style={styles.modalOverlay}>
-                        <View style={[styles.modalContent, { backgroundColor: theme.card, padding: 15 }]}>
-                            <View style={[styles.modalHeaderFlex, { marginBottom: 15 }]}>
-                                <Text style={[styles.modalTitleWeb, { color: theme.text }]}>Foto Profil</Text>
-                                <TouchableOpacity onPress={() => setPhotoModalVisible(false)}>
-                                    <WebIcon name="close" size={24} color={theme.textMuted} />
-                                </TouchableOpacity>
-                            </View>
-                            <View style={[styles.photoPreviewBox, { borderColor: theme.border }]}>
-                                {user.foto_profil ? (
-                                    <Image source={{ uri: `${BASE_URL}/uploads/${role}/${user.foto_profil}` }} style={styles.photoPreviewImg} resizeMode="cover" />
-                                ) : (
-                                    <View style={styles.avatarPlaceholderLarge}><WebIcon name="user" size={100} color="#cbd5e1" /></View>
-                                )}
-                            </View>
-                            <View style={{ marginTop: 20, width: '100%', alignItems: 'center' }}>
-                                <Text style={[styles.profileNameTxt, { color: theme.text, fontSize: 22 }]}>{user.nama}</Text>
-                                <Text style={[styles.webHeaderSubtitle, { color: theme.textMuted, fontSize: 16 }]}>NIS: {user.nis || '-'}</Text>
-                            </View>
-                        </View>
-                    </View>
-                </Modal>
             </View>
         );
     };
 
-    const WebMenuItem = ({ iconName, iconColor, iconBg, title, sub, theme, isDarkMode }) => (
-        <TouchableOpacity style={[styles.webMenuCard, { backgroundColor: theme.card }]}>
+    const WebMenuItem = ({ iconName, iconColor, iconBg, title, sub, onPress, theme, isDarkMode }) => (
+        <TouchableOpacity style={[styles.webMenuCard, { backgroundColor: theme.card }]} onPress={onPress}>
             <View style={[styles.iconCircleWeb, { backgroundColor: isDarkMode ? iconColor + '20' : iconBg }]}>
                 <WebIcon name={iconName} size={28} color={isDarkMode ? iconColor : iconColor} />
             </View>
@@ -406,8 +416,8 @@ export default function App() {
     );
 
     const renderScanner = () => {
-        if (hasPermission === null) return <Text>Requesting for camera permission</Text>;
-        if (hasPermission === false) return <Text>No access to camera</Text>;
+        if (hasPermission === null) return <Text style={{ color: theme.text }}>Requesting for camera permission</Text>;
+        if (hasPermission === false) return <Text style={{ color: theme.text }}>No access to camera</Text>;
         return (
             <View style={styles.scannerContainer}>
                 <CameraView style={StyleSheet.absoluteFillObject} onBarcodeScanned={scanned ? undefined : handleBarCodeScanned} barcodeScannerSettings={{ barcodeTypes: ["qr"] }} />
@@ -421,12 +431,83 @@ export default function App() {
         );
     };
 
+    const renderProfil = () => {
+        const user = userData?.user;
+        const role = userData?.role;
+        return (
+            <ScreenTemplate title="Profil Saya" subtitle="Informasi data pribadi">
+                {/* Main Profile Image Card */}
+                <View style={[styles.webStatusContainer, { backgroundColor: theme.card, alignItems: 'center', padding: 40, marginTop: 10 }]}>
+                    <View style={[styles.avatarCircleLarge, { borderColor: 'white', elevation: 10, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 }]}>
+                        {user.foto_profil ? (
+                            <Image source={{ uri: `${BASE_URL}/uploads/${role}/${user.foto_profil}` }} style={styles.avatarImgLarge} />
+                        ) : (
+                            <WebIcon name="user" size={80} color={isDarkMode ? theme.textMuted : "#cbd5e1"} />
+                        )}
+                    </View>
+                    <Text style={[styles.profileNameTxt, { color: theme.text, fontSize: 32, marginTop: 24, fontWeight: '900' }]}>{user.nama}</Text>
+                    <Text style={[styles.webHeaderSubtitle, { color: theme.textMuted, fontSize: 18, marginTop: 4 }]}>{user.nama_kelas || '-'}</Text>
+                </View>
+
+                {/* Info List */}
+                <View style={{ marginTop: 20 }}>
+                    <InfoCard icon="tag" iconBg="#eef2ff" iconColor="#4f46e5" label="Nomor Induk Siswa" value={user.nis || user.nip || '-'} theme={theme} isDarkMode={isDarkMode} />
+                    <InfoCard icon="building" iconBg="#f5f3ff" iconColor="#7c3aed" label="Kelas" value={user.nama_kelas || '-'} theme={theme} isDarkMode={isDarkMode} />
+                    <InfoCard icon="qr" iconBg="#f0fdf4" iconColor="#16a34a" label="Kode QR" value={user.kode_qr || '-'} theme={theme} isDarkMode={isDarkMode} mono />
+                    <InfoCard icon="calendar" iconBg="#eff6ff" iconColor="#3b82f6" label="Terdaftar Sejak" value={new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} theme={theme} isDarkMode={isDarkMode} />
+                </View>
+
+                {/* Logout Button */}
+                <TouchableOpacity style={styles.logoutBtnFull} onPress={handleLogout}>
+                    <WebIcon name="logout" size={20} color="white" style={{ marginRight: 10 }} />
+                    <Text style={styles.logoutBtnText}>Keluar dari Akun</Text>
+                </TouchableOpacity>
+            </ScreenTemplate>
+        );
+    };
+
+    const InfoCard = ({ icon, iconBg, iconColor, label, value, theme, isDarkMode, mono }) => (
+        <View style={[styles.infoItemCard, { backgroundColor: theme.card }]}>
+            <View style={[styles.infoIconCircle, { backgroundColor: isDarkMode ? iconColor + '20' : iconBg }]}>
+                <WebIcon name={icon} size={22} color={iconColor} />
+            </View>
+            <View style={{ flex: 1, marginLeft: 16 }}>
+                <Text style={{ color: theme.textMuted, fontSize: 13, fontWeight: '600' }}>{label}</Text>
+                <Text style={{ color: theme.text, fontSize: 16, fontWeight: 'bold', marginTop: 2, fontFamily: mono ? 'monospace' : undefined }}>{value}</Text>
+            </View>
+        </View>
+    );
+
+    const renderPlaceholder = (title) => (
+        <ScreenTemplate title={title}>
+            <View style={[styles.webStatusContainer, { backgroundColor: theme.card, alignItems: 'center', padding: 50, marginTop: 10 }]}>
+                <WebIcon name="speaker" size={60} color={theme.textMuted} />
+                <Text style={{ color: theme.text, fontSize: 18, marginTop: 20, textAlign: 'center', fontWeight: 'bold' }}>
+                    Fitur {title}
+                </Text>
+                <Text style={{ color: theme.textMuted, fontSize: 14, textAlign: 'center', marginTop: 8 }}>
+                    Halaman ini sedang dalam pengembangan dan akan segera tersedia.
+                </Text>
+                <TouchableOpacity
+                    style={[styles.loginButton, { backgroundColor: theme.primary, width: '100%', marginTop: 30 }]}
+                    onPress={() => setCurrentView('dashboard')}
+                >
+                    <Text style={styles.loginButtonText}>Selesai</Text>
+                </TouchableOpacity>
+            </View>
+        </ScreenTemplate>
+    );
+
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: isDarkMode ? '#0f172a' : '#f3f4f6' }]}>
             <StatusBar style="light" />
             {currentView === 'login' && renderLogin()}
             {currentView === 'dashboard' && renderDashboard()}
             {currentView === 'scanner' && renderScanner()}
+            {currentView === 'profil' && renderProfil()}
+            {currentView === 'kehadiran' && renderPlaceholder('Kehadiran')}
+            {currentView === 'pembayaran' && renderPlaceholder('Pembayaran')}
+            {currentView === 'pengumuman' && renderPlaceholder('Pengumuman')}
         </SafeAreaView>
     );
 }
@@ -457,15 +538,21 @@ const styles = StyleSheet.create({
     webHeaderTitle: { color: 'white', fontSize: 22, fontWeight: 'bold' },
     webHeaderSubtitle: { color: '#ddd6fe', fontSize: 14, marginTop: 4 },
 
-    // Profile Card (Purple)
+    // Profile Card
     webProfileCard: { backgroundColor: '#7c3aed', borderRadius: 24, padding: 24, flexDirection: 'row', alignItems: 'center', shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 15 },
     avatarCircle: { width: 68, height: 68, borderRadius: 34, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' },
+    avatarCircleLarge: { width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center', borderWidth: 6, borderColor: 'white', overflow: 'hidden' },
     avatarImg: { width: '100%', height: '100%', borderRadius: 34 },
+    avatarImgLarge: { width: '100%', height: '100%' },
     profileTextInfo: { flex: 1, marginLeft: 16 },
     profileNameTxt: { fontSize: 20, fontWeight: 'bold', color: 'white', marginBottom: 4 },
     badgeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
     badgeLabel: { color: '#ddd6fe', fontSize: 13, fontWeight: '600' },
     badgeValue: { color: 'white', fontSize: 13, marginLeft: 6 },
+
+    // Info List Style
+    infoItemCard: { flexDirection: 'row', alignItems: 'center', padding: 20, borderRadius: 24, marginBottom: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3 },
+    infoIconCircle: { width: 48, height: 48, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
 
     // Status Section
     webStatusContainer: { borderRadius: 24, padding: 24, marginTop: 20, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 5 },
@@ -494,6 +581,10 @@ const styles = StyleSheet.create({
     navLabelGray: { fontSize: 11, marginTop: 4 },
     navLabelCenter: { fontSize: 11, fontWeight: 'bold', marginTop: 8 },
 
+    // Logout Button Profile
+    logoutBtnFull: { backgroundColor: '#ef4444', height: 65, borderRadius: 20, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 10, shadowColor: "#ef4444", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 },
+    logoutBtnText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
+
     // Modal
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', padding: 24 },
     modalContent: { borderRadius: 32, padding: 32, alignItems: 'center' },
@@ -505,11 +596,6 @@ const styles = StyleSheet.create({
     qrValueTxt: { textAlign: 'center', fontFamily: 'monospace' },
     btnDownloadWeb: { width: '100%', padding: 18, borderRadius: 16, alignItems: 'center' },
     btnDownloadTxt: { color: 'white', fontWeight: 'bold', fontSize: 16 },
-
-    // Photo Preview
-    photoPreviewBox: { width: '100%', aspectRatio: 1, borderRadius: 24, overflow: 'hidden', borderWidth: 4 },
-    photoPreviewImg: { width: '100%', height: '100%' },
-    avatarPlaceholderLarge: { width: '100%', height: '100%', backgroundColor: '#f1f5f9', justifyContent: 'center', alignItems: 'center' },
 
     // Scanner
     scannerContainer: { flex: 1, backgroundColor: 'black' },
