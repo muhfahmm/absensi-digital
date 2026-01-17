@@ -25,6 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $nama = htmlspecialchars($_POST['nama_lengkap']);
     $id_kelas_wali = !empty($_POST['id_kelas_wali']) ? $_POST['id_kelas_wali'] : null;
     $guru_mapel_id = !empty($_POST['guru_mapel_id']) ? $_POST['guru_mapel_id'] : null;
+    $kode_guru = htmlspecialchars($_POST['kode_guru'] ?? '');
     
     // Password (Update jika diisi saja)
     $password_query = "";
@@ -33,6 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         ':nama' => $nama,
         ':wali' => $id_kelas_wali,
         ':mapel' => $guru_mapel_id,
+        ':kode' => $kode_guru,
         ':id' => $id
     ];
 
@@ -66,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     try {
-        $sql = "UPDATE tb_guru SET nuptk = :nuptk, nama_lengkap = :nama, id_kelas_wali = :wali, guru_mapel_id = :mapel $password_query $foto_query WHERE id = :id";
+        $sql = "UPDATE tb_guru SET nuptk = :nuptk, nama_lengkap = :nama, id_kelas_wali = :wali, guru_mapel_id = :mapel, kode_guru = :kode $password_query $foto_query WHERE id = :id";
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         
@@ -164,6 +166,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
                         <input type="text" name="nama_lengkap" value="<?= htmlspecialchars($data['nama_lengkap']) ?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Kode Guru (Inisial)</label>
+                        <input type="text" name="kode_guru" value="<?= htmlspecialchars($data['kode_guru'] ?? '') ?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Contoh: Ap, Na, Rs" maxlength="5">
                     </div>
 
                     <div>

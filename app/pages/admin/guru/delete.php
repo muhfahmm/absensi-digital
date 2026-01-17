@@ -16,6 +16,10 @@ if ($id) {
         $chk->execute([$id]);
         $g = $chk->fetch();
 
+        // Hapus Riwayat Absensi Terkait
+        $stmtAbsen = $pdo->prepare("DELETE FROM tb_absensi WHERE user_id = ? AND role = 'guru'");
+        $stmtAbsen->execute([$id]);
+
         $stmt = $pdo->prepare("DELETE FROM tb_guru WHERE id = ?");
         $stmt->execute([$id]);
         

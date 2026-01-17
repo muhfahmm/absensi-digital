@@ -21,6 +21,10 @@ if ($id) {
             if (file_exists($file)) unlink($file);
         }
 
+        // Hapus Riwayat Absensi Terkait
+        $stmtAbsen = $pdo->prepare("DELETE FROM tb_absensi WHERE user_id = ? AND role = 'siswa'");
+        $stmtAbsen->execute([$id]);
+
         $stmt = $pdo->prepare("DELETE FROM tb_siswa WHERE id = ?");
         $stmt->execute([$id]);
         
