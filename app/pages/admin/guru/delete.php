@@ -11,8 +11,18 @@ $id = $_GET['id'] ?? null;
 
 if ($id) {
     try {
+        // Ambil Data Guru dulu buat cek username
+        $chk = $pdo->prepare("SELECT username FROM tb_guru WHERE id = ?");
+        $chk->execute([$id]);
+        $g = $chk->fetch();
+
         $stmt = $pdo->prepare("DELETE FROM tb_guru WHERE id = ?");
         $stmt->execute([$id]);
+        
+        // Hapus juga dari tb_admin jika ada username yg sama
+        if ($g && !empty($g['username'])) {
+            $pdo->prepare("DELETE FROM tb_admin WHERE username = ?")->execute([$g['username']]);
+        }
         
         echo "<script>alert('Data Guru Berhasil Dihapus!'); window.location.href='index.php';</script>";
     } catch (PDOException $e) {

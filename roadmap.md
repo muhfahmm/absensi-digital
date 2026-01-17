@@ -138,13 +138,27 @@ Aplikasi ini bertujuan untuk mempermudah proses absensi siswa, guru, dan karyawa
 - [ ] **Jadwal Pelajaran** (Siswa)
 - [ ] **Nilai/Rapor** (Siswa)
 - [ ] **Tugas** (Siswa)
-- [ ] **E-Learning/Materi** (Siswa)
+- [ ] **E-Learning/Materi** (Siswa) - *Started (Database Ready)*
 - [ ] **Konseling** (Siswa)
 - [ ] **Input Nilai** (Guru)
 - [ ] **Pengaturan Sistem** (Admin)
 - [ ] **Notifikasi Push** (PWA)
 - [ ] **Dark Mode** (All pages)
 - [ ] **Multi-language** (ID/EN)
+
+### Fase 5.5: Poin & Akademik (Update Terbaru) ✅
+- [x] **Sistem Poin Siswa:**
+  - [x] Database kolom `poin`
+  - [x] Auto-deduct point saat terlambat
+  - [x] Menampilkan poin di Mobile App
+- [x] **Manajemen Mata Pelajaran:**
+  - [x] Tabel Master Mapel (`tb_mata_pelajaran`)
+  - [x] Relasi Guru ke Mapel (`guru_mapel_id`)
+  - [x] Relasi Admin ke Mapel (`guru_mapel_id`)
+- [x] **Dashboard Updates:**
+  - [x] Mobile: Admin Global Title
+  - [x] Mobile: Mapel/Role Subtitle
+  - [x] Web Admin: Dynamic Title based on Mapel relation
 
 ---
 
@@ -252,5 +266,5 @@ absensi digital 3/
 
 ---
 
-**Last Updated:** 13 Januari 2026
-**Version:** 1.0.0-beta
+**Last Updated:** 16 Januari 2026
+**Version:** 1.1.0 (Poin & Mapel Update)

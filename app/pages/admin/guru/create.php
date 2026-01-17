@@ -10,11 +10,54 @@ check_login('admin');
 
 $error = '';
 
+// Fetch Admins for Dropdown
+$stmt_admins = $pdo->query("SELECT * FROM tb_admin ORDER BY nama_lengkap ASC");
+$admins = $stmt_admins->fetchAll();
+
+// Fetch Mapel for Dropdown
+$stmt_mapel = $pdo->query("SELECT * FROM tb_mata_pelajaran ORDER BY nama_mapel ASC");
+$mapels = $stmt_mapel->fetchAll();
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $nip = htmlspecialchars($_POST['nip']);
-    $username = htmlspecialchars($_POST['username']);
-    $nama = htmlspecialchars($_POST['nama_lengkap']);
+    $id_admin_source = $_POST['id_admin_source'] ?? '';
     $id_kelas_wali = !empty($_POST['id_kelas_wali']) ? $_POST['id_kelas_wali'] : null;
+    $guru_mapel_id = !empty($_POST['guru_mapel_id']) ? $_POST['guru_mapel_id'] : null;
+    
+    // Default variables (will be overridden if admin source selected)
+    $username = null;
+    $nama = null;
+    $pass_hash = null;
+    $foto_name = null;
+
+    if (!empty($id_admin_source)) {
+        // AMBIL DATA DARI ADMIN
+        $stmt_src = $pdo->prepare("SELECT * FROM tb_admin WHERE id = ?");
+        $stmt_src->execute([$id_admin_source]);
+        $adm_data = $stmt_src->fetch();
+        
+        if ($adm_data) {
+            $username = $adm_data['username'];
+            $nama = $adm_data['nama_lengkap'];
+            $pass_hash = $adm_data['password']; // Copy existing hash
+            
+            // Copy Foto Profile if exists
+            if (!empty($adm_data['foto_profil']) && file_exists("../../../../uploads/admin/" . $adm_data['foto_profil'])) {
+                $ext = pathinfo($adm_data['foto_profil'], PATHINFO_EXTENSION);
+                $foto_name = "GURU_" . $nip . "_" . time() . "." . $ext;
+                // Create guru dir if not exists
+                if (!file_exists("../../../../uploads/guru/")) {
+                    mkdir("../../../../uploads/guru/", 0777, true);
+                }
+                copy("../../../../uploads/admin/" . $adm_data['foto_profil'], "../../../../uploads/guru/" . $foto_name);
+            }
+        }
+    } else {
+        // MANUAL INPUT
+        $username = htmlspecialchars($_POST['username']);
+        $nama = htmlspecialchars($_POST['nama_lengkap']);
+        $pass_hash = password_hash($_POST['password'], PASSWORD_DEFAULT);
+    }
     
     // Generate QR Token
     $kode_qr = "GURU-" . $nip . "-" . uniqid();
@@ -22,9 +65,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Password
     $pass_hash = password_hash($_POST['password'], PASSWORD_DEFAULT);
 
-    // Upload Foto
-    $foto_name = null;
-    if (isset($_FILES['foto']) && $_FILES['foto']['error'] == 0) {
+    // Upload Foto (Only if manual or override)
+    // Note: If using Admin source, we already copied photo above.
+    // But if user uploads a file manually even when admin selected (optional override?), we can handle it.
+    // For now, let's stick to: If Manual -> Upload. If Admin -> Copy.
+    if (empty($id_admin_source) && isset($_FILES['foto']) && $_FILES['foto']['error'] == 0) {
         $target_dir = "../../../../uploads/guru/";
         if (!file_exists($target_dir)) {
             mkdir($target_dir, 0777, true);
@@ -43,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     try {
-        $sql = "INSERT INTO tb_guru (nip, username, nama_lengkap, kode_qr, password, foto_profil, id_kelas_wali) VALUES (:nip, :username, :nama, :qr, :pass, :foto, :wali)";
+        $sql = "INSERT INTO tb_guru (nip, username, nama_lengkap, kode_qr, password, foto_profil, id_kelas_wali, guru_mapel_id) VALUES (:nip, :username, :nama, :qr, :pass, :foto, :wali, :mapel)";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
             ':nip' => $nip,
@@ -52,8 +97,41 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             ':qr' => $kode_qr,
             ':pass' => $pass_hash,
             ':foto' => $foto_name,
-            ':wali' => $id_kelas_wali
+            ':wali' => $id_kelas_wali,
+            ':mapel' => $guru_mapel_id
         ]);
+        
+        if (isset($_POST['is_admin'])) {
+            // Cek apakah username sudah ada di admin
+            $stmt_check = $pdo->prepare("SELECT id FROM tb_admin WHERE username = :user");
+            $stmt_check->execute([':user' => $username]);
+            
+            if ($stmt_check->rowCount() == 0) {
+                // Copy foto to admin folder check
+                $foto_admin = null;
+                if ($foto_name) {
+                    $dir_admin = "../../../../uploads/admin/";
+                    if (!file_exists($dir_admin)) {
+                        mkdir($dir_admin, 0777, true);
+                    }
+                    if (copy($target_dir . $foto_name, $dir_admin . $foto_name)) {
+                        $foto_admin = $foto_name;
+                    }
+                }
+
+                // Insert to tb_admin
+                $sql_admin = "INSERT INTO tb_admin (username, password, nama_lengkap, nip, kode_qr, foto_profil) VALUES (:user, :pass, :nama, :nip, :qr, :foto)";
+                $stmt_admin = $pdo->prepare($sql_admin);
+                $stmt_admin->execute([
+                    ':user' => $username,
+                    ':pass' => $pass_hash,
+                    ':nama' => $nama,
+                    ':nip' => $nip,
+                    ':qr' => $kode_qr,
+                    ':foto' => $foto_admin
+                ]);
+            }
+        }
         
         echo "<script>alert('Guru Berhasil Ditambahkan!'); window.location.href='index.php';</script>";
         exit;
@@ -86,30 +164,53 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <?php endif; ?>
 
                 <form action="" method="POST" enctype="multipart/form-data" class="space-y-6">
+                    <!-- Pilihan Sumber Data -->
+                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-6">
+                        <label class="block text-sm font-bold text-blue-800 mb-2">Ambil Data dari Admin (Opsional)</label>
+                        <select name="id_admin_source" id="id_admin_source" onchange="toggleForm(this)" class="w-full px-4 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white">
+                            <option value="">-- Manual (Input Baru) --</option>
+                            <?php foreach($admins as $adm): ?>
+                                <option value="<?= $adm['id'] ?>">
+                                    <?= $adm['nama_lengkap'] ?> (<?= $adm['username'] ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <p class="text-xs text-blue-600 mt-2">
+                            * Jika dipilih, Username, Nama, Password, dan Foto akan diambil otomatis dari data Admin tersebut.
+                        </p>
+                    </div>
+
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">NIP (Nomor Induk Pegawai)</label>
                         <input type="number" name="nip" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="19xxxxxxxxxx" required>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                        <input type="text" name="username" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Username untuk Login" required>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
-                        <input type="text" name="nama_lengkap" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Nama Guru beserta Gelar" required>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                        <input type="password" name="password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Masukkan password" required>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Foto Guru (Opsional)</label>
-                        <input type="file" name="foto" accept="image/*" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                        <p class="text-xs text-gray-500 mt-1">Format: JPG, PNG. Maks 2MB.</p>
+                    <div id="manual_fields" class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                            <input type="text" name="username" id="username" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Username untuk Login">
+                        </div>
+    
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
+                            <input type="text" name="nama_lengkap" id="nama_lengkap" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Nama Guru beserta Gelar">
+                        </div>
+    
+                        <div id="div_make_admin" class="flex items-center space-x-2 bg-indigo-50 p-3 rounded-lg border border-indigo-100">
+                            <input type="checkbox" name="is_admin" id="is_admin" class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                            <label for="is_admin" class="text-sm font-semibold text-gray-700 cursor-pointer">Jadikan sebagai Admin juga?</label>
+                        </div>
+    
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                            <input type="password" name="password" id="password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Masukkan password">
+                        </div>
+    
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Foto Guru (Opsional)</label>
+                            <input type="file" name="foto" accept="image/*" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <p class="text-xs text-gray-500 mt-1">Format: JPG, PNG. Maks 2MB.</p>
+                        </div>
                     </div>
 
                     <!-- Input Wali Kelas (Optional) -->
@@ -127,6 +228,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <p class="text-xs text-gray-500 mt-1">Pilih kelas jika guru ini adalah wali kelas.</p>
                     </div>
 
+                    <!-- Input Mata Pelajaran (Optional) -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Mata Pelajaran Diampu (Opsional)</label>
+                        <select name="guru_mapel_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">-- Tidak Mengampu Mapel --</option>
+                            <?php foreach($mapels as $mapel): ?>
+                                <option value="<?= $mapel['id'] ?>"><?= $mapel['nama_mapel'] ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1">Pilih mata pelajaran yang diajar oleh guru ini.</p>
+                    </div>
+
                     <div class="flex justify-end space-x-3">
                         <a href="index.php" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">Batal</a>
                         <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition shadow-md">Simpan Guru</button>
@@ -137,4 +250,37 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </div>
 </div>
 
-<?php require_once '../../../layouts/footer.php'; ?>
+                </form>
+            </div>
+        </main>
+    </div>
+</div>
+
+<script>
+    function toggleForm(selectInfo) {
+        const manualFields = document.getElementById('manual_fields');
+        const username = document.getElementById('username');
+        const nama = document.getElementById('nama_lengkap');
+        const password = document.getElementById('password');
+        const is_admin_div = document.getElementById('div_make_admin');
+
+        if (selectInfo.value !== "") {
+            // Jika memilih admin, sembunyikan form manual
+            manualFields.style.display = 'none';
+            
+            // Disable requirement checks
+            username.removeAttribute('required');
+            nama.removeAttribute('required');
+            password.removeAttribute('required');
+        } else {
+            // Jika manual, tampilkan form
+            manualFields.style.display = 'block';
+            
+            // Enable requirements
+            username.setAttribute('required', 'required');
+            nama.setAttribute('required', 'required');
+            password.setAttribute('required', 'required');
+            is_admin_div.style.display = 'flex'; // Reset display
+        }
+    }
+</script>

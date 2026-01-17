@@ -68,6 +68,65 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         
+        // Handle Admin Sync
+        if (isset($_POST['is_admin'])) {
+            $username = $data['username']; // Username tidak berubah
+            
+            // Cek exist
+            $stmt_ck = $pdo->prepare("SELECT id, foto_profil FROM tb_admin WHERE username = ?");
+            $stmt_ck->execute([$username]);
+            $existing_admin = $stmt_ck->fetch();
+
+            // Prepare Data for Admin
+            $admin_foto = $existing_admin['foto_profil'] ?? null;
+            
+            // If new photo uploaded for Guru, copy to Admin
+            // $new_filename variable comes from the block above
+            if (isset($new_filename) && !empty($new_filename)) {
+                $dir_admin = "../../../../uploads/admin/";
+                if (!file_exists($dir_admin)) mkdir($dir_admin, 0777, true);
+                if (copy($target_dir . $new_filename, $dir_admin . $new_filename)) {
+                    $admin_foto = $new_filename;
+                }
+            }
+
+            if ($existing_admin) {
+                // Update Existing Admin
+                $pass_sql_adm = "";
+                $params_adm = [
+                    ':nama' => $nama,
+                    ':nip' => $nip,
+                    ':foto' => $admin_foto,
+                    ':uid' => $existing_admin['id']
+                ];
+                
+                if (!empty($_POST['password'])) {
+                    $pass_sql_adm = ", password = :pass";
+                    $params_adm[':pass'] = password_hash($_POST['password'], PASSWORD_DEFAULT);
+                }
+
+                $pdo->prepare("UPDATE tb_admin SET nama_lengkap = :nama, nip = :nip, foto_profil = :foto $pass_sql_adm WHERE id = :uid")->execute($params_adm);
+            } else {
+                // Insert New Admin
+                // We need the password. If not changin password ($password_query is empty), use existing hash? 
+                // We can't get existing hash easily if we didn't fetch it, but we can fetch it from guru table again or just assume if user wants to make admin they should set password?
+                // Or better, fetch password from Guru (current)
+                $current_pass = $data['password']; 
+                if (!empty($_POST['password'])) {
+                    $current_pass = password_hash($_POST['password'], PASSWORD_DEFAULT);
+                }
+
+                $pdo->prepare("INSERT INTO tb_admin (username, password, nama_lengkap, nip, kode_qr, foto_profil) VALUES (?, ?, ?, ?, ?, ?)")->execute([
+                    $username,
+                    $current_pass,
+                    $nama,
+                    $nip,
+                    $data['kode_qr'],
+                    $admin_foto
+                ]);
+            }
+        }
+        
         echo "<script>alert('Data Guru Berhasil Diupdate!'); window.location.href='index.php';</script>";
         exit;
 
@@ -136,6 +195,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         </select>
                         <p class="text-xs text-gray-500 mt-1">Pilih kelas jika guru ini adalah wali kelas.</p>
                     </div>  
+
+                    <div class="flex items-center space-x-2 bg-indigo-50 p-3 rounded-lg border border-indigo-100">
+                        <?php
+                            // Cek status admin
+                            $stmt_admin_check = $pdo->prepare("SELECT id FROM tb_admin WHERE username = ?");
+                            $stmt_admin_check->execute([$data['username']]);
+                            $is_admin = $stmt_admin_check->rowCount() > 0;
+                        ?>
+                        <input type="checkbox" name="is_admin" id="is_admin" class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" <?= $is_admin ? 'checked' : '' ?>>
+                        <label for="is_admin" class="text-sm font-semibold text-gray-700 cursor-pointer">
+                            <?= $is_admin ? 'Update Data Admin juga?' : 'Jadikan sebagai Admin juga?' ?>
+                        </label>
+                    </div>
 
                     <div class="flex justify-end space-x-3">
                         <a href="index.php" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">Batal</a>
