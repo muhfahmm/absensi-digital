@@ -8,8 +8,14 @@ require_once '../../../layouts/header.php';
 
 check_login('admin');
 
-// Fetch Data Admin
-$stmt = $pdo->query("SELECT a.*, k.nama_kelas FROM tb_admin a LEFT JOIN tb_kelas k ON a.id_kelas = k.id ORDER BY a.created_at DESC");
+// Fetch Data Admin (Join dengan Guru untuk info Wali Kelas)
+$stmt = $pdo->query("
+    SELECT a.*, k.nama_kelas 
+    FROM tb_admin a 
+    LEFT JOIN tb_guru g ON a.nuptk = g.nuptk 
+    LEFT JOIN tb_kelas k ON g.id_kelas_wali = k.id 
+    ORDER BY a.created_at DESC
+");
 $admins = $stmt->fetchAll();
 ?>
 
@@ -40,7 +46,7 @@ $admins = $stmt->fetchAll();
                         <tr>
                             <th class="px-5 py-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">No</th>
                             <th class="px-5 py-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Foto</th>
-                            <th class="px-5 py-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">NIP</th>
+                            <th class="px-5 py-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">NUPTK</th>
                             <th class="px-5 py-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Username</th>
                             <th class="px-5 py-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Nama Lengkap</th>
                             <th class="px-5 py-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Wali Kelas</th>
@@ -63,7 +69,7 @@ $admins = $stmt->fetchAll();
                                 </td>
                                 
                                 <td class="px-5 py-4 border-b border-gray-100 bg-white text-sm text-gray-400">
-                                    <?= !empty($row['nip']) ? htmlspecialchars($row['nip']) : '-' ?>
+                                    <?= !empty($row['nuptk']) ? htmlspecialchars($row['nuptk']) : '-' ?>
                                 </td>
                                 
                                 <td class="px-5 py-4 border-b border-gray-100 bg-white text-sm">

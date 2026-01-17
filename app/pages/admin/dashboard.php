@@ -15,25 +15,43 @@ $nama_peran = 'Admin Global';
 if ($admin_id) {
     require_once '../../config/database.php';
     
-    // Cek Mapel (Prioritas)
-    $stmtMapel = $pdo->prepare("
-        SELECT m.nama_mapel 
+    // Cek Peran (Guru Mapel & Wali Kelas) melalui NUPTK
+    $stmtPeran = $pdo->prepare("
+        SELECT m.nama_mapel, k.nama_kelas
         FROM tb_admin a 
-        JOIN tb_mata_pelajaran m ON a.guru_mapel_id = m.id 
+        LEFT JOIN tb_guru g ON a.nuptk = g.nuptk
+        LEFT JOIN tb_mata_pelajaran m ON g.guru_mapel_id = m.id 
+        LEFT JOIN tb_kelas k ON g.id_kelas_wali = k.id
         WHERE a.id = ?
     ");
-    $stmtMapel->execute([$admin_id]);
-    $mapel = $stmtMapel->fetch();
+    $stmtPeran->execute([$admin_id]);
+    $peran = $stmtPeran->fetch();
     
-    if ($mapel) {
-        $nama_peran = "Admin Global - " . $mapel['nama_mapel'];
-    } elseif ($kelas_id) {
-        // Cek Wali Kelas jika tidak ada mapel
+    $roles = [];
+    if (!empty($peran['nama_mapel'])) {
+        $roles[] = "Guru " . $peran['nama_mapel'];
+    }
+    if (!empty($peran['nama_kelas'])) { // Prioritas dari tabel guru
+        $roles[] = "Wali Kelas " . $peran['nama_kelas'];
+    } elseif ($kelas_id) { // Fallback session
+        // Cek Wali Kelas dari session jika tidak ketemu di join guru
         $stmtKelas = $pdo->prepare("SELECT nama_kelas FROM tb_kelas WHERE id = ?");
         $stmtKelas->execute([$kelas_id]);
         $kelas = $stmtKelas->fetch();
         if ($kelas) {
-            $nama_peran = "Wali Kelas " . $kelas['nama_kelas'];
+            $roles[] = "Wali Kelas " . $kelas['nama_kelas'];
+        }
+    }
+
+    if (!empty($roles)) {
+        if (count($roles) > 0) {
+            // Jika ada peran mapel/wali kelas, tampilkan.
+            // Format: "Guru Matematika & Wali Kelas X-A" atau "Admin Global - Guru Matematika" ??
+            // User request: "sekalian tambahkan kelasnya"
+            // Let's prepend "Admin Global" if user wants it, or just show the specific roles since they are admin.
+            // Existing logic was "Admin Global - [Mapel]".
+            // Let's make it: "Admin Global - " . implode(" & ", $roles);
+            $nama_peran = "Admin Global (" . implode(" & ", $roles) . ")";
         }
     }
 }

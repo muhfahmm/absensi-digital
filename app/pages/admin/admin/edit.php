@@ -21,13 +21,13 @@ if (!$data) redirect('app/pages/admin/admin/index.php');
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $nip = htmlspecialchars($_POST['nip']);
+    $nuptk = htmlspecialchars($_POST['nuptk']);
     $nama = htmlspecialchars($_POST['nama_lengkap']);
     
     // Password (Update jika diisi saja)
     $password_query = "";
     $params = [
-        ':nip' => $nip, 
+        ':nuptk' => $nuptk, 
         ':nama' => $nama,
         ':id' => $id
     ];
@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if (!file_exists($target_dir)) mkdir($target_dir, 0777, true);
 
         $file_extension = pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION);
-        $new_filename = "ADM_" . ($nip ? $nip : time()) . "_" . time() . "." . $file_extension;
+        $new_filename = "ADM_" . ($nuptk ? $nuptk : time()) . "_" . time() . "." . $file_extension;
         $target_file = $target_dir . $new_filename;
 
         $allowed = ['jpg', 'jpeg', 'png'];
@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     try {
-        $sql = "UPDATE tb_admin SET nip = :nip, nama_lengkap = :nama $password_query $foto_query WHERE id = :id";
+        $sql = "UPDATE tb_admin SET nuptk = :nuptk, nama_lengkap = :nama $password_query $foto_query WHERE id = :id";
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         
@@ -94,8 +94,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                 <form action="" method="POST" enctype="multipart/form-data" class="space-y-6">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">NIP (Opsional)</label>
-                        <input type="number" name="nip" value="<?= htmlspecialchars($data['nip']) ?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">NUPTK (Opsional)</label>
+                        <input type="number" name="nuptk" value="<?= htmlspecialchars($data['nuptk']) ?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
 
                     <div>

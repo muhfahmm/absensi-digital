@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         // 3. Cek Login Guru
-        $stmt = $pdo->prepare("SELECT * FROM tb_guru WHERE nip = :user");
+        $stmt = $pdo->prepare("SELECT * FROM tb_guru WHERE nuptk = :user");
         $stmt->execute([':user' => $username]);
         $guru = $stmt->fetch();
 

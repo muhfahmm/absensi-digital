@@ -1,6 +1,20 @@
 <?php
 // app/layouts/sidebar.php
 // Pastikan session sudah start di header atau file induk
+
+// Helper untuk mengecek active menu
+$current_uri = $_SERVER['REQUEST_URI'];
+
+function is_active($keyword) {
+    global $current_uri;
+    // Cek apakah keyword ada di URL saat ini
+    if (strpos($current_uri, $keyword) !== false) {
+        // Class untuk menu aktif: Background Indigo, Text Putih, Shadow
+        return 'bg-indigo-600 text-white shadow-md'; 
+    }
+    // Class untuk menu tidak aktif: Text Gray, Hover Effect
+    return 'text-gray-700 hover:bg-indigo-50 hover:text-indigo-600';
+}
 ?>
 <aside class="w-64 bg-white border-r border-gray-200 min-h-screen hidden md:block">
     <div class="p-6">
@@ -11,15 +25,15 @@
         <ul class="space-y-2">
             <!-- Menu Dashboard -->
             <li>
-                <a href="<?= base_url('app/pages/admin/dashboard.php') ?>" class="flex items-center px-6 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition">
-                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                <a href="<?= base_url('app/pages/admin/dashboard.php') ?>" class="flex items-center px-6 py-3 transition rounded-r-full mr-2 <?= is_active('/admin/dashboard.php') ?>">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
                     Dashboard
                 </a>
             </li>
 
             <!-- Manajemen Admin -->
             <li>
-                <a href="<?= base_url('app/pages/admin/admin/index.php') ?>" class="flex items-center px-6 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition">
+                <a href="<?= base_url('app/pages/admin/admin/index.php') ?>" class="flex items-center px-6 py-3 transition rounded-r-full mr-2 <?= is_active('/admin/admin/') ?>">
                     <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                     Data Admin
                 </a>
@@ -27,7 +41,7 @@
             
             <!-- Manajemen Kelas -->
              <li>
-                <a href="<?= base_url('app/pages/admin/kelas/index.php') ?>" class="flex items-center px-6 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition">
+                <a href="<?= base_url('app/pages/admin/kelas/index.php') ?>" class="flex items-center px-6 py-3 transition rounded-r-full mr-2 <?= is_active('/admin/kelas/') ?>">
                     <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
                     Data Kelas
                 </a>
@@ -35,7 +49,7 @@
 
             <!-- Manajemen Siswa -->
              <li>
-                <a href="<?= base_url('app/pages/admin/siswa/index.php') ?>" class="flex items-center px-6 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition">
+                <a href="<?= base_url('app/pages/admin/siswa/index.php') ?>" class="flex items-center px-6 py-3 transition rounded-r-full mr-2 <?= is_active('/admin/siswa/') ?>">
                     <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                     Data Siswa
                 </a>
@@ -43,7 +57,7 @@
 
             <!-- Manajemen Guru -->
              <li>
-                <a href="<?= base_url('app/pages/admin/guru/index.php') ?>" class="flex items-center px-6 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition">
+                <a href="<?= base_url('app/pages/admin/guru/index.php') ?>" class="flex items-center px-6 py-3 transition rounded-r-full mr-2 <?= is_active('/admin/guru/') ?>">
                     <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                     Data Guru
                 </a>
@@ -51,7 +65,7 @@
 
             <!-- Scanner QR -->
             <li>
-                <a href="<?= base_url('app/pages/admin/scanner/index.php') ?>" class="flex items-center px-6 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition">
+                <a href="<?= base_url('app/pages/admin/scanner/index.php') ?>" class="flex items-center px-6 py-3 transition rounded-r-full mr-2 <?= is_active('/admin/scanner/') ?>">
                     <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
                     Scanner QR
                 </a>

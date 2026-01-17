@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmt = $pdo->prepare("SELECT g.*, k.nama_kelas 
                               FROM tb_guru g 
                               LEFT JOIN tb_kelas k ON g.id_kelas_wali = k.id 
-                              WHERE g.nip = :user");
+                              WHERE g.nuptk = :user");
         $stmt->execute([':user' => $username]);
         $guru = $stmt->fetch();
 
@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 'user' => [
                     'id' => $guru['id'],
                     'nama' => $guru['nama_lengkap'],
-                    'nip' => $guru['nip'],
+                    'nuptk' => $guru['nuptk'],
                     'nama_kelas' => $guru['nama_kelas'] ? 'Wali Kelas ' . $guru['nama_kelas'] : 'Tenaga Pendidik',
                     'kode_qr' => $guru['kode_qr'],
                     'foto_profil' => $guru['foto_profil']

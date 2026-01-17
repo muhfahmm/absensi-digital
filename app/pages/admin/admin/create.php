@@ -11,14 +11,14 @@ check_login('admin');
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $nip = htmlspecialchars($_POST['nip']);
+    $nuptk = htmlspecialchars($_POST['nuptk']);
     $username = htmlspecialchars($_POST['username']);
     $nama = htmlspecialchars($_POST['nama_lengkap']);
     // Removed id_kelas for admin since usually admins don't have class (or it's optional)
     // If needed: $id_kelas = !empty($_POST['id_kelas']) ? $_POST['id_kelas'] : null;
     
     // Generate QR Token
-    $kode_qr = "ADM-" . $nip . "-" . uniqid();
+    $kode_qr = "ADM-" . $nuptk . "-" . uniqid();
 
     // Password
     $pass_hash = password_hash($_POST['password'], PASSWORD_DEFAULT);
@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         $file_extension = pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION);
-        $new_filename = "ADM_" . $nip . "_" . time() . "." . $file_extension;
+        $new_filename = "ADM_" . $nuptk . "_" . time() . "." . $file_extension;
         $target_file = $target_dir . $new_filename;
 
         $allowed = ['jpg', 'jpeg', 'png'];
@@ -44,10 +44,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     try {
-        $sql = "INSERT INTO tb_admin (nip, username, nama_lengkap, kode_qr, password, foto_profil) VALUES (:nip, :username, :nama, :qr, :pass, :foto)";
+        $sql = "INSERT INTO tb_admin (nuptk, username, nama_lengkap, kode_qr, password, foto_profil) VALUES (:nuptk, :username, :nama, :qr, :pass, :foto)";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
-            ':nip' => $nip,
+            ':nuptk' => $nuptk,
             ':username' => $username,
             ':nama' => $nama,
             ':qr' => $kode_qr,
@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     } catch (PDOException $e) {
         if ($e->getCode() == 23000) {
-            $error = "NIP atau Username sudah terdaftar!";
+            $error = "NUPTK atau Username sudah terdaftar!";
         } else {
             $error = "Gagal menyimpan: " . $e->getMessage();
         }
@@ -87,8 +87,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                 <form action="" method="POST" enctype="multipart/form-data" class="space-y-6">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">NIP (Opsional)</label>
-                        <input type="number" name="nip" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="19xxxxxxxxxx">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">NUPTK (Opsional)</label>
+                        <input type="number" name="nuptk" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="19xxxxxxxxxx">
                     </div>
 
                     <div>

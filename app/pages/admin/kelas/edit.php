@@ -73,8 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     </div>
                     
                     <div>
-                         <label class="block text-sm font-medium text-gray-500 mb-1">Token Kelas (Read-only)</label>
-                         <input type="text" value="<?= $data['token_kelas'] ?>" class="w-full px-4 py-2 border border-gray-200 bg-gray-100 rounded-lg text-gray-500 cursor-not-allowed" disabled>
+                        <input type="hidden" name="token_dummy">
                     </div>
 
                     <div class="flex justify-end space-x-3">

@@ -52,9 +52,7 @@ $kelas = $stmt->fetchAll();
                             <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                 Jumlah Siswa (Kapasitas)
                             </th>
-                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                Token Kelas/QR Text
-                            </th>
+                            
                             <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                 Aksi
                             </th>
@@ -76,9 +74,7 @@ $kelas = $stmt->fetchAll();
                                         <span class="relative"><?= $row['jumlah_siswa'] ?> Siswa</span>
                                     </span>
                                 </td>
-                                <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-center">
-                                    <code class="bg-gray-100 px-2 py-1 rounded text-red-500 text-xs"><?= $row['token_kelas'] ?? '-' ?></code>
-                                </td>
+                                
                                 <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm text-center">
                                     <div class="flex justify-center space-x-2">
                                         <a href="edit.php?id=<?= $row['id'] ?>" class="text-blue-600 hover:text-blue-900 bg-blue-100 px-3 py-1 rounded-md transition hover:bg-blue-200">Edit</a>

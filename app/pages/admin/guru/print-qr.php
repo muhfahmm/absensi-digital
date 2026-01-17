@@ -98,7 +98,7 @@ if (!$guru) {
                 <div class="flex-1">
                     <h3 class="font-bold text-lg mb-1"><?= htmlspecialchars($guru['nama_lengkap']) ?></h3>
                     <div class="text-sm space-y-0.5 opacity-90">
-                        <p>NIP: <?= htmlspecialchars($guru['nip']) ?></p>
+                        <p>NUPTK: <?= htmlspecialchars($guru['nuptk']) ?></p>
                         <p>Guru</p>
                     </div>
                 </div>

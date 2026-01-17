@@ -8,15 +8,42 @@ require_once '../../../layouts/header.php';
 
 check_login('admin');
 
-// 1. Fetch Kelas untuk Dropdown 1
-$stmt_kelas = $pdo->query("SELECT * FROM tb_kelas ORDER BY nama_kelas ASC");
-$kelas_list = $stmt_kelas->fetchAll();
+// 1. Cek Apakah Admin adalah Wali Kelas?
+$admin_kelas_id = $_SESSION['kelas_id'] ?? null;
+if (!$admin_kelas_id) {
+    // Cek ulang ke database (barangkali session belum terupdate fetch dari login)
+    // Sebaiknya logic ini sudah beres di login, tapi untuk safety kita cek role lagi via NUPTK jika perlu.
+    // Namun asumsi di dashboard sudah set $_SESSION['kelas_id'] atau bisa kita ambil dari table admin langsung.
+    $stmtAdm = $pdo->prepare("SELECT g.id_kelas_wali FROM tb_admin a JOIN tb_guru g ON a.nuptk = g.nuptk WHERE a.id = ?");
+    $stmtAdm->execute([$_SESSION['user_id']]);
+    $admInfo = $stmtAdm->fetch();
+    if ($admInfo && $admInfo['id_kelas_wali']) {
+        $admin_kelas_id = $admInfo['id_kelas_wali'];
+    }
+}
 
-// 2. Filter Logic
-$filter_kelas = $_GET['kelas_id'] ?? '';
+// 2. Fetch Kelas untuk Dropdown 
+// Jika Wali Kelas, dropdown HANYA menampilkan kelasnya sendiri
+if ($admin_kelas_id) {
+    $stmt_kelas = $pdo->prepare("SELECT * FROM tb_kelas WHERE id = ?");
+    $stmt_kelas->execute([$admin_kelas_id]);
+    $kelas_list = $stmt_kelas->fetchAll();
+} else {
+    // Admin Global: Fetch semua kelas
+    $stmt_kelas = $pdo->query("SELECT * FROM tb_kelas ORDER BY nama_kelas ASC");
+    $kelas_list = $stmt_kelas->fetchAll();
+}
+
+// 3. Filter Logic
+// Jika Wali Kelas, paksa filter kelas ke kelas dia
+if ($admin_kelas_id) {
+    $filter_kelas = $admin_kelas_id;
+} else {
+    $filter_kelas = $_GET['kelas_id'] ?? '';
+}
 $filter_siswa = $_GET['siswa_id'] ?? '';
 
-// 3. Fetch Siswa untuk Dropdown 2 (Hanya jika kelas dipilih)
+// 4. Fetch Siswa untuk Dropdown 2 (Hanya jika kelas dipilih)
 $siswa_list = [];
 if ($filter_kelas) {
     $stmt_s = $pdo->prepare("SELECT id, nama_lengkap FROM tb_siswa WHERE id_kelas = ? ORDER BY nama_lengkap ASC");
@@ -68,19 +95,27 @@ $siswa = $stmt->fetchAll();
                     
                     <form action="" method="GET" class="w-full sm:w-auto flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 items-center">
                         <!-- Select Kelas -->
-                        <select name="kelas_id" 
-                            onchange="var s=this.form.elements['siswa_id']; if(s){s.value='';} this.form.submit()" 
-                            class="form-select block w-full sm:w-48 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm">
-                            <option value="">-- Pilih Kelas --</option>
-                            <?php foreach($kelas_list as $k): ?>
-                                <option value="<?= $k['id'] ?>" <?= $filter_kelas == $k['id'] ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($k['nama_kelas']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
+                        <?php if ($admin_kelas_id): ?>
+                            <!-- Jika Wali Kelas, Tampilkan Nama Kelas Saja (Bukan Dropdown) -->
+                            <div class="px-4 py-2 bg-indigo-50 border border-indigo-200 text-indigo-800 rounded-md font-medium whitespace-nowrap">
+                                Kelas: <?= $kelas_list[0]['nama_kelas'] ?? '-' ?>
+                            </div>
+                        <?php else: ?>
+                            <!-- Admin Global: Dropdown -->
+                            <select name="kelas_id" 
+                                onchange="var s=this.form.elements['siswa_id']; if(s){s.value='';} this.form.submit()" 
+                                class="form-select block w-full sm:w-48 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm">
+                                <option value="">-- Semua Kelas --</option>
+                                <?php foreach($kelas_list as $k): ?>
+                                    <option value="<?= $k['id'] ?>" <?= $filter_kelas == $k['id'] ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($k['nama_kelas']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
 
-                        <?php if($filter_kelas): ?>
-                            <a href="index.php" class="text-sm text-red-600 hover:text-red-800 underline ml-2 whitespace-nowrap">Reset Filter</a>
+                            <?php if($filter_kelas): ?>
+                                <a href="index.php" class="text-sm text-red-600 hover:text-red-800 underline ml-2 whitespace-nowrap">Reset Filter</a>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </form>
                 </div>

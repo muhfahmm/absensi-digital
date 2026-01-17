@@ -22,15 +22,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $stmt->execute([':id' => $nis, ':nama' => $nama, ':pass' => $password, ':kelas' => $id_kelas, ':qr' => $kode_qr]);
             
         } else if ($role == 'guru') {
-            $nip = htmlspecialchars($_POST['nip_guru']); // NIP dari input baru
+            $nuptk = htmlspecialchars($_POST['nuptk_guru']); // NUPTK dari input baru
             $guru_mapel_id = !empty($_POST['guru_mapel_id']) ? $_POST['guru_mapel_id'] : null; // ID Mapel
 
             // Generate simple QR token
-            $kode_qr = "GURU-" . $nip . "-" . uniqid();
+            $kode_qr = "GURU-" . $nuptk . "-" . uniqid();
 
-            $sql = "INSERT INTO tb_guru (nip, nama_lengkap, password, kode_qr, guru_mapel_id) VALUES (:id, :nama, :pass, :qr, :mapel)";
+            $sql = "INSERT INTO tb_guru (nuptk, nama_lengkap, password, kode_qr, guru_mapel_id) VALUES (:id, :nama, :pass, :qr, :mapel)";
             $stmt = $pdo->prepare($sql);
-            $stmt->execute([':id' => $nip, ':nama' => $nama, ':pass' => $password, ':qr' => $kode_qr, ':mapel' => $guru_mapel_id]);
+            $stmt->execute([':id' => $nuptk, ':nama' => $nama, ':pass' => $password, ':qr' => $kode_qr, ':mapel' => $guru_mapel_id]);
         
         } else if ($role == 'admin') {
             $username = htmlspecialchars($_POST['username_admin']); // Username Admin
@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } catch (PDOException $e) {
         // Simpan pesan error di session
         if ($e->getCode() == 23000) {
-            $_SESSION['error'] = "NIS/NIP sudah terdaftar!";
+            $_SESSION['error'] = "NIS/NUPTK sudah terdaftar!";
         } else {
             $_SESSION['error'] = "Terjadi kesalahan: " . $e->getMessage();
         }

@@ -64,7 +64,7 @@ $guru = $stmt->fetchAll();
                                 <th class="px-5 py-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Nama Guru</th>
                             <?php else: ?>
                                 <th class="px-5 py-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Foto</th>
-                                <th class="px-5 py-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">NIP</th>
+                                <th class="px-5 py-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">NUPTK</th>
                                 <th class="px-5 py-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Username</th>
                                 <th class="px-5 py-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Nama Lengkap</th>
                                 <th class="px-5 py-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Wali Kelas</th>
@@ -116,7 +116,7 @@ $guru = $stmt->fetchAll();
                                             <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-[10px] font-bold">GURU</div>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="px-5 py-4 border-b border-gray-100 bg-white text-sm"><?= htmlspecialchars($row['nip']) ?></td>
+                                    <td class="px-5 py-4 border-b border-gray-100 bg-white text-sm"><?= htmlspecialchars($row['nuptk']) ?></td>
                                     <td class="px-5 py-4 border-b border-gray-100 bg-white text-sm font-semibold text-gray-700"><?= htmlspecialchars($row['username'] ?? '-') ?></td>
                                     <td class="px-5 py-4 border-b border-gray-100 bg-white text-sm">
                                         <div class="font-bold text-gray-800"><?= htmlspecialchars($row['nama_lengkap']) ?></div>

@@ -19,7 +19,7 @@ $stmt_mapel = $pdo->query("SELECT * FROM tb_mata_pelajaran ORDER BY nama_mapel A
 $mapels = $stmt_mapel->fetchAll();
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $nip = htmlspecialchars($_POST['nip']);
+    $nuptk = htmlspecialchars($_POST['nuptk']);
     $id_admin_source = $_POST['id_admin_source'] ?? '';
     $id_kelas_wali = !empty($_POST['id_kelas_wali']) ? $_POST['id_kelas_wali'] : null;
     $guru_mapel_id = !empty($_POST['guru_mapel_id']) ? $_POST['guru_mapel_id'] : null;
@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Copy Foto Profile if exists
             if (!empty($adm_data['foto_profil']) && file_exists("../../../../uploads/admin/" . $adm_data['foto_profil'])) {
                 $ext = pathinfo($adm_data['foto_profil'], PATHINFO_EXTENSION);
-                $foto_name = "GURU_" . $nip . "_" . time() . "." . $ext;
+                $foto_name = "GURU_" . $nuptk . "_" . time() . "." . $ext;
                 // Create guru dir if not exists
                 if (!file_exists("../../../../uploads/guru/")) {
                     mkdir("../../../../uploads/guru/", 0777, true);
@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
     
     // Generate QR Token
-    $kode_qr = "GURU-" . $nip . "-" . uniqid();
+    $kode_qr = "GURU-" . $nuptk . "-" . uniqid();
 
     // Password
     $pass_hash = password_hash($_POST['password'], PASSWORD_DEFAULT);
@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         $file_extension = pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION);
-        $new_filename = "GURU_" . $nip . "_" . time() . "." . $file_extension;
+        $new_filename = "GURU_" . $nuptk . "_" . time() . "." . $file_extension;
         $target_file = $target_dir . $new_filename;
 
         $allowed = ['jpg', 'jpeg', 'png'];
@@ -88,10 +88,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     try {
-        $sql = "INSERT INTO tb_guru (nip, username, nama_lengkap, kode_qr, password, foto_profil, id_kelas_wali, guru_mapel_id) VALUES (:nip, :username, :nama, :qr, :pass, :foto, :wali, :mapel)";
+        $sql = "INSERT INTO tb_guru (nuptk, username, nama_lengkap, kode_qr, password, foto_profil, id_kelas_wali, guru_mapel_id) VALUES (:nuptk, :username, :nama, :qr, :pass, :foto, :wali, :mapel)";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
-            ':nip' => $nip,
+            ':nuptk' => $nuptk,
             ':username' => $username,
             ':nama' => $nama,
             ':qr' => $kode_qr,
@@ -120,13 +120,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 }
 
                 // Insert to tb_admin
-                $sql_admin = "INSERT INTO tb_admin (username, password, nama_lengkap, nip, kode_qr, foto_profil) VALUES (:user, :pass, :nama, :nip, :qr, :foto)";
+                $sql_admin = "INSERT INTO tb_admin (username, password, nama_lengkap, nuptk, kode_qr, foto_profil) VALUES (:user, :pass, :nama, :nuptk, :qr, :foto)";
                 $stmt_admin = $pdo->prepare($sql_admin);
                 $stmt_admin->execute([
                     ':user' => $username,
                     ':pass' => $pass_hash,
                     ':nama' => $nama,
-                    ':nip' => $nip,
+                    ':nuptk' => $nuptk,
                     ':qr' => $kode_qr,
                     ':foto' => $foto_admin
                 ]);
@@ -138,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     } catch (PDOException $e) {
         if ($e->getCode() == 23000) {
-            $error = "NIP atau Username sudah terdaftar!";
+            $error = "NUPTK atau Username sudah terdaftar!";
         } else {
             $error = "Gagal menyimpan: " . $e->getMessage();
         }
@@ -181,8 +181,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">NIP (Nomor Induk Pegawai)</label>
-                        <input type="number" name="nip" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="19xxxxxxxxxx" required>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">NUPTK (Nomor Unik Pendidik dan Tenaga Kependidikan)</label>
+                        <input type="number" name="nuptk" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="1xxxxxxxxxxxxxxx" required>
                     </div>
 
                     <div id="manual_fields" class="space-y-6">

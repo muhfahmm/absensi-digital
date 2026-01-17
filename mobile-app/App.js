@@ -51,7 +51,7 @@ const translations = {
     id: {
         loginTitle: "Absensi Digital",
         loginSubtitle: "Silakan login untuk melanjutkan",
-        usernameLabel: "Username / NIS / NIP",
+        usernameLabel: "Username / NIS / NUPTK",
         passwordLabel: "Password",
         loginBtn: "Masuk Ke Akun",
         home: "Home",
@@ -73,7 +73,7 @@ const translations = {
         profilSaya: "Profil Saya",
         infoPribadi: "Informasi data pribadi",
         nis: "Nomor Induk Siswa",
-        nip: "Nomor Induk Pegawai",
+        nuptk: "NUPTK",
         kelas: "Kelas",
         kodeQr: "Kode QR",
         terdaftarSejak: "Terdaftar Sejak",
@@ -129,7 +129,7 @@ const translations = {
         profilSaya: "My Profile",
         infoPribadi: "Personal information",
         nis: "Student ID",
-        nip: "Employee ID",
+        nuptk: "NUPTK ID",
         kelas: "Class",
         kodeQr: "QR Code",
         terdaftarSejak: "Registered Since",
@@ -536,8 +536,8 @@ export default function App() {
                                 <Text style={styles.profileNameTxt}>{user.nama}</Text>
                                 <View style={styles.badgeRow}>
                                     <WebIcon name="tag" size={14} color="#ddd6fe" style={{ marginRight: 8 }} />
-                                    <Text style={styles.badgeLabel}>{role === 'guru' ? 'NIP:' : 'NIS:'}</Text>
-                                    <Text style={styles.badgeValue}>{user.nis || user.nip || '-'}</Text>
+                                    <Text style={styles.badgeLabel}>{role === 'guru' ? 'NUPTK:' : 'NIS:'}</Text>
+                                    <Text style={styles.badgeValue}>{user.nis || user.nuptk || '-'}</Text>
                                 </View>
                                 <View style={styles.badgeRow}>
                                     <WebIcon name="building" size={14} color="#ddd6fe" style={{ marginRight: 8 }} />
@@ -685,7 +685,7 @@ export default function App() {
                 </View>
 
                 <View style={{ marginTop: 20 }}>
-                    <InfoCard icon="tag" iconBg="#eef2ff" iconColor="#4f46e5" label={role === 'guru' ? t('nip') : t('nis')} value={user.nis || user.nip || '-'} theme={theme} isDarkMode={isDarkMode} />
+                    <InfoCard icon="tag" iconBg="#eef2ff" iconColor="#4f46e5" label={role === 'guru' ? t('nuptk') : t('nis')} value={user.nis || user.nuptk || '-'} theme={theme} isDarkMode={isDarkMode} />
                     <InfoCard icon="building" iconBg="#f5f3ff" iconColor="#7c3aed" label={t('kelas')} value={user.nama_kelas || '-'} theme={theme} isDarkMode={isDarkMode} />
                     <InfoCard icon="qr" iconBg="#f0fdf4" iconColor="#16a34a" label={t('kodeQr')} value={user.kode_qr || '-'} theme={theme} isDarkMode={isDarkMode} mono />
                     <InfoCard icon="calendar" iconBg="#eff6ff" iconColor="#3b82f6" label={t('terdaftarSejak')} value={new Date().toLocaleDateString(language === 'id' ? 'id-ID' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} theme={theme} isDarkMode={isDarkMode} />

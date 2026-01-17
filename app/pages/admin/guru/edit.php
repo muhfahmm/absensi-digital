@@ -21,7 +21,7 @@ if (!$data) redirect('app/pages/admin/guru/index.php');
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $nip = htmlspecialchars($_POST['nip']);
+    $nuptk = htmlspecialchars($_POST['nuptk']);
     $nama = htmlspecialchars($_POST['nama_lengkap']);
     $id_kelas_wali = !empty($_POST['id_kelas_wali']) ? $_POST['id_kelas_wali'] : null;
     $guru_mapel_id = !empty($_POST['guru_mapel_id']) ? $_POST['guru_mapel_id'] : null;
@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Password (Update jika diisi saja)
     $password_query = "";
     $params = [
-        ':nip' => $nip, 
+        ':nuptk' => $nuptk, 
         ':nama' => $nama,
         ':wali' => $id_kelas_wali,
         ':mapel' => $guru_mapel_id,
@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if (!file_exists($target_dir)) mkdir($target_dir, 0777, true);
 
         $file_extension = pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION);
-        $new_filename = "GURU_" . $nip . "_" . time() . "." . $file_extension;
+        $new_filename = "GURU_" . $nuptk . "_" . time() . "." . $file_extension;
         $target_file = $target_dir . $new_filename;
 
         $allowed = ['jpg', 'jpeg', 'png'];
@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     try {
-        $sql = "UPDATE tb_guru SET nip = :nip, nama_lengkap = :nama, id_kelas_wali = :wali, guru_mapel_id = :mapel $password_query $foto_query WHERE id = :id";
+        $sql = "UPDATE tb_guru SET nuptk = :nuptk, nama_lengkap = :nama, id_kelas_wali = :wali, guru_mapel_id = :mapel $password_query $foto_query WHERE id = :id";
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         
@@ -97,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $pass_sql_adm = "";
                 $params_adm = [
                     ':nama' => $nama,
-                    ':nip' => $nip,
+                    ':nuptk' => $nuptk,
                     ':foto' => $admin_foto,
                     ':uid' => $existing_admin['id']
                 ];
@@ -107,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $params_adm[':pass'] = password_hash($_POST['password'], PASSWORD_DEFAULT);
                 }
 
-                $pdo->prepare("UPDATE tb_admin SET nama_lengkap = :nama, nip = :nip, foto_profil = :foto $pass_sql_adm WHERE id = :uid")->execute($params_adm);
+                $pdo->prepare("UPDATE tb_admin SET nama_lengkap = :nama, nuptk = :nuptk, foto_profil = :foto $pass_sql_adm WHERE id = :uid")->execute($params_adm);
             } else {
                 // Insert New Admin
                 // We need the password. If not changin password ($password_query is empty), use existing hash? 
@@ -118,11 +118,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $current_pass = password_hash($_POST['password'], PASSWORD_DEFAULT);
                 }
 
-                $pdo->prepare("INSERT INTO tb_admin (username, password, nama_lengkap, nip, kode_qr, foto_profil) VALUES (?, ?, ?, ?, ?, ?)")->execute([
+                $pdo->prepare("INSERT INTO tb_admin (username, password, nama_lengkap, nuptk, kode_qr, foto_profil) VALUES (?, ?, ?, ?, ?, ?)")->execute([
                     $username,
                     $current_pass,
                     $nama,
-                    $nip,
+                    $nuptk,
                     $data['kode_qr'],
                     $admin_foto
                 ]);
@@ -157,8 +157,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                 <form action="" method="POST" enctype="multipart/form-data" class="space-y-6">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">NIP</label>
-                        <input type="number" name="nip" value="<?= htmlspecialchars($data['nip']) ?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">NUPTK</label>
+                        <input type="number" name="nuptk" value="<?= htmlspecialchars($data['nuptk']) ?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
                     </div>
 
                     <div>
