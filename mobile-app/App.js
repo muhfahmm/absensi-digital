@@ -1,5 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, ActivityIndicator, SafeAreaView, Modal, ScrollView, Image, Dimensions, useColorScheme } from 'react-native';
+import {
+    StyleSheet,
+    Text,
+    View,
+    TextInput,
+    TouchableOpacity,
+    Alert,
+    ActivityIndicator,
+    SafeAreaView,
+    Modal,
+    ScrollView,
+    Image,
+    Dimensions,
+    useColorScheme,
+    Linking,
+    RefreshControl
+} from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { CameraView, Camera } from "expo-camera";
 import QRCode from 'react-native-qrcode-svg';
@@ -32,7 +48,16 @@ const PATHS = {
     calendar: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z",
     eye: "M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z",
     book: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253",
-    globe: "M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+    globe: "M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9",
+    info: "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+    github: "M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12",
+    instagram: "M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z",
+    server: "M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01",
+    users: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z",
+    link: "M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1",
+    heart: "M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z",
+    lock: "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z",
+    eye_off: "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
 };
 
 const WebIcon = ({ name, size = 24, color = "white", strokeWidth = 2, style }) => (
@@ -102,7 +127,16 @@ const translations = {
         jadwalPelajaran: "Jadwal Pelajaran",
         lihatJadwal: "Lihat jadwal mingguan",
         elearning: "E-Learning",
-        aksesMateri: "Akses materi pelajaran"
+        aksesMateri: "Akses materi pelajaran",
+        tentangAplikasi: "Tentang Aplikasi",
+        detailAplikasi: "Informasi dan versi aplikasi",
+        versi: "Versi",
+        pengembang: "Pengembang",
+        deskripsiApp: "Absensi Digital adalah platform manajemen kehadiran modern untuk sekolah.",
+        kontakSupport: "Kontak Support",
+        website: "Website",
+        mediaSosial: "Media Sosial",
+        partner: "Partner"
     },
     en: {
         loginTitle: "Digital Attendance",
@@ -158,7 +192,16 @@ const translations = {
         jadwalPelajaran: "Class Schedule",
         lihatJadwal: "View weekly schedule",
         elearning: "E-Learning",
-        aksesMateri: "Access learning materials"
+        aksesMateri: "Access learning materials",
+        tentangAplikasi: "About App",
+        detailAplikasi: "Application information & version",
+        versi: "Version",
+        pengembang: "Developer",
+        deskripsiApp: "Digital Attendance is a modern attendance management platform for schools.",
+        kontakSupport: "Contact Support",
+        website: "Website",
+        mediaSosial: "Social Media",
+        partner: "Partner"
     }
 };
 
@@ -170,8 +213,15 @@ export default function App() {
     const [attendanceStatus, setAttendanceStatus] = useState(null);
     const [attendanceHistory, setAttendanceHistory] = useState({ history: [], summary: null });
     const [classMonitoring, setClassMonitoring] = useState(null);
+    const [jadwal, setJadwal] = useState(null); // Schedules
+    const [learningMaterials, setLearningMaterials] = useState([]);
+    const [selectedDayJadwal, setSelectedDayJadwal] = useState('Senin');
     const [language, setLanguage] = useState('id'); // 'id' or 'en'
     const [profileModalVisible, setProfileModalVisible] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+
+    // Konfigurasi Versi Aplikasi
+    const CURRENT_APP_VERSION = "1.0.0";
 
     useEffect(() => {
         const loadLanguage = async () => {
@@ -185,13 +235,51 @@ export default function App() {
             }
         };
         loadLanguage();
+
+        // Cek versi aplikasi secara berkala (setiap 1 menit)
+        const versionInterval = setInterval(checkAppVersion, 60000);
+        return () => clearInterval(versionInterval);
     }, []);
+
+    const checkAppVersion = async () => {
+        try {
+            const response = await fetch(`${BASE_URL}/app/api/app_info.php`);
+            const result = await response.json();
+            if (result.success && result.version !== CURRENT_APP_VERSION) {
+                Alert.alert(
+                    "Update Tersedia",
+                    "Versi aplikasi telah diperbarui. Silakan login kembali untuk menikmati fitur terbaru.",
+                    [{ text: "OK", onPress: () => handleLogout() }]
+                );
+            }
+        } catch (error) {
+            console.log("Version check failed", error);
+        }
+    };
+
+    const onRefresh = React.useCallback(() => {
+        setRefreshing(true);
+        // Refresh data based on current view
+        if (currentView === 'dashboard') fetchAttendanceStatus();
+        if (currentView === 'kehadiran') fetchAttendanceHistory();
+        if (currentView === 'monitoring') fetchClassMonitoring();
+        if (currentView === 'jadwal') fetchJadwal();
+        if (currentView === 'elearning') fetchLearningMaterials();
+
+        // Check version on manually refresh too
+        checkAppVersion();
+
+        setTimeout(() => {
+            setRefreshing(false);
+        }, 1500);
+    }, [currentView, userData]);
 
     const t = (key) => translations[language][key] || key;
 
     // Login State
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
 
     // Scanner State
@@ -231,7 +319,44 @@ export default function App() {
         if (userData && currentView === 'monitoring') {
             fetchClassMonitoring();
         }
+        if (userData && currentView === 'elearning') {
+            fetchLearningMaterials();
+        }
+        if (userData && currentView === 'jadwal') {
+            fetchJadwal();
+        }
     }, [userData, currentView]);
+
+    const fetchJadwal = async () => {
+        try {
+            const response = await fetch(`${BASE_URL}/app/api/jadwal.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: userData.user.id,
+                    role: userData.role
+                }),
+            });
+            const result = await response.json();
+            if (result.success) {
+                setJadwal(result.data);
+            }
+        } catch (error) {
+            console.error("Fetch jadwal error:", error);
+        }
+    };
+
+    const fetchLearningMaterials = async () => {
+        try {
+            const response = await fetch(`${BASE_URL}/app/api/materi.php`);
+            const result = await response.json();
+            if (result.success) {
+                setLearningMaterials(result.data);
+            }
+        } catch (error) {
+            console.error("Fetch materials error:", error);
+        }
+    };
 
     const fetchClassMonitoring = async () => {
         try {
@@ -399,24 +524,26 @@ export default function App() {
     );
 
     const renderBottomNav = () => {
-        const role = userData?.role;
         return (
-            <View style={[styles.webBottomNav, { backgroundColor: theme.bottomNav, borderTopColor: isDarkMode ? '#334155' : '#f3f4f6' }]}>
+            <View style={[styles.webBottomNav, { backgroundColor: theme.bottomNav, borderTopColor: isDarkMode ? '#334155' : '#f1f5f9' }]}>
+                {/* Home */}
                 <TouchableOpacity style={styles.navBtn} onPress={() => setCurrentView('dashboard')}>
-                    <WebIcon name="home" size={24} color={currentView === 'dashboard' ? '#3b82f6' : theme.navIconIdle} />
-                    <Text style={[styles.navLabelGray, currentView === 'dashboard' && styles.navLabelBlue, { color: currentView === 'dashboard' ? '#3b82f6' : theme.navIconIdle }]}>{t('home')}</Text>
+                    <WebIcon name="home" size={28} color={currentView === 'dashboard' ? '#7c3aed' : theme.navIconIdle} />
+                    <Text style={[styles.navLabelGray, { color: currentView === 'dashboard' ? '#7c3aed' : theme.navIconIdle, fontWeight: currentView === 'dashboard' ? 'bold' : 'normal' }]}>{t('home')}</Text>
                 </TouchableOpacity>
 
+                {/* QR Code - Floating */}
                 <TouchableOpacity style={styles.navBtnCenter} onPress={() => setQrModalVisible(true)}>
-                    <View style={styles.qrCircleFab}>
+                    <View style={[styles.qrCircleFab, { transform: [{ scale: 1.1 }] }]}>
                         <WebIcon name="qr" size={32} color="white" />
                     </View>
                     <Text style={[styles.navLabelCenter, { color: theme.text }]}>{t('qr')}</Text>
                 </TouchableOpacity>
 
+                {/* Profil */}
                 <TouchableOpacity style={styles.navBtn} onPress={() => setCurrentView('profil')}>
-                    <WebIcon name="user" size={24} color={currentView === 'profil' ? '#3b82f6' : theme.navIconIdle} />
-                    <Text style={[styles.navLabelGray, currentView === 'profil' && styles.navLabelBlue, { color: currentView === 'profil' ? '#3b82f6' : theme.navIconIdle }]}>{t('profil')}</Text>
+                    <WebIcon name="user" size={28} color={currentView === 'profil' ? '#7c3aed' : theme.navIconIdle} />
+                    <Text style={[styles.navLabelGray, { color: currentView === 'profil' ? '#7c3aed' : theme.navIconIdle, fontWeight: currentView === 'profil' ? 'bold' : 'normal' }]}>{t('profil')}</Text>
                 </TouchableOpacity>
             </View>
         );
@@ -424,43 +551,71 @@ export default function App() {
 
     // UI Renders
     const renderLogin = () => (
-        <View style={[styles.loginContainer, { backgroundColor: theme.card }]}>
-            <View style={styles.loginHeader}>
-                <View style={[styles.logoCircle, { backgroundColor: theme.primary }]}>
-                    <WebIcon name="cap" size={40} color="white" />
+        <View style={[styles.loginContainer, { backgroundColor: theme.bg }]}>
+            <View style={{ alignItems: 'center', marginBottom: 40 }}>
+                <View style={{
+                    width: 100, height: 100, borderRadius: 30,
+                    backgroundColor: theme.primary,
+                    justifyContent: 'center', alignItems: 'center',
+                    marginBottom: 20,
+                    shadowColor: theme.primary, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.5, shadowRadius: 20, elevation: 10,
+                    transform: [{ rotate: '-5deg' }]
+                }}>
+                    <WebIcon name="cap" size={50} color="white" />
                 </View>
-                <Text style={[styles.loginTitle, { color: theme.text }]}>{t('loginTitle')}</Text>
-                <Text style={[styles.loginSubtitle, { color: theme.textMuted }]}>{t('loginSubtitle')}</Text>
+                <Text style={{ fontSize: 32, fontWeight: '900', color: theme.text, letterSpacing: -1 }}>Absensi Digital</Text>
+                <Text style={{ fontSize: 16, color: theme.textMuted, marginTop: 8 }}>{t('loginSubtitle')}</Text>
             </View>
 
-            <View style={styles.loginForm}>
-                <View style={styles.inputWrapper}>
-                    <Text style={[styles.inputLabel, { color: theme.text }]}>{t('usernameLabel')}</Text>
-                    <TextInput
-                        style={[styles.input, { backgroundColor: isDarkMode ? '#0f172a' : '#f1f5f9', color: theme.text, borderColor: theme.border }]}
-                        value={username}
-                        onChangeText={setUsername}
-                        autoCapitalize="none"
-                        placeholder="Contoh: 12345"
-                        placeholderTextColor={theme.textMuted}
-                    />
+            <View style={{ width: '100%', maxWidth: 400, backgroundColor: theme.card, padding: 30, borderRadius: 30, shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.05, shadowRadius: 20, elevation: 5 }}>
+                <View style={{ marginBottom: 20 }}>
+                    <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.text, marginBottom: 8, marginLeft: 4 }}>{t('usernameLabel')}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDarkMode ? '#0f172a' : '#f8fafc', borderRadius: 16, borderWidth: 1, borderColor: theme.border, paddingHorizontal: 16 }}>
+                        <WebIcon name="user" size={20} color={theme.textMuted} />
+                        <TextInput
+                            style={{ flex: 1, padding: 16, fontSize: 16, color: theme.text }}
+                            value={username}
+                            onChangeText={setUsername}
+                            autoCapitalize="none"
+                            placeholder="Contoh: 12345"
+                            placeholderTextColor={theme.textMuted}
+                        />
+                    </View>
                 </View>
 
-                <View style={styles.inputWrapper}>
-                    <Text style={[styles.inputLabel, { color: theme.text }]}>{t('passwordLabel')}</Text>
-                    <TextInput
-                        style={[styles.input, { backgroundColor: isDarkMode ? '#0f172a' : '#f1f5f9', color: theme.text, borderColor: theme.border }]}
-                        value={password}
-                        onChangeText={setPassword}
-                        secureTextEntry
-                        placeholder="••••••••"
-                        placeholderTextColor={theme.textMuted}
-                    />
+                <View style={{ marginBottom: 30 }}>
+                    <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.text, marginBottom: 8, marginLeft: 4 }}>{t('passwordLabel')}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDarkMode ? '#0f172a' : '#f8fafc', borderRadius: 16, borderWidth: 1, borderColor: theme.border, paddingHorizontal: 16 }}>
+                        <WebIcon name="lock" size={20} color={theme.textMuted} />
+                        <TextInput
+                            style={{ flex: 1, padding: 16, fontSize: 16, color: theme.text }}
+                            value={password}
+                            onChangeText={setPassword}
+                            secureTextEntry={!showPassword}
+                            placeholder="••••••••"
+                            placeholderTextColor={theme.textMuted}
+                        />
+                        <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                            <WebIcon name={showPassword ? "eye_off" : "eye"} size={20} color={theme.textMuted} />
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
-                <TouchableOpacity style={[styles.loginButton, { backgroundColor: theme.primary }]} onPress={handleLogin} disabled={loading}>
-                    {loading ? <ActivityIndicator color="white" /> : <Text style={styles.loginButtonText}>{t('loginBtn')}</Text>}
+                <TouchableOpacity
+                    style={{ backgroundColor: theme.primary, padding: 20, borderRadius: 16, alignItems: 'center', shadowColor: theme.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 15, elevation: 5 }}
+                    onPress={handleLogin}
+                    disabled={loading}
+                >
+                    {loading ? <ActivityIndicator color="white" /> : <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold' }}>{t('loginBtn')}</Text>}
                 </TouchableOpacity>
+
+                <View style={{ marginTop: 25, alignItems: 'center' }}>
+                    <Text style={{ color: theme.textMuted, fontSize: 13 }}>Lupa password? Hubungi Admin Sekolah</Text>
+                </View>
+            </View>
+
+            <View style={{ position: 'absolute', bottom: 30, alignItems: 'center' }}>
+                <Text style={{ color: theme.textMuted, opacity: 0.5, fontSize: 12, fontWeight: 'bold' }}>VERSION {CURRENT_APP_VERSION}</Text>
             </View>
         </View>
     );
@@ -495,142 +650,154 @@ export default function App() {
 
         return (
             <View style={[styles.dashboardWrapper, { backgroundColor: theme.bg }]}>
-                <ScrollView style={styles.scrollView} bounces={false} stickyHeaderIndices={[1]}>
-                    {/* Header */}
-                    <View style={[styles.webHeader, { paddingTop: 80 }]}>
-                        <View style={styles.headerFlex}>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.webHeaderTitle}>{t('dashboard')} {role === 'siswa' ? (language === 'id' ? 'Siswa' : 'Student') : (language === 'id' ? 'Guru' : 'Teacher')}</Text>
-                                <Text style={styles.webHeaderSubtitle}>{user.nama} • {user.nama_kelas || (role === 'guru' ? (language === 'id' ? 'Tenaga Pendidik' : 'Teacher Staff') : 'Admin')}</Text>
-                            </View>
-                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                <TouchableOpacity style={{ marginRight: 15 }} onPress={() => setIsDarkMode(!isDarkMode)}>
-                                    <WebIcon name={isDarkMode ? "sun" : "moon"} size={22} color="white" />
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={handleLogout}>
-                                    <WebIcon name="logout" size={24} color="white" />
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    </View>
+                {/* Status Bar Background Placeholder */}
+                <View style={{ height: 40, width: '100%', backgroundColor: '#7c3aed', position: 'absolute', top: 0, zIndex: 50 }} />
 
-                    {/* Sticky Profile Card Container */}
-                    <View style={{ paddingHorizontal: 20, marginTop: -40, zIndex: 10, backgroundColor: theme.bg }}>
-                        <View style={styles.webProfileCard}>
-                            <TouchableOpacity
-                                style={[styles.avatarCircle, { overflow: 'hidden' }]}
-                                onPress={() => setProfileModalVisible(true)}
-                            >
-                                {user.foto_profil ? (
-                                    <Image
-                                        source={{ uri: `${BASE_URL}/uploads/${role}/${encodeURIComponent(user.foto_profil)}` }}
-                                        style={styles.avatarImg}
-                                        resizeMode="cover"
-                                        onError={(e) => Alert.alert("Image Error", `Gagal memuat foto:\n${BASE_URL}/uploads/${role}/${user.foto_profil}\nError: ${e.nativeEvent.error}`)}
-                                    />
-                                ) : (
-                                    <WebIcon name="user" size={32} color="white" />
-                                )}
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.profileTextInfo} onPress={() => setCurrentView('profil')}>
-                                <Text style={styles.profileNameTxt}>{user.nama}</Text>
-                                <View style={styles.badgeRow}>
-                                    <WebIcon name="tag" size={14} color="#ddd6fe" style={{ marginRight: 8 }} />
-                                    <Text style={styles.badgeLabel}>{role === 'guru' ? 'NUPTK:' : 'NIS:'}</Text>
-                                    <Text style={styles.badgeValue}>{user.nis || user.nuptk || '-'}</Text>
+                <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }}>
+                    <ScrollView
+                        style={styles.scrollView}
+                        bounces={true}
+                        stickyHeaderIndices={[1]}
+                        refreshControl={
+                            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />
+                        }
+                    >
+                        {/* Header */}
+                        <View style={[styles.webHeader, { paddingTop: 60 }]}>
+                            <View style={styles.headerFlex}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.webHeaderTitle}>{t('dashboard')} {role === 'siswa' ? (language === 'id' ? 'Siswa' : 'Student') : (language === 'id' ? 'Guru' : 'Teacher')}</Text>
+                                    <Text style={styles.webHeaderSubtitle}>{user.nama} • {user.nama_kelas || (role === 'guru' ? (language === 'id' ? 'Tenaga Pendidik' : 'Teacher Staff') : 'Admin')}</Text>
                                 </View>
-                                <View style={styles.badgeRow}>
-                                    <WebIcon name="building" size={14} color="#ddd6fe" style={{ marginRight: 8 }} />
-                                    <Text style={styles.badgeLabel}>Kelas:</Text>
-                                    <Text style={styles.badgeValue}>{user.nama_kelas || '-'}</Text>
-                                </View>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-
-                    {/* Main Content (Status & Menu) */}
-                    <View style={{ paddingHorizontal: 20, marginTop: 20, paddingBottom: 150 }}>
-
-                        {/* Status Absensi Card */}
-                        {/* Tombol Monitoring Khusus Wali Kelas */}
-                        {role === 'guru' && user.nama_kelas && user.nama_kelas.includes('Wali Kelas') && (
-                            <TouchableOpacity
-                                style={[styles.webStatusContainer, { backgroundColor: theme.primary, marginBottom: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
-                                onPress={() => setCurrentView('monitoring')}
-                            >
                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                    <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', marginRight: 16 }}>
-                                        <WebIcon name="eye" size={24} color="white" />
-                                    </View>
-                                    <View>
-                                        <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold' }}>{t('monitoringKelas')}</Text>
-                                        <Text style={{ color: '#ddd6fe', fontSize: 13 }}>{t('pantauSiswa')}</Text>
-                                    </View>
-                                </View>
-                                <WebIcon name="back" size={20} color="white" style={{ transform: [{ rotate: '180deg' }] }} />
-                            </TouchableOpacity>
-                        )}
-
-                        <View style={[styles.webStatusContainer, { backgroundColor: theme.card }]}>
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-                                <Text style={[styles.sectionTitleWeb, { color: theme.text }]}>{t('statusAbsensi')}</Text>
-                                <View style={[styles.typeBadge, { backgroundColor: attendanceStatus?.jam_keluar ? '#dbeafe' : (attendanceStatus?.jam_masuk ? '#fef3c7' : '#f3f4f6') }]}>
-                                    <Text style={[styles.typeBadgeTxt, { color: attendanceStatus?.jam_keluar ? '#1e40af' : (attendanceStatus?.jam_masuk ? '#92400e' : '#6b7280') }]}>
-                                        {attendanceStatus?.jam_keluar ? t('sudahPulang') : (attendanceStatus?.jam_masuk ? t('sudahMasuk') : t('belumAbsen'))}
-                                    </Text>
+                                    <TouchableOpacity style={{ marginRight: 15 }} onPress={() => setIsDarkMode(!isDarkMode)}>
+                                        <WebIcon name={isDarkMode ? "sun" : "moon"} size={22} color="white" />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={handleLogout}>
+                                        <WebIcon name="logout" size={24} color="white" />
+                                    </TouchableOpacity>
                                 </View>
                             </View>
-                            <Text style={styles.dateLabelWeb}>{new Date().toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</Text>
+                        </View>
 
-                            <View style={[styles.statusInnerBox, { backgroundColor: statusStyle.bg, borderColor: statusStyle.border, flexDirection: 'column', alignItems: 'flex-start' }]}>
-                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                                    <View>
-                                        <Text style={[styles.statusMainLabel, { color: statusStyle.text }]}>
-                                            {attendanceStatus ? (translations[language][attendanceStatus.status] ? translations[language][attendanceStatus.status].toUpperCase() : attendanceStatus.status.toUpperCase()) : t('belumAbsen').toUpperCase()}
+                        {/* Sticky Profile Card Container */}
+                        <View style={{ paddingHorizontal: 20, marginTop: -40, zIndex: 10, backgroundColor: theme.bg }}>
+                            <View style={styles.webProfileCard}>
+                                <TouchableOpacity
+                                    style={[styles.avatarCircle, { overflow: 'hidden' }]}
+                                    onPress={() => setProfileModalVisible(true)}
+                                >
+                                    {user.foto_profil ? (
+                                        <Image
+                                            source={{ uri: `${BASE_URL}/uploads/${role}/${encodeURIComponent(user.foto_profil)}` }}
+                                            style={styles.avatarImg}
+                                            resizeMode="cover"
+                                            onError={(e) => Alert.alert("Image Error", `Gagal memuat foto:\n${BASE_URL}/uploads/${role}/${user.foto_profil}\nError: ${e.nativeEvent.error}`)}
+                                        />
+                                    ) : (
+                                        <WebIcon name="user" size={32} color="white" />
+                                    )}
+                                </TouchableOpacity>
+                                <TouchableOpacity style={styles.profileTextInfo} onPress={() => setCurrentView('profil')}>
+                                    <Text style={styles.profileNameTxt}>{user.nama}</Text>
+                                    <View style={styles.badgeRow}>
+                                        <WebIcon name="tag" size={14} color="#ddd6fe" style={{ marginRight: 8 }} />
+                                        <Text style={styles.badgeLabel}>{role === 'guru' ? 'NUPTK:' : 'NIS:'}</Text>
+                                        <Text style={styles.badgeValue}>{user.nis || user.nuptk || '-'}</Text>
+                                    </View>
+                                    <View style={styles.badgeRow}>
+                                        <WebIcon name="building" size={14} color="#ddd6fe" style={{ marginRight: 8 }} />
+                                        <Text style={styles.badgeLabel}>Kelas:</Text>
+                                        <Text style={styles.badgeValue}>{user.nama_kelas || '-'}</Text>
+                                    </View>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
+                        {/* Main Content (Status & Menu) */}
+                        <View style={{ paddingHorizontal: 20, marginTop: 20, paddingBottom: 120 }}>
+
+                            {/* Status Absensi Card */}
+                            {/* Tombol Monitoring Khusus Wali Kelas */}
+                            {role === 'guru' && user.nama_kelas && user.nama_kelas.includes('Wali Kelas') && (
+                                <TouchableOpacity
+                                    style={[styles.webStatusContainer, { backgroundColor: theme.primary, marginBottom: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
+                                    onPress={() => setCurrentView('monitoring')}
+                                >
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', marginRight: 16 }}>
+                                            <WebIcon name="eye" size={24} color="white" />
+                                        </View>
+                                        <View>
+                                            <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold' }}>{t('monitoringKelas')}</Text>
+                                            <Text style={{ color: '#ddd6fe', fontSize: 13 }}>{t('pantauSiswa')}</Text>
+                                        </View>
+                                    </View>
+                                    <WebIcon name="back" size={20} color="white" style={{ transform: [{ rotate: '180deg' }] }} />
+                                </TouchableOpacity>
+                            )}
+
+                            <View style={[styles.webStatusContainer, { backgroundColor: theme.card }]}>
+                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                                    <Text style={[styles.sectionTitleWeb, { color: theme.text }]}>{t('statusAbsensi')}</Text>
+                                    <View style={[styles.typeBadge, { backgroundColor: attendanceStatus?.jam_keluar ? '#dbeafe' : (attendanceStatus?.jam_masuk ? '#fef3c7' : '#f3f4f6') }]}>
+                                        <Text style={[styles.typeBadgeTxt, { color: attendanceStatus?.jam_keluar ? '#1e40af' : (attendanceStatus?.jam_masuk ? '#92400e' : '#6b7280') }]}>
+                                            {attendanceStatus?.jam_keluar ? t('sudahPulang') : (attendanceStatus?.jam_masuk ? t('sudahMasuk') : t('belumAbsen'))}
                                         </Text>
-                                        <Text style={[styles.roleLabel, { color: isDarkMode ? '#94a3b8' : '#64748b' }]}>{role.charAt(0).toUpperCase() + role.slice(1)} • {user.nama}</Text>
                                     </View>
-                                    <View style={[styles.checkCircle, { backgroundColor: attendanceStatus ? '#16a34a' : '#facc15' }]}>
-                                        <Text style={styles.checkIcon}>{attendanceStatus ? '✓' : '!'}</Text>
+                                </View>
+                                <Text style={styles.dateLabelWeb}>{new Date().toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</Text>
+
+                                <View style={[styles.statusInnerBox, { backgroundColor: statusStyle.bg, borderColor: statusStyle.border, flexDirection: 'column', alignItems: 'flex-start' }]}>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                                        <View>
+                                            <Text style={[styles.statusMainLabel, { color: statusStyle.text }]}>
+                                                {attendanceStatus ? (translations[language][attendanceStatus.status] ? translations[language][attendanceStatus.status].toUpperCase() : attendanceStatus.status.toUpperCase()) : t('belumAbsen').toUpperCase()}
+                                            </Text>
+                                            <Text style={[styles.roleLabel, { color: isDarkMode ? '#94a3b8' : '#64748b' }]}>{role.charAt(0).toUpperCase() + role.slice(1)} • {user.nama}</Text>
+                                        </View>
+                                        <View style={[styles.checkCircle, { backgroundColor: attendanceStatus ? '#16a34a' : '#facc15' }]}>
+                                            <Text style={styles.checkIcon}>{attendanceStatus ? '✓' : '!'}</Text>
+                                        </View>
+                                    </View>
+
+                                    <View style={{ width: '100%', height: 1, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', marginVertical: 15 }} />
+
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
+                                        <View style={styles.timeInfoItem}>
+                                            <Text style={styles.timeLabel}>Jam Masuk</Text>
+                                            <Text style={[styles.timeValue, { color: theme.text }]}>{attendanceStatus?.jam_masuk ? attendanceStatus.jam_masuk.substring(0, 5) : '--:--'}</Text>
+                                        </View>
+                                        <View style={styles.timeInfoItem}>
+                                            <Text style={styles.timeLabel}>Jam Pulang</Text>
+                                            <Text style={[styles.timeValue, { color: theme.text }]}>{attendanceStatus?.jam_keluar ? attendanceStatus.jam_keluar.substring(0, 5) : '--:--'}</Text>
+                                        </View>
                                     </View>
                                 </View>
 
-                                <View style={{ width: '100%', height: 1, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', marginVertical: 15 }} />
+                            </View>
 
-                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
-                                    <View style={styles.timeInfoItem}>
-                                        <Text style={styles.timeLabel}>Jam Masuk</Text>
-                                        <Text style={[styles.timeValue, { color: theme.text }]}>{attendanceStatus?.jam_masuk ? attendanceStatus.jam_masuk.substring(0, 5) : '--:--'}</Text>
-                                    </View>
-                                    <View style={styles.timeInfoItem}>
-                                        <Text style={styles.timeLabel}>Jam Pulang</Text>
-                                        <Text style={[styles.timeValue, { color: theme.text }]}>{attendanceStatus?.jam_keluar ? attendanceStatus.jam_keluar.substring(0, 5) : '--:--'}</Text>
-                                    </View>
+                            {/* Menu Grid */}
+                            <View style={styles.webGrid}>
+                                <View style={styles.webRow}>
+                                    <WebMenuItem iconName="clipboard" iconColor="#2563eb" iconBg="#dbeafe" title={t('kehadiran')} sub={t('riwayatAbsensi')} onPress={() => setCurrentView('kehadiran')} theme={theme} isDarkMode={isDarkMode} />
+                                    <WebMenuItem iconName="user" iconColor="#7c3aed" iconBg="#f5f3ff" title={t('profil')} sub={t('infoPribadi')} onPress={() => setCurrentView('profil')} theme={theme} isDarkMode={isDarkMode} />
+                                </View>
+                                <View style={styles.webRow}>
+                                    <WebMenuItem iconName="card" iconColor="#16a34a" iconBg="#dcfce7" title={t('pembayaran')} sub={t('statusSpp')} onPress={() => setCurrentView('pembayaran')} theme={theme} isDarkMode={isDarkMode} />
+                                    <WebMenuItem iconName="speaker" iconColor="#ea580c" iconBg="#ffedd5" title={t('pengumuman')} sub={t('infoTerbaru')} onPress={() => setCurrentView('pengumuman')} theme={theme} isDarkMode={isDarkMode} />
+                                </View>
+                                <View style={styles.webRow}>
+                                    <WebMenuItem iconName="book" iconColor="#e11d48" iconBg="#ffe4e6" title={t('jadwalPelajaran')} sub={t('lihatJadwal')} onPress={() => setCurrentView('jadwal')} theme={theme} isDarkMode={isDarkMode} />
+                                    <WebMenuItem iconName="globe" iconColor="#0891b2" iconBg="#cffafe" title={t('elearning')} sub={t('aksesMateri')} onPress={() => setCurrentView('elearning')} theme={theme} isDarkMode={isDarkMode} />
                                 </View>
                             </View>
-
                         </View>
+                    </ScrollView>
 
-                        {/* Menu Grid */}
-                        <View style={styles.webGrid}>
-                            <View style={styles.webRow}>
-                                <WebMenuItem iconName="clipboard" iconColor="#2563eb" iconBg="#dbeafe" title={t('kehadiran')} sub={t('riwayatAbsensi')} onPress={() => setCurrentView('kehadiran')} theme={theme} isDarkMode={isDarkMode} />
-                                <WebMenuItem iconName="user" iconColor="#7c3aed" iconBg="#f5f3ff" title={t('profil')} sub={t('infoPribadi')} onPress={() => setCurrentView('profil')} theme={theme} isDarkMode={isDarkMode} />
-                            </View>
-                            <View style={styles.webRow}>
-                                <WebMenuItem iconName="card" iconColor="#16a34a" iconBg="#dcfce7" title={t('pembayaran')} sub={t('statusSpp')} onPress={() => setCurrentView('pembayaran')} theme={theme} isDarkMode={isDarkMode} />
-                                <WebMenuItem iconName="speaker" iconColor="#ea580c" iconBg="#ffedd5" title={t('pengumuman')} sub={t('infoTerbaru')} onPress={() => setCurrentView('pengumuman')} theme={theme} isDarkMode={isDarkMode} />
-                            </View>
-                            <View style={styles.webRow}>
-                                <WebMenuItem iconName="book" iconColor="#e11d48" iconBg="#ffe4e6" title={t('jadwalPelajaran')} sub={t('lihatJadwal')} onPress={() => setCurrentView('jadwal')} theme={theme} isDarkMode={isDarkMode} />
-                                <WebMenuItem iconName="globe" iconColor="#0891b2" iconBg="#cffafe" title={t('elearning')} sub={t('aksesMateri')} onPress={() => setCurrentView('elearning')} theme={theme} isDarkMode={isDarkMode} />
-                            </View>
-                        </View>
-                    </View>
-                </ScrollView>
-
-                {/* Bottom Nav */}
-                {renderBottomNav()}
+                    {/* Bottom Nav */}
+                    {renderBottomNav()}
+                </SafeAreaView>
             </View>
         );
     };
@@ -723,12 +890,294 @@ export default function App() {
                     )
                 }
 
+                {/* About App Button */}
+                <TouchableOpacity
+                    style={[styles.logoutBtnFull, { backgroundColor: theme.card, marginBottom: 15, marginTop: 10, shadowColor: 'transparent', borderWidth: 1, borderColor: isDarkMode ? '#334155' : '#e2e8f0' }]}
+                    onPress={() => setCurrentView('tentang')}
+                >
+                    <WebIcon name="info" size={20} color={theme.text} style={{ marginRight: 10 }} />
+                    <Text style={[styles.logoutBtnText, { color: theme.text }]}>{t('tentangAplikasi')}</Text>
+                </TouchableOpacity>
+
                 {/* Logout Button */}
                 <TouchableOpacity style={styles.logoutBtnFull} onPress={handleLogout}>
                     <WebIcon name="logout" size={20} color="white" style={{ marginRight: 10 }} />
                     <Text style={styles.logoutBtnText}>{t('keluarAkun')}</Text>
                 </TouchableOpacity>
             </ScreenTemplate >
+        );
+    };
+
+    const renderElearning = () => {
+        return (
+            <ScreenTemplate title={t('elearning')} subtitle={t('aksesMateri')} headerOverlap={false}>
+                <View style={{ marginTop: 20 }}>
+                    {learningMaterials.length === 0 ? (
+                        <View style={{ padding: 40, alignItems: 'center' }}>
+                            <WebIcon name="book" size={40} color={theme.textMuted} />
+                            <Text style={{ color: theme.textMuted, marginTop: 15 }}>Belum ada materi tersedia.</Text>
+                        </View>
+                    ) : (
+                        learningMaterials.map((item) => (
+                            <View key={item.id} style={[styles.infoItemCard, { backgroundColor: theme.card, padding: 16, flexDirection: 'column', alignItems: 'flex-start' }]}>
+                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginBottom: 8 }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        <View style={{ paddingHorizontal: 8, paddingVertical: 2, backgroundColor: '#e0e7ff', borderRadius: 4, marginRight: 8 }}>
+                                            <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#4338ca' }}>{(item.tipe_file || 'FILE').toUpperCase()}</Text>
+                                        </View>
+                                        <Text style={{ fontSize: 12, color: theme.textMuted }}>{new Date(item.created_at).toLocaleDateString()}</Text>
+                                    </View>
+                                </View>
+
+                                <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.text, marginBottom: 4 }}>{item.judul}</Text>
+                                <Text style={{ fontSize: 13, color: theme.textMuted, marginBottom: 12, lineHeight: 18 }}>{item.deskripsi || 'Tidak ada deskripsi'}</Text>
+
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                                    <WebIcon name="user" size={14} color={theme.textMuted} style={{ marginRight: 4 }} />
+                                    <Text style={{ fontSize: 12, color: theme.textMuted, marginRight: 12 }}>{item.nama_guru}</Text>
+                                    {item.nama_mapel && (
+                                        <>
+                                            <WebIcon name="book" size={14} color={theme.textMuted} style={{ marginRight: 4 }} />
+                                            <Text style={{ fontSize: 12, color: theme.textMuted }}>{item.nama_mapel}</Text>
+                                        </>
+                                    )}
+                                </View>
+
+                                <TouchableOpacity
+                                    style={{ width: '100%', padding: 12, backgroundColor: isDarkMode ? '#1e3a8a' : '#eff6ff', borderRadius: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}
+                                    onPress={() => {
+                                        const url = `${BASE_URL}/uploads/materi/${item.file_path}`;
+                                        Linking.openURL(url).catch(err => Alert.alert('Error', 'Gagal membuka link: ' + err));
+                                    }}
+                                >
+                                    <WebIcon name="download" size={16} color={isDarkMode ? '#93c5fd' : '#2563eb'} style={{ marginRight: 8 }} />
+                                    <Text style={{ color: isDarkMode ? '#93c5fd' : '#2563eb', fontWeight: 'bold' }}>Download Materi</Text>
+                                </TouchableOpacity>
+                            </View>
+                        ))
+                    )}
+                </View>
+            </ScreenTemplate>
+        );
+    };
+
+    const renderTentangAplikasi = () => {
+        return (
+            <ScreenTemplate title={t('tentangAplikasi')} subtitle={t('detailAplikasi')} headerOverlap={false}>
+                {/* Hero Section */}
+                <View style={{ alignItems: 'center', marginTop: 20, marginBottom: 30 }}>
+                    <View style={{
+                        width: 120, height: 120, borderRadius: 35,
+                        backgroundColor: theme.primary,
+                        justifyContent: 'center', alignItems: 'center',
+                        marginBottom: 20,
+                        shadowColor: theme.primary, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.4, shadowRadius: 20, elevation: 15,
+                        transform: [{ rotate: '-3deg' }]
+                    }}>
+                        <WebIcon name="cap" size={60} color="white" />
+                    </View>
+                    <Text style={{ fontSize: 28, fontWeight: '900', color: theme.text, letterSpacing: -1 }}>Absensi Digital</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, backgroundColor: isDarkMode ? '#1e293b' : '#e0e7ff', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: isDarkMode ? '#334155' : 'transparent' }}>
+                        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#4338ca', marginRight: 8 }} />
+                        <Text style={{ fontSize: 13, color: isDarkMode ? '#c7d2fe' : '#4338ca', fontWeight: 'bold' }}>v1.0.0 Public Beta</Text>
+                    </View>
+                </View>
+
+                {/* Developer Card - Modern Glass style */}
+                <View style={{
+                    backgroundColor: theme.card,
+                    borderRadius: 24, padding: 20,
+                    marginBottom: 25,
+                    borderWidth: 1, borderColor: isDarkMode ? '#334155' : '#f1f5f9',
+                    shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3
+                }}>
+                    <Text style={{ fontSize: 11, color: theme.textMuted, fontWeight: '800', marginBottom: 15, letterSpacing: 1 }}>DEVELOPED BY</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <View style={{ width: 60, height: 60, borderRadius: 20, backgroundColor: isDarkMode ? '#0c4a6e' : '#f0f9ff', justifyContent: 'center', alignItems: 'center', marginRight: 16, borderWidth: 2, borderColor: isDarkMode ? '#0ea5e9' : '#bae6fd' }}>
+                            <WebIcon name="user" size={30} color={isDarkMode ? '#bae6fd' : '#0284c7'} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.text }}>Muhammad Fahiim</Text>
+                            <Text style={{ fontSize: 14, color: theme.textMuted }}>Fullstack Developer</Text>
+                            <TouchableOpacity onPress={() => Linking.openURL('https://gradasi.net')} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, alignSelf: 'flex-start' }}>
+                                <WebIcon name="globe" size={12} color={theme.primary} style={{ marginRight: 4 }} />
+                                <Text style={{ fontSize: 12, color: theme.primary, fontWeight: '700' }}>gradasi.net</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+
+                {/* Grid Features */}
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 25 }}>
+                    {[
+                        { label: 'Realtime', icon: 'time', bg: '#fef2f2', color: '#ef4444' },
+                        { label: 'Secure QR', icon: 'qr', bg: '#f0fdf4', color: '#16a34a' },
+                        { label: 'Cloud DB', icon: 'server', bg: '#eff6ff', color: '#2563eb' },
+                        { label: 'Multi-Role', icon: 'users', bg: '#fff7ed', color: '#ea580c' },
+                    ].map((item, index) => (
+                        <View key={index} style={{
+                            width: '48%', backgroundColor: isDarkMode ? '#1e293b' : item.bg,
+                            padding: 16, borderRadius: 20, marginBottom: 15,
+                            alignItems: 'center', flexDirection: 'row',
+                            borderWidth: 1, borderColor: isDarkMode ? '#334155' : 'transparent',
+                            shadowColor: item.color, shadowOpacity: isDarkMode ? 0 : 0.05, shadowRadius: 5, elevation: isDarkMode ? 0 : 2
+                        }}>
+                            <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: isDarkMode ? '#0f172a' : 'white', justifyContent: 'center', alignItems: 'center', marginRight: 10 }}>
+                                <WebIcon name={item.icon === 'time' ? 'calendar' : item.icon} size={18} color={item.color} />
+                            </View>
+                            <Text style={{ fontWeight: 'bold', color: isDarkMode ? theme.text : '#334155', fontSize: 13 }}>{item.label}</Text>
+                        </View>
+                    ))}
+                </View>
+
+                {/* Tech Stack */}
+                <View style={{ marginBottom: 30 }}>
+                    <Text style={{ fontSize: 18, fontWeight: '900', color: theme.text, marginBottom: 15 }}>Tech Stack</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }}>
+                        {['React Native', 'Expo', 'PHP 8', 'MySQL', 'Node.js'].map((t, i) => (
+                            <View key={i} style={{
+                                paddingHorizontal: 16, paddingVertical: 10,
+                                backgroundColor: theme.card,
+                                borderRadius: 12, marginRight: 10,
+                                borderWidth: 1, borderColor: isDarkMode ? '#334155' : '#e2e8f0',
+                                flexDirection: 'row', alignItems: 'center'
+                            }}>
+                                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: theme.textMuted, marginRight: 8, opacity: 0.5 }} />
+                                <Text style={{ fontWeight: '600', color: theme.text }}>{t}</Text>
+                            </View>
+                        ))}
+                    </ScrollView>
+                </View>
+
+                {/* Connect Buttons */}
+                <View style={{ gap: 12, paddingBottom: 40 }}>
+                    <TouchableOpacity
+                        style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDarkMode ? '#0f172a' : '#1f2937', padding: 18, borderRadius: 20, borderWidth: 1, borderColor: isDarkMode ? '#334155' : 'transparent' }}
+                        onPress={() => Linking.openURL('https://github.com/muhfahmm')}
+                    >
+                        <WebIcon name="github" size={28} color="white" style={{ marginRight: 15 }} />
+                        <View>
+                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Follow on GitHub</Text>
+                            <Text style={{ color: '#9ca3af', fontSize: 12, marginTop: 2 }}>Check source code & updates</Text>
+                        </View>
+                        <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                            <WebIcon name="back" size={20} color="#6b7280" style={{ transform: [{ rotate: '180deg' }] }} />
+                        </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#db2777', padding: 18, borderRadius: 20 }}
+                        onPress={() => Linking.openURL('https://www.instagram.com/_muhfhmm')}
+                    >
+                        <WebIcon name="instagram" size={28} color="white" style={{ marginRight: 15 }} />
+                        <View>
+                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Follow on Instagram</Text>
+                            <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 12, marginTop: 2 }}>Daily updates & stories</Text>
+                        </View>
+                        <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                            <WebIcon name="back" size={20} color="rgba(255,255,255,0.6)" style={{ transform: [{ rotate: '180deg' }] }} />
+                        </View>
+                    </TouchableOpacity>
+                </View>
+
+                <View style={{ marginTop: 10, alignItems: 'center', paddingBottom: 20 }}>
+                    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDarkMode ? '#334155' : '#fee2e2', justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
+                        <WebIcon name="heart" size={20} color="#ef4444" />
+                    </View>
+                    <Text style={{ color: theme.textMuted, fontSize: 12, fontWeight: '700', letterSpacing: 1, opacity: 0.8 }}>MADE IN INDONESIA</Text>
+                    <Text style={{ color: theme.textMuted, fontSize: 10, marginTop: 4 }}>© 2026 Gradasi Web</Text>
+                </View>
+
+            </ScreenTemplate>
+        );
+    };
+
+    const renderJadwal = () => {
+        const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        const currentData = jadwal ? (jadwal[selectedDayJadwal] || []) : [];
+
+        return (
+            <ScreenTemplate title={t('jadwalPelajaran')} subtitle={t('lihatJadwal')} headerOverlap={false}>
+                {/* Day Tabs */}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 20, marginBottom: 20 }}>
+                    {days.map((day) => (
+                        <TouchableOpacity
+                            key={day}
+                            style={{
+                                paddingHorizontal: 20,
+                                paddingVertical: 10,
+                                backgroundColor: selectedDayJadwal === day ? theme.primary : theme.card,
+                                borderRadius: 20,
+                                marginRight: 10,
+                                borderWidth: 1,
+                                borderColor: selectedDayJadwal === day ? theme.primary : (isDarkMode ? '#334155' : '#e2e8f0')
+                            }}
+                            onPress={() => setSelectedDayJadwal(day)}
+                        >
+                            <Text style={{ color: selectedDayJadwal === day ? 'white' : theme.text, fontWeight: 'bold' }}>{day}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
+
+                {/* Schedule List */}
+                <View style={{ paddingBottom: 40 }}>
+                    {!jadwal ? (
+                        <View style={{ padding: 40, alignItems: 'center' }}>
+                            <ActivityIndicator size="large" color={theme.primary} />
+                            <Text style={{ color: theme.textMuted, marginTop: 15 }}>Memuat jadwal...</Text>
+                        </View>
+                    ) : currentData.length === 0 ? (
+                        <View style={{ padding: 40, alignItems: 'center' }}>
+                            <WebIcon name="calendar" size={40} color={theme.textMuted} />
+                            <Text style={{ color: theme.textMuted, marginTop: 15 }}>Tidak ada jadwal untuk hari {selectedDayJadwal}</Text>
+                        </View>
+                    ) : (
+                        currentData.map((item, index) => {
+                            const isIstirahat = item.is_istirahat == 1 || item.jam_ke == 0;
+                            return (
+                                <View key={index} style={[styles.infoItemCard, { backgroundColor: isIstirahat ? (isDarkMode ? '#3f1f14' : '#fff7ed') : theme.card, padding: 16, borderLeftWidth: 4, borderLeftColor: isIstirahat ? '#f97316' : theme.primary }]}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        <View style={{ width: 60, marginRight: 10 }}>
+                                            <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.text }}>
+                                                {item.jam_mulai ? item.jam_mulai.substring(0, 5) : '--:--'}
+                                            </Text>
+                                            <Text style={{ fontSize: 12, color: theme.textMuted }}>
+                                                {item.jam_selesai ? item.jam_selesai.substring(0, 5) : '--:--'}
+                                            </Text>
+                                        </View>
+
+                                        <View style={{ flex: 1 }}>
+                                            {isIstirahat ? (
+                                                <Text style={{ fontSize: 16, fontWeight: 'bold', color: isDarkMode ? '#fdba74' : '#c2410c', fontStyle: 'italic' }}>ISTIRAHAT</Text>
+                                            ) : (
+                                                <>
+                                                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.text, marginBottom: 4 }}>
+                                                        {item.nama_mapel || 'Tanpa Mapel'}
+                                                    </Text>
+                                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                        <WebIcon name="user" size={12} color={theme.textMuted} style={{ marginRight: 4 }} />
+                                                        <Text style={{ fontSize: 12, color: theme.textMuted }}>
+                                                            {item.nama_guru || (item.nama_kelas ? `Kelas ${item.nama_kelas}` : 'Guru tidak diketahui')}
+                                                        </Text>
+                                                    </View>
+                                                </>
+                                            )}
+                                        </View>
+
+                                        <View style={{ marginLeft: 10 }}>
+                                            <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: isIstirahat ? '#ffedd5' : '#e0e7ff', justifyContent: 'center', alignItems: 'center' }}>
+                                                <Text style={{ fontSize: 12, fontWeight: 'bold', color: isIstirahat ? '#c2410c' : '#4338ca' }}>
+                                                    {isIstirahat ? 'R' : item.jam_ke}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                    </View>
+                                </View>
+                            );
+                        })
+                    )}
+                </View>
+            </ScreenTemplate>
         );
     };
 
@@ -911,8 +1360,9 @@ export default function App() {
             {currentView === 'pembayaran' && renderPlaceholder('Pembayaran')}
             {currentView === 'pembayaran' && renderPlaceholder('Pembayaran')}
             {currentView === 'pengumuman' && renderPlaceholder('Pengumuman')}
-            {currentView === 'jadwal' && renderPlaceholder('Jadwal Pelajaran')}
-            {currentView === 'elearning' && renderPlaceholder('E-Learning')}
+            {currentView === 'jadwal' && renderJadwal()}
+            {currentView === 'elearning' && renderElearning()}
+            {currentView === 'tentang' && renderTentangAplikasi()}
 
             {/* Global QR Modal */}
             <Modal visible={qrModalVisible} transparent animationType="fade">
@@ -1032,7 +1482,7 @@ const styles = StyleSheet.create({
     timeValue: { fontSize: 18, fontWeight: 'bold' },
 
     // Menu Grid
-    webGrid: { marginTop: 20, paddingBottom: 100 },
+    webGrid: { marginTop: 20 },
     webRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
     webMenuCard: { width: (width - 56) / 2, padding: 24, borderRadius: 24, alignItems: 'center', shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 2 },
     iconCircleWeb: { width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
@@ -1040,7 +1490,7 @@ const styles = StyleSheet.create({
     menuSubWeb: { fontSize: 12, marginTop: 4, textAlign: 'center' },
 
     // Bottom Nav
-    webBottomNav: { position: 'absolute', bottom: 0, width: '100%', height: 90, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 40, alignItems: 'center', borderTopWidth: 1 },
+    webBottomNav: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 100, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 50, alignItems: 'center', borderTopWidth: 1, zIndex: 1000, elevation: 50, paddingBottom: 10 },
     navBtn: { alignItems: 'center' },
     navBtnCenter: { top: -25, alignItems: 'center' },
     qrCircleFab: { width: 68, height: 68, borderRadius: 34, backgroundColor: '#7c3aed', justifyContent: 'center', alignItems: 'center', shadowColor: "#7c3aed", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 15, elevation: 10 },
