@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
     StyleSheet,
     Text,
@@ -14,7 +14,10 @@ import {
     Dimensions,
     useColorScheme,
     Linking,
-    RefreshControl
+    RefreshControl,
+    KeyboardAvoidingView,
+    Platform,
+    Keyboard
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { CameraView, Camera } from "expo-camera";
@@ -57,7 +60,11 @@ const PATHS = {
     link: "M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1",
     heart: "M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z",
     lock: "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z",
-    eye_off: "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+    eye_off: "M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21",
+    fileText: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8",
+    barChart: "M18 20V10 M12 20V4 M6 20v6",
+    fileText: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8",
+    barChart: "M18 20V10 M12 20V4 M6 20v6"
 };
 
 const WebIcon = ({ name, size = 24, color = "white", strokeWidth = 2, style }) => (
@@ -136,7 +143,15 @@ const translations = {
         kontakSupport: "Kontak Support",
         website: "Website",
         mediaSosial: "Media Sosial",
-        partner: "Partner"
+        partner: "Partner",
+        perizinan: "Perizinan",
+        izinSakit: "Izin & Sakit",
+        nilai: "Nilai",
+        raportAkademik: "Raport & Akademik",
+        lihat: "Lihat",
+        download: "Download",
+        cariMateri: "Cari materi...",
+        tidakAdaMateri: "Tidak ada materi ditemukan."
     },
     en: {
         loginTitle: "Digital Attendance",
@@ -201,7 +216,15 @@ const translations = {
         kontakSupport: "Contact Support",
         website: "Website",
         mediaSosial: "Social Media",
-        partner: "Partner"
+        partner: "Partner",
+        perizinan: "Permission",
+        izinSakit: "Leave & Sick",
+        nilai: "Grades",
+        raportAkademik: "Report Card & Academic",
+        lihat: "View",
+        download: "Download",
+        cariMateri: "Search materials...",
+        tidakAdaMateri: "No materials found."
     }
 };
 
@@ -279,8 +302,12 @@ export default function App() {
     // Login State
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
+    const [isSecureEntry, setIsSecureEntry] = useState(true);
     const [loading, setLoading] = useState(false);
+
+    // E-Learning State
+    const [elearningSearch, setElearningSearch] = useState('');
+    const [elearningFilter, setElearningFilter] = useState('Semua');
 
     // Scanner State
     const [hasPermission, setHasPermission] = useState(null);
@@ -288,6 +315,25 @@ export default function App() {
 
     // Modal State
     const [qrModalVisible, setQrModalVisible] = useState(false);
+
+    // Keyboard State
+    const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+
+    useEffect(() => {
+        const keyboardDidShowListener = Keyboard.addListener(
+            'keyboardDidShow',
+            () => setKeyboardVisible(true)
+        );
+        const keyboardDidHideListener = Keyboard.addListener(
+            'keyboardDidHide',
+            () => setKeyboardVisible(false)
+        );
+
+        return () => {
+            keyboardDidHideListener.remove();
+            keyboardDidShowListener.remove();
+        };
+    }, []);
 
     const theme = {
         bg: isDarkMode ? '#0f172a' : '#f3f4f6',
@@ -497,7 +543,7 @@ export default function App() {
     };
 
     // View Components
-    const ScreenTemplate = ({ title, subtitle, showBack = true, children, headerOverlap = true }) => (
+    const ScreenTemplate = useMemo(() => ({ title, subtitle, showBack = true, children, headerOverlap = true }) => (
         <View style={[styles.dashboardWrapper, { backgroundColor: theme.bg }]}>
             <View style={styles.webHeader}>
                 <View style={styles.headerFlex}>
@@ -512,7 +558,10 @@ export default function App() {
                     )}
                 </View>
             </View>
-            <ScrollView style={styles.scrollView} bounces={false}>
+            <ScrollView
+                style={styles.scrollView}
+                bounces={true}
+            >
                 <View style={[styles.mainContent, { paddingBottom: 120 }, !headerOverlap && { marginTop: 0 }]}>
                     {children}
                 </View>
@@ -521,9 +570,10 @@ export default function App() {
             {/* Navigasi tetap tampil di semua view dashboard kecuali login/scanner */}
             {renderBottomNav()}
         </View>
-    );
+    ), [theme, renderBottomNav]);
 
-    const renderBottomNav = () => {
+    const renderBottomNav = useCallback(() => {
+        if (isKeyboardVisible) return null;
         return (
             <View style={[styles.webBottomNav, { backgroundColor: theme.bottomNav, borderTopColor: isDarkMode ? '#334155' : '#f1f5f9' }]}>
                 {/* Home */}
@@ -547,77 +597,95 @@ export default function App() {
                 </TouchableOpacity>
             </View>
         );
-    }
+    }, [theme, isDarkMode, currentView, language]);
 
     // UI Renders
     const renderLogin = () => (
-        <View style={[styles.loginContainer, { backgroundColor: theme.bg }]}>
-            <View style={{ alignItems: 'center', marginBottom: 40 }}>
-                <View style={{
-                    width: 100, height: 100, borderRadius: 30,
-                    backgroundColor: theme.primary,
-                    justifyContent: 'center', alignItems: 'center',
-                    marginBottom: 20,
-                    shadowColor: theme.primary, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.5, shadowRadius: 20, elevation: 10,
-                    transform: [{ rotate: '-5deg' }]
-                }}>
-                    <WebIcon name="cap" size={50} color="white" />
-                </View>
-                <Text style={{ fontSize: 32, fontWeight: '900', color: theme.text, letterSpacing: -1 }}>Absensi Digital</Text>
-                <Text style={{ fontSize: 16, color: theme.textMuted, marginTop: 8 }}>{t('loginSubtitle')}</Text>
-            </View>
-
-            <View style={{ width: '100%', maxWidth: 400, backgroundColor: theme.card, padding: 30, borderRadius: 30, shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.05, shadowRadius: 20, elevation: 5 }}>
-                <View style={{ marginBottom: 20 }}>
-                    <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.text, marginBottom: 8, marginLeft: 4 }}>{t('usernameLabel')}</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDarkMode ? '#0f172a' : '#f8fafc', borderRadius: 16, borderWidth: 1, borderColor: theme.border, paddingHorizontal: 16 }}>
-                        <WebIcon name="user" size={20} color={theme.textMuted} />
-                        <TextInput
-                            style={{ flex: 1, padding: 16, fontSize: 16, color: theme.text }}
-                            value={username}
-                            onChangeText={setUsername}
-                            autoCapitalize="none"
-                            placeholder="Contoh: 12345"
-                            placeholderTextColor={theme.textMuted}
-                        />
-                    </View>
-                </View>
-
-                <View style={{ marginBottom: 30 }}>
-                    <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.text, marginBottom: 8, marginLeft: 4 }}>{t('passwordLabel')}</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDarkMode ? '#0f172a' : '#f8fafc', borderRadius: 16, borderWidth: 1, borderColor: theme.border, paddingHorizontal: 16 }}>
-                        <WebIcon name="lock" size={20} color={theme.textMuted} />
-                        <TextInput
-                            style={{ flex: 1, padding: 16, fontSize: 16, color: theme.text }}
-                            value={password}
-                            onChangeText={setPassword}
-                            secureTextEntry={!showPassword}
-                            placeholder="••••••••"
-                            placeholderTextColor={theme.textMuted}
-                        />
-                        <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                            <WebIcon name={showPassword ? "eye_off" : "eye"} size={20} color={theme.textMuted} />
-                        </TouchableOpacity>
-                    </View>
-                </View>
-
+        <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={[styles.loginContainer, { backgroundColor: theme.bg }]}
+        >
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', width: '100%' }}>
                 <TouchableOpacity
-                    style={{ backgroundColor: theme.primary, padding: 20, borderRadius: 16, alignItems: 'center', shadowColor: theme.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 15, elevation: 5 }}
-                    onPress={handleLogin}
-                    disabled={loading}
+                    style={{ position: 'absolute', top: 50, right: 20, padding: 10, backgroundColor: theme.card, borderRadius: 30, zIndex: 10, elevation: 3, shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 5 }}
+                    onPress={() => setIsDarkMode(!isDarkMode)}
                 >
-                    {loading ? <ActivityIndicator color="white" /> : <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold' }}>{t('loginBtn')}</Text>}
+                    <WebIcon name={isDarkMode ? "sun" : "moon"} size={22} color={theme.text} />
                 </TouchableOpacity>
+                <View style={{ alignItems: 'center', marginBottom: 40 }}>
+                    <View style={{
+                        width: 100, height: 100, borderRadius: 30,
+                        backgroundColor: theme.primary,
+                        justifyContent: 'center', alignItems: 'center',
+                        marginBottom: 20,
+                        shadowColor: theme.primary, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.5, shadowRadius: 20, elevation: 10,
+                        transform: [{ rotate: '-5deg' }]
+                    }}>
+                        <WebIcon name="cap" size={50} color="white" />
+                    </View>
+                    <Text style={{ fontSize: 32, fontWeight: '900', color: theme.text, letterSpacing: -1 }}>Gradasi Absensi</Text>
+                    <Text style={{ fontSize: 16, color: theme.textMuted, marginTop: 8 }}>{t('loginSubtitle')}</Text>
+                </View>
 
-                <View style={{ marginTop: 25, alignItems: 'center' }}>
-                    <Text style={{ color: theme.textMuted, fontSize: 13 }}>Lupa password? Hubungi Admin Sekolah</Text>
+                <View style={{ width: '100%', maxWidth: 400, backgroundColor: theme.card, padding: 30, borderRadius: 30, shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.05, shadowRadius: 20, elevation: 5 }}>
+                    <View style={{ marginBottom: 20 }}>
+                        <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.text, marginBottom: 8, marginLeft: 4 }}>{t('usernameLabel')}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDarkMode ? '#0f172a' : '#f8fafc', borderRadius: 16, borderWidth: 1, borderColor: theme.border, paddingHorizontal: 16 }}>
+                            <WebIcon name="user" size={20} color={theme.textMuted} />
+                            <TextInput
+                                style={{ flex: 1, padding: 16, fontSize: 16, color: theme.text }}
+                                value={username}
+                                onChangeText={setUsername}
+                                autoCapitalize="none"
+                                placeholder="Contoh: 12345"
+                                placeholderTextColor={theme.textMuted}
+                            />
+                        </View>
+                    </View>
+
+                    <View style={{ marginBottom: 30 }}>
+                        <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.text, marginBottom: 8, marginLeft: 4 }}>{t('passwordLabel')}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDarkMode ? '#0f172a' : '#f8fafc', borderRadius: 16, borderWidth: 1, borderColor: theme.border, paddingHorizontal: 16 }}>
+                            <WebIcon name="lock" size={20} color={theme.textMuted} />
+                            <TextInput
+                                style={{ flex: 1, padding: 16, fontSize: 16, color: theme.text }}
+                                value={password}
+                                onChangeText={setPassword}
+                                placeholder="••••••••"
+                                placeholderTextColor={theme.textMuted}
+                                autoCapitalize="none"
+                                secureTextEntry={isSecureEntry}
+                                textContentType="password"
+                                autoComplete="password"
+                                autoCorrect={false}
+                                spellCheck={false}
+                                keyboardType="default"
+                            />
+                            <TouchableOpacity onPress={() => setIsSecureEntry(!isSecureEntry)} style={{ padding: 10 }}>
+                                <WebIcon name={isSecureEntry ? "eye" : "eye_off"} size={20} color={theme.textMuted} />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    <TouchableOpacity
+                        style={{ backgroundColor: theme.primary, padding: 20, borderRadius: 16, alignItems: 'center', shadowColor: theme.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 15, elevation: 5 }}
+                        onPress={handleLogin}
+                        disabled={loading}
+                    >
+                        {loading ? <ActivityIndicator color="white" /> : <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold' }}>{t('loginBtn')}</Text>}
+                    </TouchableOpacity>
+
+                    <View style={{ marginTop: 25, alignItems: 'center' }}>
+                        <Text style={{ color: theme.textMuted, fontSize: 13 }}>Lupa password? Hubungi Admin Sekolah</Text>
+                    </View>
                 </View>
             </View>
 
-            <View style={{ position: 'absolute', bottom: 30, alignItems: 'center' }}>
-                <Text style={{ color: theme.textMuted, opacity: 0.5, fontSize: 12, fontWeight: 'bold' }}>VERSION {CURRENT_APP_VERSION}</Text>
+            <View style={{ paddingBottom: 20, alignItems: 'center' }}>
+                <Text style={{ color: theme.textMuted, opacity: 0.8, fontSize: 12, fontWeight: 'bold' }}>© 2026 Gradasi Web</Text>
+                <Text style={{ color: theme.textMuted, opacity: 0.5, fontSize: 10, marginTop: 4 }}>VERSION {CURRENT_APP_VERSION}</Text>
             </View>
-        </View>
+        </KeyboardAvoidingView>
     );
 
     const renderDashboard = () => {
@@ -657,13 +725,21 @@ export default function App() {
                     <ScrollView
                         style={styles.scrollView}
                         bounces={true}
-                        stickyHeaderIndices={[1]}
                         refreshControl={
-                            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />
+                            <RefreshControl
+                                refreshing={refreshing}
+                                onRefresh={onRefresh}
+                                tintColor="#fff"
+                                title="Memuat ulang..."
+                                titleColor="#fff"
+                                colors={['#7c3aed', '#db2777']}
+                                progressBackgroundColor="#ffffff"
+                                progressViewOffset={60}
+                            />
                         }
                     >
                         {/* Header */}
-                        <View style={[styles.webHeader, { paddingTop: 60 }]}>
+                        <View style={styles.webHeader}>
                             <View style={styles.headerFlex}>
                                 <View style={{ flex: 1 }}>
                                     <Text style={styles.webHeaderTitle}>{t('dashboard')} {role === 'siswa' ? (language === 'id' ? 'Siswa' : 'Student') : (language === 'id' ? 'Guru' : 'Teacher')}</Text>
@@ -680,8 +756,8 @@ export default function App() {
                             </View>
                         </View>
 
-                        {/* Sticky Profile Card Container */}
-                        <View style={{ paddingHorizontal: 20, marginTop: -40, zIndex: 10, backgroundColor: theme.bg }}>
+                        {/* Floating Profile Card (Overlapping Header) */}
+                        <View style={{ paddingHorizontal: 20, marginTop: -25, zIndex: 10 }}>
                             <View style={styles.webProfileCard}>
                                 <TouchableOpacity
                                     style={[styles.avatarCircle, { overflow: 'hidden' }]}
@@ -791,6 +867,10 @@ export default function App() {
                                     <WebMenuItem iconName="book" iconColor="#e11d48" iconBg="#ffe4e6" title={t('jadwalPelajaran')} sub={t('lihatJadwal')} onPress={() => setCurrentView('jadwal')} theme={theme} isDarkMode={isDarkMode} />
                                     <WebMenuItem iconName="globe" iconColor="#0891b2" iconBg="#cffafe" title={t('elearning')} sub={t('aksesMateri')} onPress={() => setCurrentView('elearning')} theme={theme} isDarkMode={isDarkMode} />
                                 </View>
+                                <View style={styles.webRow}>
+                                    <WebMenuItem iconName="fileText" iconColor="#ec4899" iconBg="#fce7f3" title={t('perizinan')} sub={t('izinSakit')} onPress={() => setCurrentView('perizinan')} theme={theme} isDarkMode={isDarkMode} />
+                                    <WebMenuItem iconName="barChart" iconColor="#8b5cf6" iconBg="#ede9fe" title={t('nilai')} sub={t('raportAkademik')} onPress={() => setCurrentView('nilai')} theme={theme} isDarkMode={isDarkMode} />
+                                </View>
                             </View>
                         </View>
                     </ScrollView>
@@ -798,7 +878,7 @@ export default function App() {
                     {/* Bottom Nav */}
                     {renderBottomNav()}
                 </SafeAreaView>
-            </View>
+            </View >
         );
     };
 
@@ -909,55 +989,143 @@ export default function App() {
     };
 
     const renderElearning = () => {
+        // Filter Logic
+        const uniqueSubjects = ['Semua', ...new Set(learningMaterials.map(item => item.nama_mapel).filter(Boolean))];
+
+        const filteredMaterials = learningMaterials.filter(item => {
+            const matchesSearch = item.judul.toLowerCase().includes(elearningSearch.toLowerCase()) ||
+                (item.deskripsi && item.deskripsi.toLowerCase().includes(elearningSearch.toLowerCase()));
+            const matchesFilter = elearningFilter === 'Semua' || item.nama_mapel === elearningFilter;
+            return matchesSearch && matchesFilter;
+        });
+
         return (
-            <ScreenTemplate title={t('elearning')} subtitle={t('aksesMateri')} headerOverlap={false}>
-                <View style={{ marginTop: 20 }}>
-                    {learningMaterials.length === 0 ? (
-                        <View style={{ padding: 40, alignItems: 'center' }}>
-                            <WebIcon name="book" size={40} color={theme.textMuted} />
-                            <Text style={{ color: theme.textMuted, marginTop: 15 }}>Belum ada materi tersedia.</Text>
+            <View style={[styles.dashboardWrapper, { backgroundColor: theme.bg }]}>
+                {/* Fixed Header Manual */}
+                <View style={styles.webHeader}>
+                    <View style={styles.headerFlex}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.webHeaderTitle}>{t('elearning')}</Text>
+                            <Text style={styles.webHeaderSubtitle}>{t('aksesMateri')}</Text>
                         </View>
-                    ) : (
-                        learningMaterials.map((item) => (
-                            <View key={item.id} style={[styles.infoItemCard, { backgroundColor: theme.card, padding: 16, flexDirection: 'column', alignItems: 'flex-start' }]}>
-                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginBottom: 8 }}>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                        <View style={{ paddingHorizontal: 8, paddingVertical: 2, backgroundColor: '#e0e7ff', borderRadius: 4, marginRight: 8 }}>
-                                            <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#4338ca' }}>{(item.tipe_file || 'FILE').toUpperCase()}</Text>
-                                        </View>
-                                        <Text style={{ fontSize: 12, color: theme.textMuted }}>{new Date(item.created_at).toLocaleDateString()}</Text>
-                                    </View>
-                                </View>
-
-                                <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.text, marginBottom: 4 }}>{item.judul}</Text>
-                                <Text style={{ fontSize: 13, color: theme.textMuted, marginBottom: 12, lineHeight: 18 }}>{item.deskripsi || 'Tidak ada deskripsi'}</Text>
-
-                                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-                                    <WebIcon name="user" size={14} color={theme.textMuted} style={{ marginRight: 4 }} />
-                                    <Text style={{ fontSize: 12, color: theme.textMuted, marginRight: 12 }}>{item.nama_guru}</Text>
-                                    {item.nama_mapel && (
-                                        <>
-                                            <WebIcon name="book" size={14} color={theme.textMuted} style={{ marginRight: 4 }} />
-                                            <Text style={{ fontSize: 12, color: theme.textMuted }}>{item.nama_mapel}</Text>
-                                        </>
-                                    )}
-                                </View>
-
-                                <TouchableOpacity
-                                    style={{ width: '100%', padding: 12, backgroundColor: isDarkMode ? '#1e3a8a' : '#eff6ff', borderRadius: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}
-                                    onPress={() => {
-                                        const url = `${BASE_URL}/uploads/materi/${item.file_path}`;
-                                        Linking.openURL(url).catch(err => Alert.alert('Error', 'Gagal membuka link: ' + err));
-                                    }}
-                                >
-                                    <WebIcon name="download" size={16} color={isDarkMode ? '#93c5fd' : '#2563eb'} style={{ marginRight: 8 }} />
-                                    <Text style={{ color: isDarkMode ? '#93c5fd' : '#2563eb', fontWeight: 'bold' }}>Download Materi</Text>
-                                </TouchableOpacity>
-                            </View>
-                        ))
-                    )}
+                        <TouchableOpacity onPress={() => setCurrentView('dashboard')}>
+                            <WebIcon name="back" size={24} color="white" />
+                        </TouchableOpacity>
+                    </View>
                 </View>
-            </ScreenTemplate>
+
+                {/* Scrollable Content */}
+                <ScrollView style={styles.scrollView} bounces={true}>
+                    <View style={[styles.mainContent, { paddingBottom: 120, marginTop: 0 }]}>
+                        {/* Search Bar */}
+                        <View style={{ marginBottom: 15, marginTop: 10 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.card, borderRadius: 12, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.border }}>
+                                <WebIcon name="search" size={20} color={theme.textMuted} />
+                                <TextInput
+                                    style={{ flex: 1, padding: 12, color: theme.text, fontSize: 14 }}
+                                    placeholder={t('cariMateri')}
+                                    placeholderTextColor={theme.textMuted}
+                                    value={elearningSearch}
+                                    onChangeText={setElearningSearch}
+                                />
+                                {elearningSearch.length > 0 && (
+                                    <TouchableOpacity onPress={() => setElearningSearch('')}>
+                                        <WebIcon name="close" size={16} color={theme.textMuted} />
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+                        </View>
+
+                        {/* Filter Tags */}
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20 }}>
+                            {uniqueSubjects.map((subject, index) => (
+                                <TouchableOpacity
+                                    key={index}
+                                    style={{
+                                        paddingHorizontal: 16, paddingVertical: 8,
+                                        borderRadius: 20,
+                                        backgroundColor: elearningFilter === subject ? theme.primary : theme.card,
+                                        marginRight: 10,
+                                        borderWidth: 1,
+                                        borderColor: elearningFilter === subject ? theme.primary : theme.border
+                                    }}
+                                    onPress={() => setElearningFilter(subject)}
+                                >
+                                    <Text style={{ color: elearningFilter === subject ? 'white' : theme.text, fontWeight: '600', fontSize: 13 }}>{subject}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+
+                        {/* Results List */}
+                        <View>
+                            {filteredMaterials.length === 0 ? (
+                                <View style={{ padding: 40, alignItems: 'center' }}>
+                                    <WebIcon name="book" size={40} color={theme.textMuted} />
+                                    <Text style={{ color: theme.textMuted, marginTop: 15 }}>{t('tidakAdaMateri')}</Text>
+                                </View>
+                            ) : (
+                                filteredMaterials.map((item) => (
+                                    <View key={item.id} style={[styles.infoItemCard, { backgroundColor: theme.card, padding: 16, flexDirection: 'column', alignItems: 'flex-start' }]}>
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginBottom: 8 }}>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
+                                                <View style={{ paddingHorizontal: 8, paddingVertical: 2, backgroundColor: '#e0e7ff', borderRadius: 4, marginRight: 8, marginBottom: 4 }}>
+                                                    <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#4338ca' }}>{(item.tipe_file || 'FILE').toUpperCase()}</Text>
+                                                </View>
+                                                {item.nama_mapel && (
+                                                    <View style={{ paddingHorizontal: 8, paddingVertical: 2, backgroundColor: isDarkMode ? '#064e3b' : '#dcfce7', borderRadius: 4, marginRight: 8, marginBottom: 4 }}>
+                                                        <Text style={{ fontSize: 10, fontWeight: 'bold', color: isDarkMode ? '#86efac' : '#166534' }}>{item.nama_mapel.toUpperCase()}</Text>
+                                                    </View>
+                                                )}
+                                                <Text style={{ fontSize: 12, color: theme.textMuted, marginBottom: 4 }}>{new Date(item.created_at).toLocaleDateString()}</Text>
+                                            </View>
+                                        </View>
+
+                                        <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.text, marginBottom: 4 }}>{item.judul}</Text>
+                                        <Text style={{ fontSize: 13, color: theme.textMuted, marginBottom: 12, lineHeight: 18 }}>{item.deskripsi || 'Tidak ada deskripsi'}</Text>
+
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                                            <WebIcon name="user" size={14} color={theme.textMuted} style={{ marginRight: 4 }} />
+                                            <Text style={{ fontSize: 12, color: theme.textMuted, marginRight: 12 }}>{item.nama_guru}</Text>
+                                            {item.nama_mapel && (
+                                                <>
+                                                    <WebIcon name="book" size={14} color={theme.textMuted} style={{ marginRight: 4 }} />
+                                                    <Text style={{ fontSize: 12, color: theme.textMuted }}>{item.nama_mapel}</Text>
+                                                </>
+                                            )}
+                                        </View>
+
+                                        <View style={{ flexDirection: 'row', marginTop: 8 }}>
+                                            <TouchableOpacity
+                                                style={{ flex: 1, padding: 12, backgroundColor: theme.bg, borderWidth: 1, borderColor: theme.border, borderRadius: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', marginRight: 8 }}
+                                                onPress={() => {
+                                                    const url = `${BASE_URL}/uploads/materi/${item.file_path}`;
+                                                    Linking.openURL(url).catch(err => Alert.alert('Error', 'Gagal membuka: ' + err));
+                                                }}
+                                            >
+                                                <WebIcon name="eye" size={16} color={theme.text} style={{ marginRight: 8 }} />
+                                                <Text style={{ color: theme.text, fontWeight: '600' }}>{t('lihat')}</Text>
+                                            </TouchableOpacity>
+
+                                            <TouchableOpacity
+                                                style={{ flex: 1, padding: 12, backgroundColor: isDarkMode ? '#1e3a8a' : '#eff6ff', borderRadius: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}
+                                                onPress={() => {
+                                                    const url = `${BASE_URL}/uploads/materi/${item.file_path}`;
+                                                    Linking.openURL(url).catch(err => Alert.alert('Error', 'Gagal membuka: ' + err));
+                                                }}
+                                            >
+                                                <WebIcon name="download" size={16} color={isDarkMode ? '#93c5fd' : '#2563eb'} style={{ marginRight: 8 }} />
+                                                <Text style={{ color: isDarkMode ? '#93c5fd' : '#2563eb', fontWeight: 'bold' }}>{t('download')}</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                ))
+                            )}
+                        </View>
+                    </View>
+                </ScrollView>
+
+                {renderBottomNav()}
+            </View>
         );
     };
 
@@ -1080,12 +1248,8 @@ export default function App() {
                     </TouchableOpacity>
                 </View>
 
-                <View style={{ marginTop: 10, alignItems: 'center', paddingBottom: 20 }}>
-                    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDarkMode ? '#334155' : '#fee2e2', justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
-                        <WebIcon name="heart" size={20} color="#ef4444" />
-                    </View>
-                    <Text style={{ color: theme.textMuted, fontSize: 12, fontWeight: '700', letterSpacing: 1, opacity: 0.8 }}>MADE IN INDONESIA</Text>
-                    <Text style={{ color: theme.textMuted, fontSize: 10, marginTop: 4 }}>© 2026 Gradasi Web</Text>
+                <View style={{ marginTop: 10, alignItems: 'center', paddingBottom: 15 }}>
+                    <Text style={{ color: theme.textMuted, fontSize: 13, marginTop: 4 }}>© 2026 Gradasi Web</Text>
                 </View>
 
             </ScreenTemplate>
@@ -1362,6 +1526,8 @@ export default function App() {
             {currentView === 'pengumuman' && renderPlaceholder('Pengumuman')}
             {currentView === 'jadwal' && renderJadwal()}
             {currentView === 'elearning' && renderElearning()}
+            {currentView === 'perizinan' && renderPlaceholder('Perizinan')}
+            {currentView === 'nilai' && renderPlaceholder('Nilai Akademik')}
             {currentView === 'tentang' && renderTentangAplikasi()}
 
             {/* Global QR Modal */}
@@ -1442,7 +1608,7 @@ const styles = StyleSheet.create({
     mainContent: { paddingHorizontal: 20, marginTop: -40 },
 
     // Web Style Header
-    webHeader: { backgroundColor: '#7c3aed', paddingBottom: 60, paddingTop: 60, paddingHorizontal: 20 },
+    webHeader: { backgroundColor: '#7c3aed', paddingBottom: 30, paddingTop: 50, paddingHorizontal: 20 },
     headerFlex: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     webHeaderTitle: { color: 'white', fontSize: 22, fontWeight: 'bold' },
     webHeaderSubtitle: { color: '#ddd6fe', fontSize: 14, marginTop: 4 },
