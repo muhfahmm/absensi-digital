@@ -242,6 +242,7 @@ export default function App() {
     const [language, setLanguage] = useState('id'); // 'id' or 'en'
     const [profileModalVisible, setProfileModalVisible] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+    const [menuModalVisible, setMenuModalVisible] = useState(false);
 
     // Konfigurasi Versi Aplikasi
     const CURRENT_APP_VERSION = "1.0.0";
@@ -957,6 +958,15 @@ export default function App() {
                     </Text>
                 </TouchableOpacity>
 
+                {/* Detail Lengkap Button */}
+                <TouchableOpacity
+                    style={[styles.logoutBtnFull, { backgroundColor: theme.card, marginBottom: 15, shadowColor: 'transparent', borderWidth: 1, borderColor: isDarkMode ? '#334155' : '#e2e8f0' }]}
+                    onPress={() => setMenuModalVisible(true)}
+                >
+                    <WebIcon name="fileText" size={20} color={theme.text} style={{ marginRight: 10 }} />
+                    <Text style={[styles.logoutBtnText, { color: theme.text }]}>Detail Lengkap</Text>
+                </TouchableOpacity>
+
                 {/* Scanner Button for Guru */}
                 {
                     role === 'guru' && (
@@ -1583,6 +1593,64 @@ export default function App() {
                     <Text style={{ color: '#94a3b8', fontSize: 16, marginTop: 5 }}>{userData?.user?.nama_kelas || (userData?.role === 'guru' ? 'Guru' : 'Siswa')}</Text>
                 </View>
             </Modal>
+            {/* Menu Modal - Detail Lengkap */}
+            <Modal visible={menuModalVisible} transparent animationType="slide">
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+                    <TouchableOpacity style={{ flex: 1 }} onPress={() => setMenuModalVisible(false)} />
+                    <View style={{
+                        backgroundColor: theme.card,
+                        borderTopLeftRadius: 30,
+                        borderTopRightRadius: 30,
+                        padding: 30,
+                        paddingBottom: 50,
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: -10 },
+                        shadowOpacity: 0.1,
+                        shadowRadius: 20,
+                        elevation: 20
+                    }}>
+                        <View style={{ alignSelf: 'center', width: 50, height: 6, borderRadius: 3, backgroundColor: theme.border, marginBottom: 25 }} />
+
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 25 }}>
+                            <WebIcon name="fileText" size={28} color={theme.primary} style={{ marginRight: 15 }} />
+                            <Text style={{ fontSize: 24, fontWeight: 'bold', color: theme.text }}>Menu Lengkap</Text>
+                        </View>
+
+                        {[
+                            { label: 'Biodata Lengkap', desc: 'Lihat data diri secara penuh', icon: 'fileText', color: '#3b82f6' },
+                            { label: 'Edit Profil', desc: 'Perbarui nama & foto profil', icon: 'user', color: '#8b5cf6' },
+                            { label: 'Ganti Password', desc: 'Amankan akun anda', icon: 'lock', color: '#f59e0b' },
+                            { label: 'Pusat Bantuan', desc: 'Laporkan masalah & FAQ', icon: 'info', color: '#10b981' },
+                        ].map((m, i) => (
+                            <TouchableOpacity
+                                key={i}
+                                style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#334155' : '#f1f5f9' }}
+                                onPress={() => {
+                                    setMenuModalVisible(false);
+                                    Alert.alert(m.label, "Fitur ini akan segera hadir.");
+                                }}
+                            >
+                                <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: isDarkMode ? m.color + '20' : m.color + '15', justifyContent: 'center', alignItems: 'center', marginRight: 16 }}>
+                                    <WebIcon name={m.icon} size={22} color={m.color} />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.text }}>{m.label}</Text>
+                                    <Text style={{ fontSize: 13, color: theme.textMuted }}>{m.desc}</Text>
+                                </View>
+                                <WebIcon name="back" size={18} color={theme.textMuted} style={{ transform: [{ rotate: '180deg' }] }} />
+                            </TouchableOpacity>
+                        ))}
+
+                        <TouchableOpacity
+                            style={{ marginTop: 25, backgroundColor: isDarkMode ? '#334155' : '#f1f5f9', padding: 18, borderRadius: 16, alignItems: 'center' }}
+                            onPress={() => setMenuModalVisible(false)}
+                        >
+                            <Text style={{ fontWeight: 'bold', color: theme.text }}>Tutup Menu</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
         </SafeAreaView>
     );
 }
