@@ -20,7 +20,7 @@ if (!$data) redirect('app/pages/admin/guru/index.php?view=mapel');
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $nama_mapel = htmlspecialchars($_POST['nama_mapel']);
+    $nama_mapel = $_POST['nama_mapel'];
     
     try {
         $stmt = $pdo->prepare("UPDATE tb_mata_pelajaran SET nama_mapel = :nama WHERE id = :id");

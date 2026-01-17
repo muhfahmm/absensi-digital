@@ -1,5 +1,5 @@
 <?php
-// app/pages/admin/guru/create_admin.php
+// app/pages/admin/admin/create.php
 session_start();
 require_once '../../../functions/helpers.php';
 require_once '../../../functions/auth.php';
@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             ':foto' => $foto_name
         ]);
         
-        echo "<script>alert('Admin Berhasil Ditambahkan!'); window.location.href='index.php?view=admin';</script>";
+        echo "<script>alert('Admin Berhasil Ditambahkan!'); window.location.href='index.php';</script>";
         exit;
 
     } catch (PDOException $e) {
@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     </div>
 
                     <div class="flex justify-end space-x-3">
-                        <a href="index.php?view=admin" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">Batal</a>
+                        <a href="index.php" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">Batal</a>
                         <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition shadow-md">Simpan Admin</button>
                     </div>
                 </form>

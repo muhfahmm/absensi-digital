@@ -11,7 +11,7 @@ check_login('admin');
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $nama_mapel = htmlspecialchars($_POST['nama_mapel']);
+    $nama_mapel = $_POST['nama_mapel'];
     
     try {
         $stmt = $pdo->prepare("INSERT INTO tb_mata_pelajaran (nama_mapel) VALUES (:nama)");

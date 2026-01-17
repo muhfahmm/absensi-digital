@@ -24,6 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $nip = htmlspecialchars($_POST['nip']);
     $nama = htmlspecialchars($_POST['nama_lengkap']);
     $id_kelas_wali = !empty($_POST['id_kelas_wali']) ? $_POST['id_kelas_wali'] : null;
+    $guru_mapel_id = !empty($_POST['guru_mapel_id']) ? $_POST['guru_mapel_id'] : null;
     
     // Password (Update jika diisi saja)
     $password_query = "";
@@ -31,6 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         ':nip' => $nip, 
         ':nama' => $nama,
         ':wali' => $id_kelas_wali,
+        ':mapel' => $guru_mapel_id,
         ':id' => $id
     ];
 
@@ -64,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     try {
-        $sql = "UPDATE tb_guru SET nip = :nip, nama_lengkap = :nama, id_kelas_wali = :wali $password_query $foto_query WHERE id = :id";
+        $sql = "UPDATE tb_guru SET nip = :nip, nama_lengkap = :nama, id_kelas_wali = :wali, guru_mapel_id = :mapel $password_query $foto_query WHERE id = :id";
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         
@@ -195,6 +197,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         </select>
                         <p class="text-xs text-gray-500 mt-1">Pilih kelas jika guru ini adalah wali kelas.</p>
                     </div>  
+
+                    <!-- Input Mata Pelajaran (Optional) -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Mata Pelajaran Diampu (Opsional)</label>
+                        <select name="guru_mapel_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">-- Tidak Mengampu Mapel --</option>
+                            <?php 
+                            $stmt_mapel = $pdo->query("SELECT * FROM tb_mata_pelajaran ORDER BY nama_mapel ASC");
+                            while($mapel = $stmt_mapel->fetch()): 
+                                $selected_mapel = ($data['guru_mapel_id'] == $mapel['id']) ? 'selected' : '';
+                            ?>
+                                <option value="<?= $mapel['id'] ?>" <?= $selected_mapel ?>><?= $mapel['nama_mapel'] ?></option>
+                            <?php endwhile; ?>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1">Pilih mata pelajaran yang diajar oleh guru ini.</p>
+                    </div>
 
                     <div class="flex items-center space-x-2 bg-indigo-50 p-3 rounded-lg border border-indigo-100">
                         <?php

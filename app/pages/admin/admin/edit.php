@@ -1,5 +1,5 @@
 <?php
-// app/pages/admin/guru/edit_admin.php
+// app/pages/admin/admin/edit.php
 session_start();
 require_once '../../../functions/helpers.php';
 require_once '../../../functions/auth.php';
@@ -9,14 +9,14 @@ require_once '../../../layouts/header.php';
 check_login('admin');
 
 $id = $_GET['id'] ?? null;
-if (!$id) redirect('app/pages/admin/guru/index.php?view=admin');
+if (!$id) redirect('app/pages/admin/admin/index.php');
 
 // Fetch Admin
 $stmt = $pdo->prepare("SELECT * FROM tb_admin WHERE id = ?");
 $stmt->execute([$id]);
 $data = $stmt->fetch();
 
-if (!$data) redirect('app/pages/admin/guru/index.php?view=admin');
+if (!$data) redirect('app/pages/admin/admin/index.php');
 
 $error = '';
 
@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         
-        echo "<script>alert('Data Admin Berhasil Diupdate!'); window.location.href='index.php?view=admin';</script>";
+        echo "<script>alert('Data Admin Berhasil Diupdate!'); window.location.href='index.php';</script>";
         exit;
 
     } catch (PDOException $e) {
@@ -125,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     </div>
 
                     <div class="flex justify-end space-x-3">
-                        <a href="index.php?view=admin" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">Batal</a>
+                        <a href="index.php" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">Batal</a>
                         <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md">Update Admin</button>
                     </div>
                 </form>
