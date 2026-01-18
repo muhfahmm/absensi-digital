@@ -307,6 +307,43 @@ export default function App() {
     const [showPaymentMethodModal, setShowPaymentMethodModal] = useState(false);
     const [selectedTagihan, setSelectedTagihan] = useState(null);
 
+    // --- CUSTOM ALERT STATE ---
+    const [alertConfig, setAlertConfig] = useState({
+        visible: false,
+        title: '',
+        message: '',
+        buttons: [], // [{ text: 'OK', onPress: () => {}, style: 'cancel' | 'default' | 'destructive' }]
+        type: 'info' // 'success', 'error', 'info', 'warning'
+    });
+
+    const showCustomAlert = (title, message, buttons = [], type = 'info') => {
+        // If no buttons provided, default to OK
+        if (!buttons || buttons.length === 0) {
+            buttons = [{ text: 'OK', onPress: () => closeCustomAlert() }];
+        }
+
+        // Wrap onPress to close modal
+        const wrappedButtons = buttons.map(btn => ({
+            ...btn,
+            onPress: () => {
+                closeCustomAlert();
+                if (btn.onPress) btn.onPress();
+            }
+        }));
+
+        setAlertConfig({
+            visible: true,
+            title,
+            message,
+            buttons: wrappedButtons,
+            type
+        });
+    };
+
+    const closeCustomAlert = () => {
+        setAlertConfig(prev => ({ ...prev, visible: false }));
+    };
+
     // Animation for Payment Modal
     const panY = React.useRef(new Animated.Value(0)).current;
 
@@ -424,7 +461,7 @@ export default function App() {
             });
             const result = await response.json();
 
-            Alert.alert(
+            showCustomAlert(
                 result.success ? "Berhasil" : "Gagal",
                 result.message,
                 [{
@@ -435,10 +472,11 @@ export default function App() {
                             fetchSaldo();
                         }
                     }
-                }]
+                }],
+                result.success ? 'success' : 'error'
             );
         } catch (error) {
-            Alert.alert("Error", "Gagal menghubungi server");
+            showCustomAlert("Error", "Gagal menghubungi server", [], 'error');
         } finally {
             setIsSppLoading(false);
         }
@@ -464,10 +502,10 @@ export default function App() {
                 setCurrentOrderId(result.order_id);
                 setShowPaymentModal(true);
             } else {
-                Alert.alert("Error", result.message || "Gagal membuat transaksi SPP");
+                showCustomAlert("Error", result.message || "Gagal membuat transaksi SPP", [], 'error');
             }
         } catch (e) {
-            Alert.alert("Error", "Gagal menghubungi server pembayaran");
+            showCustomAlert("Error", "Gagal menghubungi server pembayaran", [], 'error');
         }
     };
 
@@ -477,10 +515,11 @@ export default function App() {
             const response = await fetch(`${BASE_URL}/app/api/app_info.php`);
             const result = await response.json();
             if (result.success && result.version !== CURRENT_APP_VERSION) {
-                Alert.alert(
+                showCustomAlert(
                     "Update Tersedia",
                     "Versi aplikasi telah diperbarui. Silakan login kembali untuk menikmati fitur terbaru.",
-                    [{ text: "OK", onPress: () => handleLogout() }]
+                    [{ text: "OK", onPress: () => handleLogout() }],
+                    'info'
                 );
             }
         } catch (error) {
@@ -722,7 +761,7 @@ export default function App() {
             if (result.success) {
                 setClassMonitoring(result);
             } else {
-                Alert.alert("Akses Ditolak", result.message);
+                showCustomAlert("Akses Ditolak", result.message, [], 'error');
                 setCurrentView('dashboard');
             }
         } catch (error) {
@@ -784,7 +823,7 @@ export default function App() {
 
     const handleTopUp = async () => {
         if (!topUpAmount || isNaN(topUpAmount) || parseInt(topUpAmount) < 10000) {
-            Alert.alert("Invalid Amount", "Minimal Top Up adalah Rp 10.000");
+            showCustomAlert("Invalid Amount", "Minimal Top Up adalah Rp 10.000", [], 'warning');
             return;
         }
         setShowTopUpModal(false);
@@ -806,10 +845,10 @@ export default function App() {
                 setCurrentOrderId(result.order_id); // Save Order ID
                 setShowPaymentModal(true);
             } else {
-                Alert.alert("Error", result.message || "Gagal membuat transaksi");
+                showCustomAlert("Error", result.message || "Gagal membuat transaksi", [], 'error');
             }
         } catch (e) {
-            Alert.alert("Error", "Gagal menghubungi server pembayaran");
+            showCustomAlert("Error", "Gagal menghubungi server pembayaran", [], 'error');
         }
     };
 
@@ -835,7 +874,7 @@ export default function App() {
 
     const handleLogin = async () => {
         if (!username || !password) {
-            Alert.alert('Error', 'Mohon isi username dan password');
+            showCustomAlert('Error', 'Mohon isi username dan password', [], 'warning');
             return;
         }
 
@@ -854,10 +893,10 @@ export default function App() {
                 setCurrentView('dashboard');
                 setPassword('');
             } else {
-                Alert.alert('Login Gagal', data.message || 'Periksa kembali data anda');
+                showCustomAlert('Login Gagal', data.message || 'Periksa kembali data anda', [], 'error');
             }
         } catch (error) {
-            Alert.alert('Error', 'Gagal menghubungkan ke server. Pastikan IP Address benar dan HP terhubung ke WiFi yang sama.');
+            showCustomAlert('Error', 'Gagal menghubungkan ke server. Pastikan IP Address benar dan HP terhubung ke WiFi yang sama.', [], 'error');
         } finally {
             setLoading(false);
         }
@@ -899,16 +938,17 @@ export default function App() {
                     }));
                 }
 
-                Alert.alert(
+                showCustomAlert(
                     "✅ " + (isPulang ? "Presensi Pulang!" : "Presensi Masuk!"),
                     `${result.data.nama}\nStatus: ${statusLabel}\nJam: ${timeLabel}`,
-                    [{ text: "OK", onPress: () => setScanned(false) }]
+                    [{ text: "OK", onPress: () => setScanned(false) }],
+                    'success'
                 );
             } else {
-                Alert.alert("❌ Gagal", result.message || "QR Code tidak valid", [{ text: "Scan Lagi", onPress: () => setScanned(false) }]);
+                showCustomAlert("❌ Gagal", result.message || "QR Code tidak valid", [{ text: "Scan Lagi", onPress: () => setScanned(false) }], 'error');
             }
         } catch (error) {
-            Alert.alert("Error", "Gagal memproses data", [{ text: "OK", onPress: () => setScanned(false) }]);
+            showCustomAlert("Error", "Gagal memproses data", [{ text: "OK", onPress: () => setScanned(false) }], 'error');
         }
     };
 
@@ -1140,7 +1180,7 @@ export default function App() {
                                             source={{ uri: `${BASE_URL}/uploads/${role}/${encodeURIComponent(user.foto_profil)}` }}
                                             style={styles.avatarImg}
                                             resizeMode="cover"
-                                            onError={(e) => Alert.alert("Image Error", `Gagal memuat foto:\n${BASE_URL}/uploads/${role}/${user.foto_profil}\nError: ${e.nativeEvent.error}`)}
+                                            onError={(e) => console.log("Image load error")}
                                         />
                                     ) : (
                                         <WebIcon name="user" size={32} color="white" />
@@ -1293,7 +1333,7 @@ export default function App() {
                                 source={{ uri: `${BASE_URL}/uploads/${role}/${encodeURIComponent(user.foto_profil)}` }}
                                 style={styles.avatarImgLarge}
                                 resizeMode="cover"
-                                onError={(e) => Alert.alert("Image Error", `Gagal memuat foto profil:\n${BASE_URL}/uploads/${role}/${user.foto_profil}`)}
+                                onError={(e) => console.log('Profile image error')}
                             />
                         ) : (
                             <WebIcon name="user" size={80} color={isDarkMode ? theme.textMuted : "#cbd5e1"} />
@@ -1551,7 +1591,7 @@ export default function App() {
                                                 style={{ flex: 1, padding: 12, backgroundColor: theme.bg, borderWidth: 1, borderColor: theme.border, borderRadius: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', marginRight: 8 }}
                                                 onPress={() => {
                                                     const url = `${BASE_URL}/uploads/materi/${item.file_path}`;
-                                                    Linking.openURL(url).catch(err => Alert.alert('Error', 'Gagal membuka: ' + err));
+                                                    Linking.openURL(url).catch(err => showCustomAlert('Error', 'Gagal membuka: ' + err, [], 'error'));
                                                 }}
                                             >
                                                 <WebIcon name="eye" size={16} color={theme.text} style={{ marginRight: 8 }} />
@@ -1562,7 +1602,7 @@ export default function App() {
                                                 style={{ flex: 1, padding: 12, backgroundColor: isDarkMode ? '#1e3a8a' : '#eff6ff', borderRadius: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}
                                                 onPress={() => {
                                                     const url = `${BASE_URL}/uploads/materi/${item.file_path}`;
-                                                    Linking.openURL(url).catch(err => Alert.alert('Error', 'Gagal membuka: ' + err));
+                                                    Linking.openURL(url).catch(err => showCustomAlert('Error', 'Gagal membuka: ' + err, [], 'error'));
                                                 }}
                                             >
                                                 <WebIcon name="download" size={16} color={isDarkMode ? '#93c5fd' : '#2563eb'} style={{ marginRight: 8 }} />
@@ -2831,7 +2871,7 @@ export default function App() {
                                 style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#334155' : '#f1f5f9' }}
                                 onPress={() => {
                                     setMenuModalVisible(false);
-                                    Alert.alert(m.label, "Fitur ini akan segera hadir.");
+                                    showCustomAlert(m.label, "Fitur ini akan segera hadir.", [], 'info');
                                 }}
                             >
                                 <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: isDarkMode ? m.color + '20' : m.color + '15', justifyContent: 'center', alignItems: 'center', marginRight: 16 }}>
@@ -2976,7 +3016,7 @@ export default function App() {
                                             const checkResp = await fetch(`${BASE_URL}/app/api/payment/check_status.php?order_id=${currentOrderId}`);
                                             const checkResult = await checkResp.json();
                                             if (checkResult.status === 'success') {
-                                                Alert.alert('Berhasil', 'Pembayaran berhasil dikonfirmasi!');
+                                                showCustomAlert('Berhasil', 'Pembayaran berhasil dikonfirmasi!', [], 'success');
                                             }
                                         }
                                     } catch (e) {
@@ -2989,6 +3029,63 @@ export default function App() {
                         />
                     )}
                 </SafeAreaView>
+            </Modal>
+
+            {/* --- GLOBAL CUSTOM ALERT MODAL --- */}
+            <Modal
+                visible={alertConfig.visible}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={closeCustomAlert}
+            >
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+                    <View style={{ backgroundColor: theme.card, borderRadius: 24, padding: 24, width: '100%', maxWidth: 340, alignItems: 'center', shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.25, shadowRadius: 10, elevation: 10 }}>
+
+                        {/* Icon Based on Type */}
+                        <View style={{
+                            width: 72, height: 72, borderRadius: 36,
+                            backgroundColor: alertConfig.type === 'success' ? '#dcfce7' : (alertConfig.type === 'error' ? '#fee2e2' : (alertConfig.type === 'warning' ? '#fef9c3' : '#e0e7ff')),
+                            justifyContent: 'center', alignItems: 'center', marginBottom: 20
+                        }}>
+                            <WebIcon
+                                name={alertConfig.type === 'success' ? 'check' : (alertConfig.type === 'error' ? 'close' : (alertConfig.type === 'warning' ? 'tag' : 'info'))}
+                                size={32}
+                                color={alertConfig.type === 'success' ? '#16a34a' : (alertConfig.type === 'error' ? '#ef4444' : (alertConfig.type === 'warning' ? '#ca8a04' : '#4f46e5'))}
+                            />
+                        </View>
+
+                        <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.text, textAlign: 'center', marginBottom: 12 }}>
+                            {alertConfig.title}
+                        </Text>
+
+                        <Text style={{ fontSize: 15, color: theme.textMuted, textAlign: 'center', lineHeight: 22, marginBottom: 28 }}>
+                            {alertConfig.message}
+                        </Text>
+
+                        <View style={{ flexDirection: 'row', justifyContent: 'center', width: '100%', gap: 12 }}>
+                            {alertConfig.buttons.map((btn, index) => (
+                                <TouchableOpacity
+                                    key={index}
+                                    style={{
+                                        flex: 1,
+                                        backgroundColor: btn.style === 'cancel' ? (isDarkMode ? '#334155' : '#f1f5f9') : theme.primary,
+                                        paddingVertical: 14,
+                                        borderRadius: 14,
+                                        alignItems: 'center'
+                                    }}
+                                    onPress={() => {
+                                        closeCustomAlert();
+                                        if (btn.onPress) btn.onPress();
+                                    }}
+                                >
+                                    <Text style={{ color: btn.style === 'cancel' ? theme.text : 'white', fontWeight: 'bold', fontSize: 16 }}>
+                                        {btn.text}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </View>
+                </View>
             </Modal>
         </SafeAreaView >
     );

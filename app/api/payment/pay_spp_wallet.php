@@ -1,7 +1,7 @@
 <?php
 // app/api/payment/pay_spp_wallet.php
 header('Content-Type: application/json');
-require_once '../../../config/database.php';
+require_once '../../config/database.php';
 
 // Get JSON Input
 $input = json_decode(file_get_contents('php://input'), true);
