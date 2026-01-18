@@ -1,24 +1,20 @@
 <?php
 // app/layouts/sidebar.php
-// Pastikan session sudah start di header atau file induk
 
 // Helper untuk mengecek active menu
 $current_uri = $_SERVER['REQUEST_URI'];
 
 function is_active($keyword) {
     global $current_uri;
-    // Cek apakah keyword ada di URL saat ini
     if (strpos($current_uri, $keyword) !== false) {
-        // Class untuk menu aktif: Background Indigo, Text Putih, Shadow
         return 'bg-indigo-600 text-white shadow-md'; 
     }
-    // Class untuk menu tidak aktif: Text Gray, Hover Effect
     return 'text-gray-700 hover:bg-indigo-50 hover:text-indigo-600';
 }
 ?>
 <aside class="w-64 bg-white border-r border-gray-200 min-h-screen hidden md:block">
     <div class="p-6">
-        <h2 class="text-2xl font-bold text-indigo-600">Absensi<span class="text-gray-800">App</span></h2>
+        <h2 class="text-3xl font-bold text-indigo-600">Absensi<span class="text-gray-800">App</span></h2>
     </div>
     
     <nav class="mt-4">
@@ -79,6 +75,24 @@ function is_active($keyword) {
                 </a>
             </li>
 
+            <!-- Manajemen Nilai -->
+             <li>
+                <a href="<?= base_url('app/pages/admin/nilai/index.php') ?>" class="flex items-center px-6 py-3 transition rounded-r-full mr-2 <?= is_active('/admin/nilai/') ?>">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    Manajemen Nilai
+                </a>
+            </li>
+
+
+            
+            <!-- Pengumuman -->
+             <li>
+                <a href="<?= base_url('app/pages/admin/pengumuman/index.php') ?>" class="flex items-center px-6 py-3 transition rounded-r-full mr-2 <?= is_active('/admin/pengumuman/') ?>">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
+                    Pengumuman
+                </a>
+            </li>
+
             <!-- Scanner QR -->
             <li>
                 <a href="<?= base_url('app/pages/admin/scanner/index.php') ?>" class="flex items-center px-6 py-3 transition rounded-r-full mr-2 <?= is_active('/admin/scanner/') ?>">
@@ -88,7 +102,7 @@ function is_active($keyword) {
             </li>
             
             <li>
-                <a href="<?= base_url('app/pages/auth/logout.php') ?>" class="flex items-center px-6 py-3 text-red-600 hover:bg-red-50 hover:text-red-700 transition">
+                <a href="<?= base_url('app/pages/auth/logout.php?role=admin') ?>" class="flex items-center px-6 py-3 text-red-600 hover:bg-red-50 hover:text-red-700 transition">
                     <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                     Logout
                 </a>

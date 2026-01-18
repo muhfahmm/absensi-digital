@@ -4,7 +4,7 @@ session_start();
 require_once '../../../config/database.php';
 require_once '../../../functions/helpers.php'; // For redirect() if exists, or use header
 
-if (!isset($_SESSION['logged_in']) || $_SESSION['role'] !== 'admin') {
+if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
     header("Location: ../../auth/login.php");
     exit;
 }

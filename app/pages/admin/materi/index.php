@@ -15,8 +15,8 @@ $all_guru = $stmtGuru->fetchAll();
 // 2. Fetch Materials with Filtering
 // 1. Determine User Role (Teacher or Admin)
 // 1. Determine User Role & ID
-$current_user_id = $_SESSION['user_id'] ?? 0;
-$user_role = $_SESSION['role'] ?? ''; // 'admin' usually
+$current_user_id = $_SESSION['admin_id'] ?? 0;
+$user_role = $_SESSION['admin_role'] ?? ''; // 'admin' usually
 
 // Logic: 
 // - If Role is 'admin' -> Show ALL materials (Allow filtering).
@@ -24,6 +24,11 @@ $user_role = $_SESSION['role'] ?? ''; // 'admin' usually
 
 $is_admin = ($user_role === 'admin');
 $params = [];
+
+// Get the guru_id of the current admin if they are a teacher
+$stmtMe = $pdo->prepare("SELECT g.id FROM tb_admin a JOIN tb_guru g ON a.nuptk = g.nuptk WHERE a.id = ?");
+$stmtMe->execute([$_SESSION['admin_id']]);
+$my_guru_id = $stmtMe->fetchColumn();
 
 $sql = "
     SELECT m.*, g.nama_lengkap as nama_guru, mp.nama_mapel, k.nama_kelas 
@@ -33,17 +38,20 @@ $sql = "
     LEFT JOIN tb_kelas k ON m.id_kelas = k.id
 ";
 
-if ($is_admin) {
-    // Admin Mode: Allow Filter
-    $filter_guru = $_GET['guru'] ?? '';
-    if ($filter_guru) {
-        $sql .= " WHERE m.id_guru = ?";
-        $params[] = $filter_guru;
-    }
+// Admin Mode: Allow Filter
+$filter_guru = $_GET['guru'] ?? '';
+
+// If NO filter is selected, and current user is a teacher-admin (not master admin), default to self.
+if (!$filter_guru && $my_guru_id && $_SESSION['admin_id'] != 13) {
+    $filter_guru = $my_guru_id;
+}
+
+if ($filter_guru) {
+    // If a filter is applied, show materials from that guru OR any shared materials
+    $sql .= " WHERE (m.id_guru = ? OR m.id_kelas IS NULL)";
+    $params[] = $filter_guru;
 } else {
-    // Guru Mode: Strict Privacy
-    $sql .= " WHERE m.id_guru = ?";
-    $params[] = $current_user_id;
+    // If no filter (Master Admin view), show everything (already base SQL)
 }
 
 $sql .= " ORDER BY m.created_at DESC";
@@ -53,9 +61,44 @@ $stmt->execute($params);
 $materials = $stmt->fetchAll();
 
 // --- Header Profile Logic ---
-$admin_name = $_SESSION['nama'] ?? 'Admin';
-$nama_peran = 'Admin Global';
+$admin_id = $_SESSION['admin_id'] ?? null;
+$admin_name = $_SESSION['admin_nama'] ?? 'Admin';
+$kelas_id = $_SESSION['admin_kelas_id'] ?? null;
 $initial = substr($admin_name, 0, 1);
+$nama_peran = 'Admin Global';
+
+if ($admin_id) {
+    $stmtPeran = $pdo->prepare("
+        SELECT m.nama_mapel, k.nama_kelas
+        FROM tb_admin a 
+        LEFT JOIN tb_guru g ON a.nuptk = g.nuptk
+        LEFT JOIN tb_mata_pelajaran m ON g.guru_mapel_id = m.id 
+        LEFT JOIN tb_kelas k ON g.id_kelas_wali = k.id
+        WHERE a.id = ?
+    ");
+    $stmtPeran->execute([$admin_id]);
+    $peran = $stmtPeran->fetch();
+    
+    $roles = [];
+    if ($peran) {
+        if (!empty($peran['nama_mapel'])) {
+            $roles[] = "Guru " . $peran['nama_mapel'];
+        }
+        if (!empty($peran['nama_kelas'])) {
+            $roles[] = "Wali Kelas " . $peran['nama_kelas'];
+        } elseif ($kelas_id) {
+            $stmtK = $pdo->prepare("SELECT nama_kelas FROM tb_kelas WHERE id = ?");
+            $stmtK->execute([$kelas_id]);
+            $k = $stmtK->fetch();
+            if ($k) {
+                $roles[] = "Wali Kelas " . $k['nama_kelas'];
+            }
+        }
+    }
+    if (!empty($roles)) {
+        $nama_peran = "Admin Global (" . implode(" & ", $roles) . ")";
+    }
+}
 ?>
 
 <div class="flex h-screen bg-gray-50">
@@ -68,6 +111,7 @@ $initial = substr($admin_name, 0, 1);
                 <div class="text-right">
                     <p class="text-sm font-bold text-gray-800"><?= $admin_name ?></p>
                     <p class="text-xs text-indigo-500 font-medium bg-indigo-50 px-2 py-0.5 rounded-full inline-block mt-1">
+                        <svg class="w-3 h-3 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
                         <?= $nama_peran ?>
                     </p>
                 </div>
@@ -119,10 +163,14 @@ $initial = substr($admin_name, 0, 1);
                                 <h3 class="text-lg font-bold text-gray-800 mb-1 leading-tight"><?= htmlspecialchars($m['judul']) ?></h3>
                                 <p class="text-sm text-gray-600 mb-4 line-clamp-2"><?= htmlspecialchars($m['deskripsi']) ?></p>
                                 
-                                <div class="flex items-center mb-4 text-xs text-gray-500 space-x-4">
+                                <div class="flex flex-wrap items-center mb-4 text-xs text-gray-500 gap-x-4 gap-y-2">
                                     <div class="flex items-center">
                                         <svg class="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                                         <?= $m['nama_guru'] ?>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <svg class="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                                        <?= $m['nama_mapel'] ?? 'Umum' ?>
                                     </div>
                                     <?php if($m['nama_kelas']): ?>
                                     <div class="flex items-center">

@@ -12,8 +12,8 @@ check_login('admin');
 $stmt = $pdo->query("SELECT g.*, k.nama_kelas as kelas_wali FROM tb_guru g LEFT JOIN tb_kelas k ON g.id_kelas_wali = k.id ORDER BY g.created_at DESC");
 $guru = $stmt->fetchAll();
 // --- Header Profile Logic ---
-$admin_id = $_SESSION['user_id'] ?? null;
-$admin_name = $_SESSION['nama'] ?? 'Admin';
+$admin_id = $_SESSION['admin_id'] ?? null;
+$admin_name = $_SESSION['admin_nama'] ?? 'Admin';
 $nama_peran = 'Admin Global';
 $initial = substr($admin_name, 0, 1);
 
@@ -25,9 +25,9 @@ if ($admin_id) {
     $roles = [];
     if (!empty($peran['nama_mapel'])) $roles[] = "Guru " . $peran['nama_mapel'];
     if (!empty($peran['nama_kelas'])) $roles[] = "Wali Kelas " . $peran['nama_kelas'];
-    elseif (isset($_SESSION['kelas_id']) && $_SESSION['kelas_id']) {
+    elseif (isset($_SESSION['admin_kelas_id']) && $_SESSION['admin_kelas_id']) {
         $stmtKelas = $pdo->prepare("SELECT nama_kelas FROM tb_kelas WHERE id = ?");
-        $stmtKelas->execute([$_SESSION['kelas_id']]);
+        $stmtKelas->execute([$_SESSION['admin_kelas_id']]);
         if ($k = $stmtKelas->fetch()) $roles[] = "Wali Kelas " . $k['nama_kelas'];
     }
     if (!empty($roles)) $nama_peran = "Admin Global (" . implode(" & ", $roles) . ")";

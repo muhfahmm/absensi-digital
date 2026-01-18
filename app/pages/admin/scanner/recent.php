@@ -8,18 +8,18 @@ require_once '../../../config/database.php';
 header('Content-Type: application/json');
 
 // Check if admin is logged in
-if (!isset($_SESSION['logged_in']) || $_SESSION['role'] !== 'admin') {
+if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
     echo json_encode(['masuk' => [], 'pulang' => []]);
     exit;
 }
 
 // Check if Admin is Wali Kelas
-$admin_id = $_SESSION['user_id'];
+$admin_id = $_SESSION['admin_id'];
 $kelas_id = null;
 
 // Use session cache if available, otherwise check DB
-if (isset($_SESSION['kelas_id'])) {
-    $kelas_id = $_SESSION['kelas_id'];
+if (isset($_SESSION['admin_kelas_id'])) {
+    $kelas_id = $_SESSION['admin_kelas_id'];
 } else {
     // Check DB
     $stmtCheck = $pdo->prepare("SELECT g.id_kelas_wali FROM tb_admin a JOIN tb_guru g ON a.nuptk = g.nuptk WHERE a.id = ?");

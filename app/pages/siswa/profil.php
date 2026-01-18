@@ -8,7 +8,7 @@ require_once '../../layouts/header.php';
 
 check_login('siswa');
 
-$siswa_id = $_SESSION['user_id'];
+$siswa_id = $_SESSION['siswa_id'];
 
 // Ambil data lengkap siswa
 $stmt = $pdo->prepare("
@@ -125,7 +125,7 @@ $siswa = $stmt->fetch();
 
         <!-- Logout Button -->
         <div class="mt-8">
-            <a href="<?= base_url('app/pages/auth/logout.php') ?>" 
+            <a href="<?= base_url('app/pages/auth/logout.php?role=siswa') ?>" 
                class="block w-full bg-red-500 hover:bg-red-600 text-white text-center py-4 rounded-xl font-semibold shadow-lg transition">
                 <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>

@@ -59,7 +59,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     'nama_kelas' => $siswa['nama_kelas'] ?? '-',
                     'kode_qr' => $siswa['kode_qr'],
                     'foto_profil' => $siswa['foto_profil'],
-                    'poin' => $siswa['poin'] ?? 100 // Default 100 jika null
+                    'poin' => $siswa['poin'] ?? 100, // Default 100 jika null
+                    'created_at' => $siswa['created_at']
                 ]
             ]);
             exit;
@@ -83,7 +84,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     'nuptk' => $guru['nuptk'],
                     'nama_kelas' => $guru['nama_kelas'] ? 'Wali Kelas ' . $guru['nama_kelas'] : 'Tenaga Pendidik',
                     'kode_qr' => $guru['kode_qr'],
-                    'foto_profil' => $guru['foto_profil']
+                    'foto_profil' => $guru['foto_profil'],
+                    'created_at' => $guru['created_at']
                 ]
             ]);
             exit;

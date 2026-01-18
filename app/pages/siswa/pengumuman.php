@@ -8,9 +8,9 @@ require_once '../../layouts/header.php';
 
 check_login('siswa');
 
-$siswa_id = $_SESSION['user_id'];
-$siswa_nama = $_SESSION['nama'];
-$siswa_kode_qr = $_SESSION['kode_qr'] ?? 'SISWA-DEFAULT';
+$siswa_id = $_SESSION['siswa_id'];
+$siswa_nama = $_SESSION['siswa_nama'];
+$siswa_kode_qr = $_SESSION['siswa_kode_qr'] ?? 'SISWA-DEFAULT';
 ?>
 
 <div class="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 pb-24">

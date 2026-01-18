@@ -6,25 +6,38 @@ if (session_status() == PHP_SESSION_NONE) {
 }
 
 function check_already_login() {
-    if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
-        $role = $_SESSION['role'] ?? null;
-        switch ($role) {
-            case 'admin': redirect('app/pages/admin/dashboard.php'); break;
-            case 'guru': redirect('app/pages/guru/dashboard.php'); break;
-            case 'siswa': redirect('app/pages/siswa/dashboard.php'); break;
-            default: redirect('app/pages/auth/logout.php'); break;
-        }
+    if (isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true) {
+        redirect('app/pages/admin/dashboard.php');
+    }
+    if (isset($_SESSION['guru_logged_in']) && $_SESSION['guru_logged_in'] === true) {
+        redirect('app/pages/guru/dashboard.php');
+    }
+    if (isset($_SESSION['siswa_logged_in']) && $_SESSION['siswa_logged_in'] === true) {
+        redirect('app/pages/siswa/dashboard.php');
     }
 }
 
 function check_login($required_role = null) {
-    if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
-        redirect('app/pages/auth/login.php');
-    }
-    if ($required_role !== null) {
-        if (!isset($_SESSION['role']) || $_SESSION['role'] !== $required_role) {
-            check_already_login();
-            exit;
+    if ($required_role === 'admin') {
+        if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
+            redirect('app/pages/auth/login.php');
+        }
+    } elseif ($required_role === 'guru') {
+        if (!isset($_SESSION['guru_logged_in']) || $_SESSION['guru_logged_in'] !== true) {
+            redirect('app/pages/auth/login.php');
+        }
+    } elseif ($required_role === 'siswa') {
+        if (!isset($_SESSION['siswa_logged_in']) || $_SESSION['siswa_logged_in'] !== true) {
+            redirect('app/pages/auth/login.php');
+        }
+    } else {
+        // Fallback or generic check (not recommended with strict namespacing)
+        if (
+            (!isset($_SESSION['admin_logged_in']) || !$_SESSION['admin_logged_in']) &&
+            (!isset($_SESSION['guru_logged_in']) || !$_SESSION['guru_logged_in']) &&
+            (!isset($_SESSION['siswa_logged_in']) || !$_SESSION['siswa_logged_in'])
+        ) {
+            redirect('app/pages/auth/login.php');
         }
     }
 }

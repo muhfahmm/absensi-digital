@@ -5,7 +5,7 @@ require_once '../../../config/database.php';
 
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['logged_in']) || $_SESSION['role'] !== 'admin') {
+if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit;
 }
@@ -20,7 +20,7 @@ if (empty($username) || empty($password)) {
     exit;
 }
 
-$current_user_id = $_SESSION['user_id'];
+$current_user_id = $_SESSION['admin_id'];
 
 // Fetch current user
 $stmt = $pdo->prepare("SELECT * FROM tb_admin WHERE id = ?");

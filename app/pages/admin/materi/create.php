@@ -15,28 +15,21 @@ $mapel_list = $pdo->query("SELECT * FROM tb_mata_pelajaran ORDER BY nama_mapel A
 
 // Handle Post
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Auto-detect Guru ID from Session
-    $id_guru = $_SESSION['user_id'] ?? 0; 
-    
-    // Validate if this ID exists in tb_guru
-    $check = $pdo->prepare("SELECT id FROM tb_guru WHERE id = ?");
-    $check->execute([$id_guru]);
-    if (!$check->fetch()) {
-        // Fallback or Error
-        // Since we are likely testing as Admin (who is not in tb_guru), let's temporarily fetch ANY guru ID or handle error.
-        // If users strictly want "sesuaikan login", then Admin shouldn't be able to upload if they aren't a guru.
-        // But to prevent the crash, let's grab the first guru found (common dev fix) OR error out.
-        // Let's go with Error for correctness.
-        // $error = "Error: ID Login Anda (" . $id_guru . ") tidak ditemukan di Data Guru. Anda mungkin login sebagai Admin murni.";
-        
-        // ALTERNATIVE: For now, if Admin, defaulting to the first guru to allow testing:
+    // Correct IDs Mapping: admin_id -> tb_admin.id, id_guru -> tb_guru.id
+    // Find tb_guru.id based on the admin's NUPTK
+    $stmtMe = $pdo->prepare("SELECT g.id FROM tb_admin a JOIN tb_guru g ON a.nuptk = g.nuptk WHERE a.id = ?");
+    $stmtMe->execute([$_SESSION['admin_id']]);
+    $id_guru = $stmtMe->fetchColumn();
+
+    // Fallback for Super Admin (id 13) or non-guru admins
+    if (!$id_guru) {
         $first_guru = $pdo->query("SELECT id FROM tb_guru LIMIT 1")->fetch();
-        if ($first_guru) {
-            $id_guru = $first_guru['id'];
-        } else {
-            $error = "Belum ada data guru di database.";
-        }
-    } 
+        $id_guru = $first_guru['id'] ?? null;
+    }
+
+    if (!$id_guru) {
+        $error = "Data guru tidak ditemukan. Tidak dapat mengupload materi.";
+    }
 
     $judul = htmlspecialchars($_POST['judul']);
     $deskripsi = htmlspecialchars($_POST['deskripsi']);

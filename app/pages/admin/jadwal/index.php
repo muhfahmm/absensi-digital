@@ -43,10 +43,44 @@ $all_mapel = $pdo->query("SELECT * FROM tb_mata_pelajaran ORDER BY nama_mapel AS
 $all_guru = $pdo->query("SELECT * FROM tb_guru ORDER BY nama_lengkap ASC")->fetchAll();
 
 // --- Header Profile Logic ---
-$admin_id = $_SESSION['user_id'] ?? null;
-$admin_name = $_SESSION['nama'] ?? 'Admin';
+$admin_id = $_SESSION['admin_id'] ?? null;
+$admin_name = $_SESSION['admin_nama'] ?? 'Admin';
+$kelas_id = $_SESSION['admin_kelas_id'] ?? null;
 $nama_peran = 'Admin Global';
 $initial = substr($admin_name, 0, 1);
+
+if ($admin_id) {
+    $stmtPeran = $pdo->prepare("
+        SELECT m.nama_mapel, k.nama_kelas
+        FROM tb_admin a 
+        LEFT JOIN tb_guru g ON a.nuptk = g.nuptk
+        LEFT JOIN tb_mata_pelajaran m ON g.guru_mapel_id = m.id 
+        LEFT JOIN tb_kelas k ON g.id_kelas_wali = k.id
+        WHERE a.id = ?
+    ");
+    $stmtPeran->execute([$admin_id]);
+    $peran = $stmtPeran->fetch();
+    
+    $roles = [];
+    if ($peran) {
+        if (!empty($peran['nama_mapel'])) {
+            $roles[] = "Guru " . $peran['nama_mapel'];
+        }
+        if (!empty($peran['nama_kelas'])) {
+            $roles[] = "Wali Kelas " . $peran['nama_kelas'];
+        } elseif ($kelas_id) {
+            $stmtK = $pdo->prepare("SELECT nama_kelas FROM tb_kelas WHERE id = ?");
+            $stmtK->execute([$kelas_id]);
+            $k = $stmtK->fetch();
+            if ($k) {
+                $roles[] = "Wali Kelas " . $k['nama_kelas'];
+            }
+        }
+    }
+    if (!empty($roles)) {
+        $nama_peran = "Admin Global (" . implode(" & ", $roles) . ")";
+    }
+}
 ?>
 
 <div class="flex h-screen bg-gray-50">
@@ -59,6 +93,7 @@ $initial = substr($admin_name, 0, 1);
                 <div class="text-right">
                     <p class="text-sm font-bold text-gray-800"><?= $admin_name ?></p>
                     <p class="text-xs text-indigo-500 font-medium bg-indigo-50 px-2 py-0.5 rounded-full inline-block mt-1">
+                        <svg class="w-3 h-3 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
                         <?= $nama_peran ?>
                     </p>
                 </div>

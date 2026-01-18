@@ -17,15 +17,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $admin = $stmt->fetch();
 
         if ($admin && password_verify($password, $admin['password'])) {
-            $_SESSION['user_id'] = $admin['id'];
-            $_SESSION['role'] = 'admin';
-            $_SESSION['nama'] = $admin['nama_lengkap'];
+            $_SESSION['admin_id'] = $admin['id'];
+            $_SESSION['admin_role'] = 'admin';
+            $_SESSION['admin_nama'] = $admin['nama_lengkap'];
             
             // Prioritaskan pilihan dari login form, jika tidak ada baru ambil dari database
             $selected_kelas = !empty($_POST['id_kelas']) ? $_POST['id_kelas'] : $admin['id_kelas'];
-            $_SESSION['kelas_id'] = $selected_kelas;
+            $_SESSION['admin_kelas_id'] = $selected_kelas;
             
-            $_SESSION['logged_in'] = true;
+            $_SESSION['admin_logged_in'] = true;
             redirect('app/pages/admin/dashboard.php');
         }
 
@@ -35,12 +35,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $siswa = $stmt->fetch();
 
         if ($siswa && password_verify($password, $siswa['password'])) {
-            $_SESSION['user_id'] = $siswa['id'];
-            $_SESSION['role'] = 'siswa';
-            $_SESSION['nama'] = $siswa['nama_lengkap'];
-            $_SESSION['kelas_id'] = $siswa['id_kelas'];
-            $_SESSION['kode_qr'] = $siswa['kode_qr'];
-            $_SESSION['logged_in'] = true;
+            $_SESSION['siswa_id'] = $siswa['id'];
+            $_SESSION['siswa_role'] = 'siswa';
+            $_SESSION['siswa_nama'] = $siswa['nama_lengkap'];
+            $_SESSION['siswa_kelas_id'] = $siswa['id_kelas'];
+            $_SESSION['siswa_kode_qr'] = $siswa['kode_qr'];
+            $_SESSION['siswa_logged_in'] = true;
             redirect('app/pages/siswa/dashboard.php');
         }
 
@@ -50,11 +50,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $guru = $stmt->fetch();
 
         if ($guru && password_verify($password, $guru['password'])) {
-            $_SESSION['user_id'] = $guru['id'];
-            $_SESSION['role'] = 'guru';
-            $_SESSION['nama'] = $guru['nama_lengkap'];
-            $_SESSION['kode_qr'] = $guru['kode_qr'];
-            $_SESSION['logged_in'] = true;
+            $_SESSION['guru_id'] = $guru['id'];
+            $_SESSION['guru_role'] = 'guru';
+            $_SESSION['guru_nama'] = $guru['nama_lengkap'];
+            $_SESSION['guru_kode_qr'] = $guru['kode_qr'];
+            $_SESSION['guru_logged_in'] = true;
             redirect('app/pages/guru/dashboard.php');
         }
 

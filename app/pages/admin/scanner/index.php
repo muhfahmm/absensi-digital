@@ -8,7 +8,7 @@ require_once '../../../layouts/header.php';
 
 check_login('admin');
 
-$admin_nama = $_SESSION['nama'];
+$admin_nama = $_SESSION['admin_nama'];
 ?>
 
 <div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">

@@ -7,9 +7,9 @@ require_once '../../layouts/header.php';
 // Proteksi halaman admin
 check_login('admin');
 
-$admin_id = $_SESSION['user_id'] ?? null;
-$admin_name = $_SESSION['nama'] ?? 'Admin';
-$kelas_id = $_SESSION['kelas_id'] ?? null;
+$admin_id = $_SESSION['admin_id'] ?? null;
+$admin_name = $_SESSION['admin_nama'] ?? 'Admin';
+$kelas_id = $_SESSION['admin_kelas_id'] ?? null;
 $nama_peran = 'Admin Global';
 
 if ($admin_id) {
@@ -93,7 +93,7 @@ $initial = substr($admin_name, 0, 1);
                         </div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-500">Total Siswa</p>
-                            <p class="text-lg font-semibold text-gray-800">0</p>
+                            <p class="text-3xl font-bold text-gray-800">0</p>
                         </div>
                     </div>
                 </div>
@@ -107,7 +107,7 @@ $initial = substr($admin_name, 0, 1);
                         </div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-500">Hadir Hari Ini</p>
-                            <p class="text-lg font-semibold text-gray-800">0</p>
+                            <p class="text-3xl font-bold text-gray-800">0</p>
                         </div>
                     </div>
                 </div>
@@ -121,7 +121,7 @@ $initial = substr($admin_name, 0, 1);
                         </div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-500">Tidak Hadir</p>
-                            <p class="text-lg font-semibold text-gray-800">0</p>
+                            <p class="text-3xl font-bold text-gray-800">0</p>
                         </div>
                     </div>
                 </div>

@@ -17,7 +17,9 @@ import {
     RefreshControl,
     KeyboardAvoidingView,
     Platform,
-    Keyboard
+    Keyboard,
+    PanResponder,
+    Animated
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { CameraView, Camera } from "expo-camera";
@@ -151,7 +153,26 @@ const translations = {
         lihat: "Lihat",
         download: "Download",
         cariMateri: "Cari materi...",
-        tidakAdaMateri: "Tidak ada materi ditemukan."
+        cariMateri: "Cari materi...",
+        tidakAdaMateri: "Tidak ada materi ditemukan.",
+        noAnnouncement: "Tidak ada pengumuman terbaru.",
+        umum: "UMUM",
+        guru: "GURU",
+        siswa: "SISWA",
+        semuaWarga: "SEMUA WARGA",
+        semua: "SEMUA",
+        khususGuru: "Khusus Guru",
+        khususSiswa: "Khusus Siswa",
+        lihatSelengkapnya: "Lihat Selengkapnya",
+        detailPengumuman: "Detail Pengumuman",
+        diterbitkanPada: "Diterbitkan pada",
+        tutup: "Tutup",
+        baru: "BARU",
+        filter: "Filter",
+        newest: "Terbaru",
+        oldest: "Terlama",
+        thisWeek: "Minggu Ini",
+        thisMonth: "Bulan Ini"
     },
     en: {
         loginTitle: "Digital Attendance",
@@ -224,7 +245,25 @@ const translations = {
         lihat: "View",
         download: "Download",
         cariMateri: "Search materials...",
-        tidakAdaMateri: "No materials found."
+        tidakAdaMateri: "No materials found.",
+        noAnnouncement: "No latest announcements.",
+        umum: "GENERAL",
+        guru: "TEACHER",
+        siswa: "STUDENT",
+        semuaWarga: "ALL MEMBERS",
+        semua: "ALL",
+        khususGuru: "Teachers Only",
+        khususSiswa: "Students Only",
+        lihatSelengkapnya: "Read More",
+        detailPengumuman: "Announcement Detail",
+        diterbitkanPada: "Published on",
+        tutup: "Close",
+        baru: "NEW",
+        filter: "Filter",
+        newest: "Newest",
+        oldest: "Oldest",
+        thisWeek: "This Week",
+        thisMonth: "This Month"
     }
 };
 
@@ -243,6 +282,9 @@ export default function App() {
     const [profileModalVisible, setProfileModalVisible] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [menuModalVisible, setMenuModalVisible] = useState(false);
+    const [pengumumanList, setPengumumanList] = useState([]);
+    const [selectedPengumuman, setSelectedPengumuman] = useState(null);
+    const [detailModalVisible, setDetailModalVisible] = useState(false);
 
     // Konfigurasi Versi Aplikasi
     const CURRENT_APP_VERSION = "1.0.0";
@@ -289,6 +331,7 @@ export default function App() {
         if (currentView === 'monitoring') fetchClassMonitoring();
         if (currentView === 'jadwal') fetchJadwal();
         if (currentView === 'elearning') fetchLearningMaterials();
+        if (currentView === 'pengumuman') fetchPengumuman();
 
         // Check version on manually refresh too
         checkAppVersion();
@@ -309,6 +352,12 @@ export default function App() {
     // E-Learning State
     const [elearningSearch, setElearningSearch] = useState('');
     const [elearningFilter, setElearningFilter] = useState('Semua');
+    const [elearningTimeFilter, setElearningTimeFilter] = useState('newest');
+    const [isTimeDropdownOpen, setIsTimeDropdownOpen] = useState(false);
+
+    // Pengumuman State
+    const [pengumumanTimeFilter, setPengumumanTimeFilter] = useState('newest');
+    const [isPengumumanTimeDropdownOpen, setIsPengumumanTimeDropdownOpen] = useState(false);
 
     // Scanner State
     const [hasPermission, setHasPermission] = useState(null);
@@ -316,6 +365,67 @@ export default function App() {
 
     // Modal State
     const [qrModalVisible, setQrModalVisible] = useState(false);
+
+    // Animation Value for Height (0 to 1) 
+    // 0 = 50% height, 1 = 90% height
+    const modalAnimation = React.useRef(new Animated.Value(0)).current;
+
+    // Ref to track expansion state (avoiding stale closures)
+    const isExpandedRef = React.useRef(false);
+
+    const animateModal = (toValue, callback) => {
+        isExpandedRef.current = toValue === 1;
+        Animated.timing(modalAnimation, {
+            toValue,
+            duration: 300,
+            useNativeDriver: false,
+        }).start(callback);
+    };
+
+    // PanResponder for Swipe Down/Up
+    const panResponder = React.useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: (_, gestureState) => {
+                return Math.abs(gestureState.dy) > 10;
+            },
+            onPanResponderRelease: (_, gestureState) => {
+                const isExpanded = isExpandedRef.current;
+
+                if (gestureState.dy > 50) {
+                    // Swipe Down
+                    if (isExpanded) {
+                        // If expanded (90%), collapse to 50% first
+                        animateModal(0);
+                    } else {
+                        // If collapsed (50%), animate close "smoothly" causing it to shrink down
+                        animateModal(-1, () => setDetailModalVisible(false));
+                    }
+                } else if (gestureState.dy < -50) {
+                    // Swipe Up -> Expand
+                    animateModal(1);
+                }
+            },
+        })
+    ).current;
+
+    // Reset animation when modal opens/closes
+    useEffect(() => {
+        if (detailModalVisible) {
+            // Start at 0 height (-1) and animate to 50% (0) with spring physics
+            modalAnimation.setValue(-1);
+            Animated.spring(modalAnimation, {
+                toValue: 0,
+                friction: 8,
+                tension: 40,
+                useNativeDriver: false
+            }).start();
+        } else {
+            isExpandedRef.current = false;
+        }
+    }, [detailModalVisible]);
+
+
 
     // Keyboard State
     const [isKeyboardVisible, setKeyboardVisible] = useState(false);
@@ -357,8 +467,12 @@ export default function App() {
     }, []);
 
     useEffect(() => {
+        let interval;
+
         if (userData && currentView === 'dashboard') {
             fetchAttendanceStatus();
+            // Auto refresh attendance status every 30 seconds to handle day change
+            interval = setInterval(fetchAttendanceStatus, 30000);
         }
         if (userData && currentView === 'kehadiran') {
             fetchAttendanceHistory();
@@ -372,6 +486,15 @@ export default function App() {
         if (userData && currentView === 'jadwal') {
             fetchJadwal();
         }
+        if (userData && currentView === 'pengumuman') {
+            fetchPengumuman();
+            // Auto refresh pengumuman every 10 seconds
+            interval = setInterval(fetchPengumuman, 10000);
+        }
+
+        return () => {
+            if (interval) clearInterval(interval);
+        };
     }, [userData, currentView]);
 
     const fetchJadwal = async () => {
@@ -402,6 +525,18 @@ export default function App() {
             }
         } catch (error) {
             console.error("Fetch materials error:", error);
+        }
+    };
+
+    const fetchPengumuman = async () => {
+        try {
+            const response = await fetch(`${BASE_URL}/app/api/pengumuman.php?role=${userData ? userData.role : 'semua'}`);
+            const result = await response.json();
+            if (result.success) {
+                setPengumumanList(result.data);
+            }
+        } catch (error) {
+            console.error("Fetch pengumuman error:", error);
         }
     };
 
@@ -936,7 +1071,7 @@ export default function App() {
                     <InfoCard icon="tag" iconBg="#eef2ff" iconColor="#4f46e5" label={role === 'guru' ? t('nuptk') : t('nis')} value={user.nis || user.nuptk || '-'} theme={theme} isDarkMode={isDarkMode} />
                     <InfoCard icon="building" iconBg="#f5f3ff" iconColor="#7c3aed" label={t('kelas')} value={user.nama_kelas || '-'} theme={theme} isDarkMode={isDarkMode} />
                     <InfoCard icon="qr" iconBg="#f0fdf4" iconColor="#16a34a" label={t('kodeQr')} value={user.kode_qr || '-'} theme={theme} isDarkMode={isDarkMode} mono />
-                    <InfoCard icon="calendar" iconBg="#eff6ff" iconColor="#3b82f6" label={t('terdaftarSejak')} value={new Date().toLocaleDateString(language === 'id' ? 'id-ID' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} theme={theme} isDarkMode={isDarkMode} />
+                    <InfoCard icon="calendar" iconBg="#eff6ff" iconColor="#3b82f6" label={t('terdaftarSejak')} value={new Date(user.created_at || new Date()).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} theme={theme} isDarkMode={isDarkMode} />
                 </View>
 
                 {/* Language Toggle Button */}
@@ -1006,7 +1141,28 @@ export default function App() {
             const matchesSearch = item.judul.toLowerCase().includes(elearningSearch.toLowerCase()) ||
                 (item.deskripsi && item.deskripsi.toLowerCase().includes(elearningSearch.toLowerCase()));
             const matchesFilter = elearningFilter === 'Semua' || item.nama_mapel === elearningFilter;
-            return matchesSearch && matchesFilter;
+
+            // Time Filter Logic
+            let matchesTime = true;
+            const itemDate = new Date(item.created_at);
+            const now = new Date();
+
+            if (elearningTimeFilter === 'thisWeek') {
+                const oneWeekAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+                matchesTime = itemDate >= oneWeekAgo;
+            } else if (elearningTimeFilter === 'thisMonth') {
+                matchesTime = itemDate.getMonth() === now.getMonth() && itemDate.getFullYear() === now.getFullYear();
+            }
+
+            return matchesSearch && matchesFilter && matchesTime;
+        }).sort((a, b) => {
+            // Sorting Logic
+            const dateA = new Date(a.created_at);
+            const dateB = new Date(b.created_at);
+            if (elearningTimeFilter === 'oldest') {
+                return dateA - dateB;
+            }
+            return dateB - dateA; // Default newest
         });
 
         return (
@@ -1044,6 +1200,56 @@ export default function App() {
                                     </TouchableOpacity>
                                 )}
                             </View>
+                        </View>
+
+
+
+                        {/* Time Filter Dropdown */}
+                        <View style={{ zIndex: 1000, marginBottom: 15 }}>
+                            <TouchableOpacity
+                                style={{
+                                    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                                    backgroundColor: theme.card, padding: 12, borderRadius: 12,
+                                    borderWidth: 1, borderColor: theme.border
+                                }}
+                                onPress={() => setIsTimeDropdownOpen(!isTimeDropdownOpen)}
+                            >
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <WebIcon name="calendar" size={16} color={theme.textMuted} style={{ marginRight: 8 }} />
+                                    <Text style={{ color: theme.text }}>{t('filter')}: {t(elearningTimeFilter)}</Text>
+                                </View>
+                                <WebIcon name="back" size={16} color={theme.textMuted} style={{ transform: [{ rotate: isTimeDropdownOpen ? '90deg' : '-90deg' }] }} />
+                            </TouchableOpacity>
+
+                            {isTimeDropdownOpen && (
+                                <View style={{
+                                    position: 'absolute', top: 50, left: 0, right: 0,
+                                    backgroundColor: theme.card, borderRadius: 12,
+                                    borderWidth: 1, borderColor: theme.border,
+                                    shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 5
+                                }}>
+                                    {['newest', 'oldest', 'thisWeek', 'thisMonth'].map((option, idx) => (
+                                        <TouchableOpacity
+                                            key={option}
+                                            style={{
+                                                padding: 12,
+                                                borderBottomWidth: idx === 3 ? 0 : 1,
+                                                borderBottomColor: theme.border,
+                                                flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'
+                                            }}
+                                            onPress={() => {
+                                                setElearningTimeFilter(option);
+                                                setIsTimeDropdownOpen(false);
+                                            }}
+                                        >
+                                            <Text style={{ color: elearningTimeFilter === option ? theme.primary : theme.text, fontWeight: elearningTimeFilter === option ? 'bold' : 'normal' }}>
+                                                {t(option)}
+                                            </Text>
+                                            {elearningTimeFilter === option && <WebIcon name="tag" size={14} color={theme.primary} />}
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            )}
                         </View>
 
                         {/* Filter Tags */}
@@ -1131,11 +1337,11 @@ export default function App() {
                                 ))
                             )}
                         </View>
-                    </View>
-                </ScrollView>
+                    </View >
+                </ScrollView >
 
                 {renderBottomNav()}
-            </View>
+            </View >
         );
     };
 
@@ -1522,6 +1728,205 @@ export default function App() {
         </ScreenTemplate>
     );
 
+    const renderPengumuman = () => {
+        return (
+            <ScreenTemplate title={t('pengumuman')} subtitle={t('infoTerbaru')} headerOverlap={false}>
+
+                {/* Time Filter Dropdown */}
+                <View style={{ zIndex: 1000, marginTop: 20, marginHorizontal: 0 }}>
+                    <TouchableOpacity
+                        style={{
+                            flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                            backgroundColor: theme.card, padding: 12, borderRadius: 12,
+                            borderWidth: 1, borderColor: theme.border,
+                            shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2
+                        }}
+                        onPress={() => setIsPengumumanTimeDropdownOpen(!isPengumumanTimeDropdownOpen)}
+                    >
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <WebIcon name="calendar" size={16} color={theme.textMuted} style={{ marginRight: 8 }} />
+                            <Text style={{ color: theme.text }}>{t('filter')}: {t(pengumumanTimeFilter)}</Text>
+                        </View>
+                        <WebIcon name="back" size={16} color={theme.textMuted} style={{ transform: [{ rotate: isPengumumanTimeDropdownOpen ? '90deg' : '-90deg' }] }} />
+                    </TouchableOpacity>
+
+                    {isPengumumanTimeDropdownOpen && (
+                        <View style={{
+                            position: 'absolute', top: 50, left: 0, right: 0,
+                            backgroundColor: theme.card, borderRadius: 12,
+                            borderWidth: 1, borderColor: theme.border,
+                            shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 5
+                        }}>
+                            {['newest', 'oldest', 'thisWeek', 'thisMonth'].map((option, idx) => (
+                                <TouchableOpacity
+                                    key={option}
+                                    style={{
+                                        padding: 12,
+                                        borderBottomWidth: idx === 3 ? 0 : 1,
+                                        borderBottomColor: theme.border,
+                                        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'
+                                    }}
+                                    onPress={() => {
+                                        setPengumumanTimeFilter(option);
+                                        setIsPengumumanTimeDropdownOpen(false);
+                                    }}
+                                >
+                                    <Text style={{ color: pengumumanTimeFilter === option ? theme.primary : theme.text, fontWeight: pengumumanTimeFilter === option ? 'bold' : 'normal' }}>
+                                        {t(option)}
+                                    </Text>
+                                    {pengumumanTimeFilter === option && <WebIcon name="tag" size={14} color={theme.primary} />}
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    )}
+                </View>
+
+                {/* List */}
+                <View style={{ marginTop: 20, paddingBottom: 40 }}>
+                    {pengumumanList
+                        .filter(item => {
+                            // Time Filter Logic
+                            let matchesTime = true;
+                            const itemDate = new Date(item.tanggal_publish);
+                            const now = new Date();
+
+                            if (pengumumanTimeFilter === 'thisWeek') {
+                                const oneWeekAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+                                matchesTime = itemDate >= oneWeekAgo;
+                            } else if (pengumumanTimeFilter === 'thisMonth') {
+                                matchesTime = itemDate.getMonth() === now.getMonth() && itemDate.getFullYear() === now.getFullYear();
+                            }
+                            return matchesTime;
+                        })
+                        .sort((a, b) => {
+                            // Sorting Logic
+                            const dateA = new Date(a.tanggal_publish);
+                            const dateB = new Date(b.tanggal_publish);
+                            if (pengumumanTimeFilter === 'oldest') {
+                                return dateA - dateB;
+                            }
+                            return dateB - dateA; // Default newest
+                        })
+                        .length === 0 ? (
+                        <View style={{ padding: 40, alignItems: 'center', opacity: 0.7 }}>
+                            <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
+                                <WebIcon name="speaker" size={32} color={theme.textMuted} />
+                            </View>
+                            <Text style={{ color: theme.textMuted, fontSize: 16 }}>{t('noAnnouncement')}</Text>
+                        </View>
+                    ) : (
+                        pengumumanList
+                            .filter(item => {
+                                // Time Filter Logic duplicated just for the map to work on the filtered list
+                                // Ideally we variable-ize the filtered list, but standard practice here is fine for now or simpler logic
+                                let matchesTime = true;
+                                const itemDate = new Date(item.tanggal_publish);
+                                const now = new Date();
+
+                                if (pengumumanTimeFilter === 'thisWeek') {
+                                    const oneWeekAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+                                    matchesTime = itemDate >= oneWeekAgo;
+                                } else if (pengumumanTimeFilter === 'thisMonth') {
+                                    matchesTime = itemDate.getMonth() === now.getMonth() && itemDate.getFullYear() === now.getFullYear();
+                                }
+                                return matchesTime;
+                            })
+                            .sort((a, b) => {
+                                // Sorting Logic
+                                const dateA = new Date(a.tanggal_publish);
+                                const dateB = new Date(b.tanggal_publish);
+                                if (pengumumanTimeFilter === 'oldest') {
+                                    return dateA - dateB;
+                                }
+                                return dateB - dateA; // Default newest
+                            })
+                            .map((item, index) => {
+                                // Random color generator based on index for variety
+                                const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
+                                const accentColor = colors[index % colors.length];
+
+                                return (
+                                    <View key={index} style={{
+                                        backgroundColor: theme.card,
+                                        borderRadius: 20,
+                                        marginBottom: 20,
+                                        overflow: 'hidden',
+                                        borderWidth: 1,
+                                        borderColor: isDarkMode ? '#334155' : '#f1f5f9',
+                                        shadowColor: accentColor,
+                                        shadowOffset: { width: 0, height: 4 },
+                                        shadowOpacity: isDarkMode ? 0 : 0.05,
+                                        shadowRadius: 10,
+                                        elevation: 3
+                                    }}>
+                                        {/* Color Strip Top */}
+                                        <View style={{ height: 6, width: '100%', backgroundColor: accentColor }} />
+
+                                        <View style={{ padding: 20 }}>
+                                            {/* Header */}
+                                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                                                <View style={{ flex: 1, paddingRight: 10 }}>
+                                                    <Text style={{ color: theme.text, fontSize: 18, fontWeight: 'bold', lineHeight: 24 }}>{item.judul}</Text>
+                                                    <Text style={{ color: theme.textMuted, fontSize: 12, marginTop: 4 }}>
+                                                        {new Date(item.tanggal_publish).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                                    </Text>
+                                                </View>
+
+                                                {/* Icon & Badge Container */}
+                                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                    {/* Badge moved here */}
+                                                    {new Date().toDateString() === new Date(item.tanggal_publish).toDateString() && (
+                                                        <View style={{ backgroundColor: '#fee2e2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, marginRight: 8 }}>
+                                                            <Text style={{ color: '#ef4444', fontSize: 10, fontWeight: 'bold' }}>{t('baru')}</Text>
+                                                        </View>
+                                                    )}
+                                                    <View style={{
+                                                        width: 40, height: 40, borderRadius: 12,
+                                                        backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#f8fafc',
+                                                        justifyContent: 'center', alignItems: 'center'
+                                                    }}>
+                                                        <WebIcon name="speaker" size={20} color={accentColor} />
+                                                    </View>
+                                                </View>
+                                            </View>
+
+                                            {/* Body */}
+                                            <View style={{ backgroundColor: isDarkMode ? 'rgba(0,0,0,0.2)' : '#f8fafc', padding: 16, borderRadius: 12, marginBottom: 16 }}>
+                                                <Text style={{ color: theme.text, fontSize: 14, lineHeight: 22, opacity: 0.9 }} numberOfLines={3}>
+                                                    {item.isi}
+                                                </Text>
+                                            </View>
+
+                                            {/* Footer / Badge */}
+                                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: accentColor, marginRight: 8 }} />
+                                                    <Text style={{ fontSize: 12, fontWeight: '600', color: theme.textMuted }}>
+                                                        {item.target_role === 'semua' ? t('umum') : item.target_role.toUpperCase()}
+                                                    </Text>
+                                                </View>
+
+                                                <TouchableOpacity
+                                                    style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 4 }}
+                                                    onPress={() => {
+                                                        setSelectedPengumuman(item);
+                                                        setDetailModalVisible(true);
+                                                    }}
+                                                >
+                                                    <Text style={{ fontSize: 13, fontWeight: 'bold', color: theme.primary, marginRight: 4 }}>{t('lihatSelengkapnya')}</Text>
+                                                    <WebIcon name="back" size={14} color={theme.primary} style={{ transform: [{ rotate: '180deg' }] }} />
+                                                </TouchableOpacity>
+                                            </View>
+                                        </View>
+                                    </View>
+                                );
+                            })
+                    )}
+                </View>
+            </ScreenTemplate>
+        );
+    };
+
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: isDarkMode ? '#0f172a' : '#f3f4f6' }]}>
             <StatusBar style="light" />
@@ -1532,13 +1937,108 @@ export default function App() {
             {currentView === 'kehadiran' && renderKehadiran()}
             {currentView === 'monitoring' && renderMonitoringKelas()}
             {currentView === 'pembayaran' && renderPlaceholder('Pembayaran')}
-            {currentView === 'pembayaran' && renderPlaceholder('Pembayaran')}
-            {currentView === 'pengumuman' && renderPlaceholder('Pengumuman')}
+
+            {currentView === 'pengumuman' && renderPengumuman()}
             {currentView === 'jadwal' && renderJadwal()}
             {currentView === 'elearning' && renderElearning()}
             {currentView === 'perizinan' && renderPlaceholder('Perizinan')}
             {currentView === 'nilai' && renderPlaceholder('Nilai Akademik')}
             {currentView === 'tentang' && renderTentangAplikasi()}
+
+            {/* Announcement Detail Modal - Bottom Sheet Style */}
+            <Modal visible={detailModalVisible} transparent animationType="fade" onRequestClose={() => setDetailModalVisible(false)}>
+                <View style={{ flex: 1, backgroundColor: 'transparent', justifyContent: 'flex-end' }}>
+                    {/* Backdrop tap to close */}
+                    <TouchableOpacity style={{ flex: 1 }} onPress={() => setDetailModalVisible(false)} />
+
+                    <Animated.View
+                        style={{
+                            backgroundColor: theme.card,
+                            borderTopLeftRadius: 30,
+                            borderTopRightRadius: 30,
+                            height: modalAnimation.interpolate({
+                                inputRange: [-1, 0, 1],
+                                outputRange: ['0%', '50%', '90%']
+                            }),
+                            opacity: modalAnimation.interpolate({
+                                inputRange: [-1, 0],
+                                outputRange: [0, 1],
+                                extrapolate: 'clamp'
+                            }),
+                            padding: 0,
+                            shadowColor: "#000",
+                            shadowOffset: { width: 0, height: -5 },
+                            shadowOpacity: 0.1,
+                            shadowRadius: 20,
+                            elevation: 20
+                        }}>
+                        {/* Drag Handle & Header - Attach PanResponder Here */}
+                        <View {...panResponder.panHandlers}>
+                            <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 8 }}>
+                                <View style={{ width: 60, height: 6, borderRadius: 3, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0' }} />
+                            </View>
+
+                            {/* Modal Header */}
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: theme.border }}>
+                                <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.text }}>{t('detailPengumuman')}</Text>
+                                <TouchableOpacity onPress={() => setDetailModalVisible(false)} style={{ padding: 4, backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9', borderRadius: 20 }}>
+                                    <WebIcon name="close" size={20} color={theme.textMuted} />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
+                        <ScrollView style={{ paddingHorizontal: 24 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40, paddingTop: 20 }}>
+                            {selectedPengumuman && (
+                                <>
+                                    {/* Meta Tags */}
+                                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
+                                        <View style={{
+                                            flexDirection: 'row', alignItems: 'center',
+                                            backgroundColor: selectedPengumuman.target_role === 'guru' ? '#f0fdf4' : (selectedPengumuman.target_role === 'siswa' ? '#eff6ff' : '#f5f3ff'),
+                                            paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
+                                            borderWidth: 1, borderColor: selectedPengumuman.target_role === 'guru' ? '#dcfce7' : (selectedPengumuman.target_role === 'siswa' ? '#dbeafe' : '#ede9fe')
+                                        }}>
+                                            <WebIcon name="user" size={14} color={selectedPengumuman.target_role === 'guru' ? '#16a34a' : (selectedPengumuman.target_role === 'siswa' ? '#2563eb' : '#7c3aed')} style={{ marginRight: 6 }} />
+                                            <Text style={{ fontSize: 12, fontWeight: 'bold', color: selectedPengumuman.target_role === 'guru' ? '#15803d' : (selectedPengumuman.target_role === 'siswa' ? '#1d4ed8' : '#6d28d9') }}>
+                                                {selectedPengumuman.target_role === 'semua' ? t('semuaWarga') : (selectedPengumuman.target_role === 'guru' ? t('khususGuru') : t('khususSiswa'))}
+                                            </Text>
+                                        </View>
+
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDarkMode ? '#334155' : '#f8fafc', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 }}>
+                                            <WebIcon name="calendar" size={14} color={theme.textMuted} style={{ marginRight: 6 }} />
+                                            <Text style={{ fontSize: 12, color: theme.textMuted }}>
+                                                {new Date(selectedPengumuman.tanggal_publish).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                            </Text>
+                                        </View>
+                                    </View>
+
+                                    <Text style={{ fontSize: 26, fontWeight: '900', color: theme.text, marginBottom: 20, lineHeight: 34 }}>{selectedPengumuman.judul}</Text>
+
+                                    <View style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#f8fafc', padding: 20, borderRadius: 16 }}>
+                                        <Text style={{ fontSize: 16, color: theme.text, lineHeight: 28 }}>{selectedPengumuman.isi}</Text>
+                                    </View>
+
+                                    <View style={{ marginTop: 30, alignItems: 'center' }}>
+                                        <Text style={{ fontSize: 12, color: theme.textMuted, textAlign: 'center' }}>
+                                            {t('diterbitkanPada')} {new Date(selectedPengumuman.created_at).toLocaleString()}
+                                        </Text>
+                                    </View>
+                                </>
+                            )}
+                        </ScrollView>
+
+                        {/* Footer Close Button */}
+                        <View style={{ padding: 24, borderTopWidth: 1, borderTopColor: theme.border }}>
+                            <TouchableOpacity
+                                style={{ backgroundColor: theme.primary, padding: 16, borderRadius: 16, alignItems: 'center', shadowColor: theme.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10 }}
+                                onPress={() => setDetailModalVisible(false)}
+                            >
+                                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>{t('tutup')}</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </Animated.View>
+                </View>
+            </Modal>
 
             {/* Global QR Modal */}
             <Modal visible={qrModalVisible} transparent animationType="fade">
@@ -1651,7 +2151,7 @@ export default function App() {
                 </View>
             </Modal>
 
-        </SafeAreaView>
+        </SafeAreaView >
     );
 }
 

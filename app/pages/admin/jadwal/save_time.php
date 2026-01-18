@@ -4,7 +4,7 @@ session_start();
 require_once '../../../config/database.php';
 require_once '../../../functions/helpers.php';
 
-if (!isset($_SESSION['logged_in']) || $_SESSION['role'] !== 'admin') {
+if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
     // Note: Request said "guru dan admin", but currently login is restricted to admin zone. 
     // If teachers need access, we check their role too. 
     // Assuming for now only Admin has access to this settings page as per current folder structure.

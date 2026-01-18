@@ -8,9 +8,9 @@ require_once '../../layouts/header.php';
 
 check_login('siswa');
 
-$siswa_id = $_SESSION['user_id'];
-$siswa_nama = $_SESSION['nama'];
-$siswa_kode_qr = $_SESSION['kode_qr'] ?? 'SISWA-DEFAULT';
+$siswa_id = $_SESSION['siswa_id'];
+$siswa_nama = $_SESSION['siswa_nama'];
+$siswa_kode_qr = $_SESSION['siswa_kode_qr'] ?? 'SISWA-DEFAULT';
 
 // Ambil NIS dan foto siswa
 $stmt = $pdo->prepare("SELECT nis, foto_profil FROM tb_siswa WHERE id = ?");
@@ -21,9 +21,9 @@ $siswa_foto = $siswa_data['foto_profil'] ?? null;
 
 // Ambil data kelas siswa
 $kelas_nama = 'Belum ada kelas';
-if (isset($_SESSION['kelas_id']) && $_SESSION['kelas_id']) {
+if (isset($_SESSION['siswa_kelas_id']) && $_SESSION['siswa_kelas_id']) {
     $stmt = $pdo->prepare("SELECT nama_kelas FROM tb_kelas WHERE id = ?");
-    $stmt->execute([$_SESSION['kelas_id']]);
+    $stmt->execute([$_SESSION['siswa_kelas_id']]);
     $kelas = $stmt->fetch();
     if ($kelas) {
         $kelas_nama = $kelas['nama_kelas'];
@@ -46,7 +46,7 @@ $absensi_hari_ini = $stmt->fetch();
                     <h1 class="text-2xl font-bold text-white">Dashboard Siswa</h1>
                     <p class="text-indigo-100 text-sm mt-1"><?= htmlspecialchars($siswa_nama) ?> • <?= htmlspecialchars($kelas_nama) ?></p>
                 </div>
-                <a href="<?= base_url('app/pages/auth/logout.php') ?>" class="text-white hover:text-indigo-100 transition">
+                <a href="<?= base_url('app/pages/auth/logout.php?role=siswa') ?>" class="text-white hover:text-indigo-100 transition">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
                     </svg>
