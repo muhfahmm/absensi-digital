@@ -304,6 +304,56 @@ export default function App() {
     const [saldo, setSaldo] = useState(0);
     const [riwayatSaldo, setRiwayatSaldo] = useState([]);
     const [currentOrderId, setCurrentOrderId] = useState(null);
+    const [showPaymentMethodModal, setShowPaymentMethodModal] = useState(false);
+    const [selectedTagihan, setSelectedTagihan] = useState(null);
+
+    // Animation for Payment Modal
+    const panY = React.useRef(new Animated.Value(0)).current;
+
+    const resetModalAnim = useCallback(() => {
+        Animated.timing(panY, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+        }).start();
+    }, [panY]);
+
+    const paymentPanResponder = React.useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: (_, gestureState) => {
+                return gestureState.dy > 0; // Only capture if moving down
+            },
+            onPanResponderMove: Animated.event(
+                [null, { dy: panY }],
+                { useNativeDriver: false } // 'dy' is not supported with native driver in PanResponder usually
+            ),
+            onPanResponderRelease: (_, gestureState) => {
+                if (gestureState.dy > 100) {
+                    closePaymentMethodModal();
+                } else {
+                    Animated.spring(panY, {
+                        toValue: 0,
+                        useNativeDriver: true
+                    }).start();
+                }
+            }
+        })
+    ).current;
+
+    const closePaymentMethodModal = () => {
+        Animated.timing(panY, {
+            toValue: height, // Slide down off screen
+            duration: 300,
+            useNativeDriver: true
+        }).start(() => setShowPaymentMethodModal(false));
+    };
+
+    useEffect(() => {
+        if (showPaymentMethodModal) {
+            panY.setValue(0); // Reset immediately on open
+        }
+    }, [showPaymentMethodModal]);
 
     // --- PAYMENT TAB STATE ---
     const [paymentTab, setPaymentTab] = useState('transaksi'); // 'transaksi', 'tagihan', 'lunas'
@@ -355,7 +405,47 @@ export default function App() {
         }
     };
 
-    const handlePaySpp = async (tagihanId, amount) => {
+    const handlePaySpp = (tagihanId, amount) => {
+        setSelectedTagihan({ id: tagihanId, amount: parseInt(amount) });
+        setShowPaymentMethodModal(true);
+    };
+
+    const handlePaySppWallet = async (tagihanId) => {
+        setIsSppLoading(true);
+        closePaymentMethodModal(); // Use close helper
+        try {
+            const response = await fetch(`${BASE_URL}/app/api/payment/pay_spp_wallet.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: userData.user.id,
+                    tagihan_id: tagihanId
+                })
+            });
+            const result = await response.json();
+
+            Alert.alert(
+                result.success ? "Berhasil" : "Gagal",
+                result.message,
+                [{
+                    text: "OK",
+                    onPress: () => {
+                        if (result.success) {
+                            fetchSppData();
+                            fetchSaldo();
+                        }
+                    }
+                }]
+            );
+        } catch (error) {
+            Alert.alert("Error", "Gagal menghubungi server");
+        } finally {
+            setIsSppLoading(false);
+        }
+    };
+
+    const handlePaySppMidtrans = async (tagihanId, amount) => {
+        closePaymentMethodModal(); // Use close helper
         try {
             const response = await fetch(`${BASE_URL}/app/api/payment/snap_token.php`, {
                 method: 'POST',
@@ -1645,6 +1735,8 @@ export default function App() {
                     ))}
                 </ScrollView>
 
+
+
                 {/* Schedule List */}
                 <View style={{ paddingBottom: 40 }}>
                     {!jadwal ? (
@@ -1895,6 +1987,88 @@ export default function App() {
                         </View>
                     )}
                 </ScrollView>
+                {/* MODERN PAYMENT METHOD MODAL - SWIPEABLE */}
+                <Modal
+                    visible={showPaymentMethodModal}
+                    transparent={true}
+                    animationType="slide"
+                    onRequestClose={closePaymentMethodModal}
+                >
+                    <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+                        {/* Invisible touchable to close on click outside, optionally */}
+
+                        <Animated.View
+                            style={{
+                                backgroundColor: theme.card,
+                                borderTopLeftRadius: 24,
+                                borderTopRightRadius: 24,
+                                padding: 24,
+                                transform: [{ translateY: panY }],
+                                shadowColor: "#000",
+                                shadowOffset: {
+                                    width: 0,
+                                    height: -4,
+                                },
+                                shadowOpacity: 0.1,
+                                shadowRadius: 4.65,
+                                elevation: 8,
+                            }}
+                            {...paymentPanResponder.panHandlers}
+                        >
+                            <View style={{ alignItems: 'center', marginBottom: 20 }}>
+                                <View style={{ width: 40, height: 4, backgroundColor: theme.border, borderRadius: 2 }} />
+                            </View>
+
+                            <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.text, textAlign: 'center', marginBottom: 8 }}>
+                                Pilih Metode Pembayaran
+                            </Text>
+                            <Text style={{ fontSize: 14, color: theme.textMuted, textAlign: 'center', marginBottom: 24 }}>
+                                Total Tagihan: <Text style={{ fontWeight: 'bold', color: theme.primary }}>Rp {selectedTagihan?.amount?.toLocaleString('id-ID')}</Text>
+                            </Text>
+
+                            <TouchableOpacity
+                                onPress={() => handlePaySppWallet(selectedTagihan?.id)}
+                                style={{
+                                    flexDirection: 'row', alignItems: 'center', backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc',
+                                    padding: 16, borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: theme.border
+                                }}
+                            >
+                                <View style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: '#dcfce7', justifyContent: 'center', alignItems: 'center', marginRight: 16 }}>
+                                    <WebIcon name="card" size={24} color="#16a34a" />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.text }}>Saldo E-Wallet</Text>
+                                    <Text style={{ fontSize: 12, color: theme.textMuted }}>Sisa Saldo: Rp {saldo.toLocaleString('id-ID')}</Text>
+                                </View>
+                                <WebIcon name="chevron-right" size={20} color={theme.textMuted} />
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                onPress={() => handlePaySppMidtrans(selectedTagihan?.id, selectedTagihan?.amount)}
+                                style={{
+                                    flexDirection: 'row', alignItems: 'center', backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc',
+                                    padding: 16, borderRadius: 16, marginBottom: 24, borderWidth: 1, borderColor: theme.border
+                                }}
+                            >
+                                <View style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: '#dbeafe', justifyContent: 'center', alignItems: 'center', marginRight: 16 }}>
+                                    <WebIcon name="globe" size={24} color="#2563eb" />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.text }}>Transfer / QRIS</Text>
+                                    <Text style={{ fontSize: 12, color: theme.textMuted }}>Midtrans Gateway</Text>
+                                </View>
+                                <WebIcon name="chevron-right" size={20} color={theme.textMuted} />
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                onPress={closePaymentMethodModal}
+                                style={{ padding: 16, alignItems: 'center' }}
+                            >
+                                <Text style={{ color: theme.textMuted, fontWeight: 'bold' }}>Batal</Text>
+                            </TouchableOpacity>
+                        </Animated.View>
+                    </View>
+                </Modal>
             </ScreenTemplate>
         );
     };

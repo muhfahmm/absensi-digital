@@ -6,3 +6,9 @@ Result: {"status_code":"200","transaction_id":"cae2784d-d521-428e-a309-a98946804
 ----------------
 Created New Saldo for User 14 (siswa) amount 10000
 History Added for Order TRX-1768742364-973
+Checking Order ID: TRX-1768752067-728
+URL: https://api.midtrans.com/v2/TRX-1768752067-728/status
+Server Key Used: Mid-s...
+HTTP Code: 200
+Result: {"status_code":"201","transaction_id":"44573913-7fe3-42a0-accb-d810ad1dc45b","gross_amount":"100000.00","currency":"IDR","order_id":"TRX-1768752067-728","payment_type":"qris","signature_key":"3077808053fe2408dcb50cf5a978ec82558f5fd4c111ba1bd78a688ed4775c84e71c2878760892916505c4e4a63684133545a467f09effb7c3e13eaa2bf18a01","transaction_status":"pending","fraud_status":"accept","status_message":"Success, transaction is found","merchant_id":"G617610329","transaction_time":"2026-01-18 23:01:17","expiry_time":"2026-01-18 23:16:17"}
+----------------
