@@ -305,6 +305,11 @@ export default function App() {
     const [riwayatSaldo, setRiwayatSaldo] = useState([]);
     const [currentOrderId, setCurrentOrderId] = useState(null);
 
+    // --- PAYMENT TAB STATE ---
+    const [paymentTab, setPaymentTab] = useState('transaksi'); // 'transaksi', 'tagihan', 'lunas'
+    const [sppData, setSppData] = useState({ unpaid: [], paid: [] });
+    const [isSppLoading, setIsSppLoading] = useState(false);
+
     // Konfigurasi Versi Aplikasi
     const CURRENT_APP_VERSION = "1.0.0";
 
@@ -329,8 +334,52 @@ export default function App() {
     useEffect(() => {
         if (currentView === 'pembayaran') {
             fetchSaldo();
+            if (userData?.role === 'siswa') {
+                fetchSppData();
+            }
         }
     }, [currentView]);
+
+    const fetchSppData = async () => {
+        setIsSppLoading(true);
+        try {
+            const response = await fetch(`${BASE_URL}/app/api/payment/get_spp.php?user_id=${userData.user.id}`);
+            const result = await response.json();
+            if (result.success) {
+                setSppData(result.data);
+            }
+        } catch (error) {
+            console.error("Fetch SPP Error", error);
+        } finally {
+            setIsSppLoading(false);
+        }
+    };
+
+    const handlePaySpp = async (tagihanId, amount) => {
+        try {
+            const response = await fetch(`${BASE_URL}/app/api/payment/snap_token.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: userData.user.id,
+                    role: userData.role,
+                    amount: parseInt(amount),
+                    type: 'spp',
+                    target_id: tagihanId
+                })
+            });
+            const result = await response.json();
+            if (result.token) {
+                setPaymentUrl(result.redirect_url);
+                setCurrentOrderId(result.order_id);
+                setShowPaymentModal(true);
+            } else {
+                Alert.alert("Error", result.message || "Gagal membuat transaksi SPP");
+            }
+        } catch (e) {
+            Alert.alert("Error", "Gagal menghubungi server pembayaran");
+        }
+    };
 
 
     const checkAppVersion = async () => {
@@ -1659,12 +1708,12 @@ export default function App() {
     };
 
     const renderPembayaran = () => {
+        const isSiswa = userData?.role === 'siswa';
+
         return (
-
-
             <ScreenTemplate title="Pembayaran" onBack={() => setCurrentView('dashboard')}>
                 <ScrollView
-                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={fetchSaldo} />}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { fetchSaldo(); if (isSiswa) fetchSppData(); }} />}
                     style={{ padding: 20 }}
                 >
                     {/* Card Saldo */}
@@ -1697,49 +1746,153 @@ export default function App() {
                         </TouchableOpacity>
                     </View>
 
-                    <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.text, marginBottom: 15 }}>Riwayat Transaksi</Text>
-
-                    {riwayatSaldo.length === 0 ? (
-                        <View style={{ alignItems: 'center', marginTop: 30 }}>
-                            <WebIcon name="info" size={40} color={theme.textMuted} />
-                            <Text style={{ color: theme.textMuted, marginTop: 10 }}>Belum ada transaksi</Text>
-                        </View>
-                    ) : (
-                        riwayatSaldo.map((item, index) => (
-                            <View key={index} style={{
-                                flexDirection: 'row',
-                                backgroundColor: theme.card,
-                                padding: 16,
-                                borderRadius: 16,
-                                marginBottom: 12,
-                                alignItems: 'center',
-                                borderColor: theme.border,
-                                borderWidth: 1
-                            }}>
-                                <View style={{
-                                    width: 44,
-                                    height: 44,
-                                    borderRadius: 22,
-                                    backgroundColor: item.tipe === 'masuk' ? '#dcfce7' : '#fee2e2',
-                                    justifyContent: 'center',
+                    {/* Tab Menu */}
+                    <View style={{ flexDirection: 'row', marginBottom: 20, backgroundColor: theme.card, borderRadius: 12, padding: 4 }}>
+                        {['transaksi', 'tagihan', 'lunas'].map((tab) => (
+                            <TouchableOpacity
+                                key={tab}
+                                style={{
+                                    flex: 1,
+                                    paddingVertical: 10,
                                     alignItems: 'center',
-                                    marginRight: 16
-                                }}>
-                                    <WebIcon name={item.tipe === 'masuk' ? 'download' : 'upload'} size={20} color={item.tipe === 'masuk' ? '#16a34a' : '#ef4444'} />
-                                </View>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.text }}>{item.keterangan}</Text>
-                                    <Text style={{ fontSize: 12, color: theme.textMuted }}>{new Date(item.created_at).toLocaleString()}</Text>
-                                </View>
+                                    backgroundColor: paymentTab === tab ? theme.primary : 'transparent',
+                                    borderRadius: 10
+                                }}
+                                onPress={() => setPaymentTab(tab)}
+                            >
                                 <Text style={{
-                                    fontSize: 16,
+                                    color: paymentTab === tab ? 'white' : theme.textMuted,
                                     fontWeight: 'bold',
-                                    color: item.tipe === 'masuk' ? '#16a34a' : '#ef4444'
+                                    fontSize: 13
                                 }}>
-                                    {item.tipe === 'masuk' ? '+' : '-'} Rp {parseInt(item.jumlah).toLocaleString()}
+                                    {tab === 'transaksi' ? 'Riwayat' : (tab === 'tagihan' ? 'Tagihan SPP' : 'SPP Lunas')}
                                 </Text>
-                            </View>
-                        ))
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    {/* CONTENT - RIWAYAT TRANSAKSI */}
+                    {paymentTab === 'transaksi' && (
+                        <View>
+                            <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.text, marginBottom: 15 }}>Riwayat Transaksi E-Wallet</Text>
+                            {riwayatSaldo.length === 0 ? (
+                                <View style={{ alignItems: 'center', marginTop: 30 }}>
+                                    <WebIcon name="info" size={40} color={theme.textMuted} />
+                                    <Text style={{ color: theme.textMuted, marginTop: 10 }}>Belum ada transaksi</Text>
+                                </View>
+                            ) : (
+                                riwayatSaldo.map((item, index) => (
+                                    <View key={index} style={{
+                                        flexDirection: 'row',
+                                        backgroundColor: theme.card,
+                                        padding: 16,
+                                        borderRadius: 16,
+                                        marginBottom: 12,
+                                        alignItems: 'center',
+                                        borderColor: theme.border,
+                                        borderWidth: 1
+                                    }}>
+                                        <View style={{
+                                            width: 44,
+                                            height: 44,
+                                            borderRadius: 22,
+                                            backgroundColor: item.tipe === 'masuk' ? '#dcfce7' : '#fee2e2',
+                                            justifyContent: 'center',
+                                            alignItems: 'center',
+                                            marginRight: 16
+                                        }}>
+                                            <WebIcon name={item.tipe === 'masuk' ? 'download' : 'upload'} size={20} color={item.tipe === 'masuk' ? '#16a34a' : '#ef4444'} />
+                                        </View>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.text }}>{item.keterangan}</Text>
+                                            <Text style={{ fontSize: 12, color: theme.textMuted }}>{new Date(item.created_at).toLocaleString()}</Text>
+                                        </View>
+                                        <Text style={{
+                                            fontSize: 16,
+                                            fontWeight: 'bold',
+                                            color: item.tipe === 'masuk' ? '#16a34a' : '#ef4444'
+                                        }}>
+                                            {item.tipe === 'masuk' ? '+' : '-'} Rp {parseInt(item.jumlah).toLocaleString()}
+                                        </Text>
+                                    </View>
+                                ))
+                            )}
+                        </View>
+                    )}
+
+                    {/* CONTENT - TAGIHAN SPP */}
+                    {paymentTab === 'tagihan' && (
+                        <View>
+                            <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.text, marginBottom: 15 }}>Tagihan Belum Lunas</Text>
+                            {isSppLoading ? (
+                                <ActivityIndicator size="large" color={theme.primary} />
+                            ) : sppData.unpaid.length === 0 ? (
+                                <View style={{ alignItems: 'center', padding: 30 }}>
+                                    <WebIcon name="check" size={40} color="#16a34a" />
+                                    <Text style={{ color: theme.text, marginTop: 10, fontWeight: 'bold' }}>Hebat!</Text>
+                                    <Text style={{ color: theme.textMuted }}>Tidak ada tagihan SPP tunggakan.</Text>
+                                </View>
+                            ) : (
+                                sppData.unpaid.map((item, index) => (
+                                    <View key={index} style={{
+                                        backgroundColor: theme.card,
+                                        padding: 16,
+                                        borderRadius: 16,
+                                        marginBottom: 12,
+                                        borderColor: theme.border,
+                                        borderWidth: 1
+                                    }}>
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <View>
+                                                <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.text }}>SPP {item.bulan_nama} {item.tahun}</Text>
+                                                <Text style={{ fontSize: 14, color: '#ef4444', fontWeight: 'bold', marginTop: 4 }}>{item.formatted_nominal}</Text>
+                                            </View>
+                                            <TouchableOpacity
+                                                style={{ backgroundColor: theme.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 }}
+                                                onPress={() => handlePaySpp(item.id, item.nominal_tagihan)}
+                                            >
+                                                <Text style={{ color: 'white', fontWeight: 'bold' }}>Bayar</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                ))
+                            )}
+                        </View>
+                    )}
+
+                    {/* CONTENT - SPP LUNAS */}
+                    {paymentTab === 'lunas' && (
+                        <View>
+                            <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.text, marginBottom: 15 }}>Riwayat Pembayaran SPP</Text>
+                            {isSppLoading ? (
+                                <ActivityIndicator size="large" color={theme.primary} />
+                            ) : sppData.paid.length === 0 ? (
+                                <Text style={{ color: theme.textMuted, textAlign: 'center', marginTop: 20 }}>Belum ada data pembayaran.</Text>
+                            ) : (
+                                sppData.paid.map((item, index) => (
+                                    <View key={index} style={{
+                                        backgroundColor: theme.card,
+                                        padding: 16,
+                                        borderRadius: 16,
+                                        marginBottom: 12,
+                                        borderColor: theme.border,
+                                        borderWidth: 1,
+                                        flexDirection: 'row',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center'
+                                    }}>
+                                        <View>
+                                            <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.text }}>SPP {item.bulan_nama} {item.tahun}</Text>
+                                            <Text style={{ fontSize: 12, color: theme.textMuted }}>Dibayar: {item.formatted_tanggal}</Text>
+                                        </View>
+                                        <View style={{ alignItems: 'flex-end' }}>
+                                            <Text style={{ fontSize: 14, color: '#16a34a', fontWeight: 'bold' }}>LUNAS</Text>
+                                            <Text style={{ fontSize: 12, color: theme.text }}>{item.formatted_nominal}</Text>
+                                        </View>
+                                    </View>
+                                ))
+                            )}
+                        </View>
                     )}
                 </ScrollView>
             </ScreenTemplate>
