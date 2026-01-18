@@ -23,6 +23,8 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { CameraView, Camera } from "expo-camera";
+import { WebView } from "react-native-webview";
+
 import QRCode from 'react-native-qrcode-svg';
 import Svg, { Path } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -30,7 +32,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const { width, height } = Dimensions.get('window');
 
 // GANTI IP INI SESUAI IP KOMPUTER ANDA!
-const BASE_URL = 'http://192.168.0.103/absensi-digital%203';
+const BASE_URL = 'http://192.168.0.103/absensi-digital';
 
 // Icon paths from dashboard.php and reference image
 const PATHS = {
@@ -172,7 +174,9 @@ const translations = {
         newest: "Terbaru",
         oldest: "Terlama",
         thisWeek: "Minggu Ini",
-        thisMonth: "Bulan Ini"
+        thisMonth: "Bulan Ini",
+        pelajaran: "Pelajaran",
+        cariNilai: "Cari nilai / pelajaran..."
     },
     en: {
         loginTitle: "Digital Attendance",
@@ -263,7 +267,9 @@ const translations = {
         newest: "Newest",
         oldest: "Oldest",
         thisWeek: "This Week",
-        thisMonth: "This Month"
+        thisMonth: "This Month",
+        pelajaran: "Subject",
+        cariNilai: "Search grades / subjects..."
     }
 };
 
@@ -285,6 +291,19 @@ export default function App() {
     const [pengumumanList, setPengumumanList] = useState([]);
     const [selectedPengumuman, setSelectedPengumuman] = useState(null);
     const [detailModalVisible, setDetailModalVisible] = useState(false);
+    const [nilaiData, setNilaiData] = useState([]);
+    const [nilaiSearch, setNilaiSearch] = useState('');
+    const [nilaiSort, setNilaiSort] = useState('newest'); // newest, oldest, pelajaran
+    const [isNilaiSortDropdownOpen, setIsNilaiSortDropdownOpen] = useState(false);
+
+    // Payment States
+    const [topUpAmount, setTopUpAmount] = useState('');
+    const [showTopUpModal, setShowTopUpModal] = useState(false);
+    const [paymentUrl, setPaymentUrl] = useState(null);
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [saldo, setSaldo] = useState(0);
+    const [riwayatSaldo, setRiwayatSaldo] = useState([]);
+    const [currentOrderId, setCurrentOrderId] = useState(null);
 
     // Konfigurasi Versi Aplikasi
     const CURRENT_APP_VERSION = "1.0.0";
@@ -306,6 +325,13 @@ export default function App() {
         const versionInterval = setInterval(checkAppVersion, 60000);
         return () => clearInterval(versionInterval);
     }, []);
+
+    useEffect(() => {
+        if (currentView === 'pembayaran') {
+            fetchSaldo();
+        }
+    }, [currentView]);
+
 
     const checkAppVersion = async () => {
         try {
@@ -332,6 +358,7 @@ export default function App() {
         if (currentView === 'jadwal') fetchJadwal();
         if (currentView === 'elearning') fetchLearningMaterials();
         if (currentView === 'pengumuman') fetchPengumuman();
+        if (currentView === 'nilai') fetchNilaiData();
 
         // Check version on manually refresh too
         checkAppVersion();
@@ -491,6 +518,9 @@ export default function App() {
             // Auto refresh pengumuman every 10 seconds
             interval = setInterval(fetchPengumuman, 10000);
         }
+        if (userData && currentView === 'nilai') {
+            fetchNilaiData();
+        }
 
         return () => {
             if (interval) clearInterval(interval);
@@ -599,6 +629,71 @@ export default function App() {
         }
     };
 
+    const fetchSaldo = async () => {
+        if (!userData) return;
+        try {
+            const response = await fetch(`${BASE_URL}/app/api/payment/get_saldo.php?user_id=${userData.user.id}&role=${userData.role}`);
+            const result = await response.json();
+            if (result.status === 'success') {
+                setSaldo(result.saldo);
+                setRiwayatSaldo(result.history);
+            }
+        } catch (error) {
+            console.log("Fetch Saldo Error:", error);
+        }
+    };
+
+    const handleTopUp = async () => {
+        if (!topUpAmount || isNaN(topUpAmount) || parseInt(topUpAmount) < 10000) {
+            Alert.alert("Invalid Amount", "Minimal Top Up adalah Rp 10.000");
+            return;
+        }
+        setShowTopUpModal(false);
+
+        try {
+            const response = await fetch(`${BASE_URL}/app/api/payment/snap_token.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: userData.user.id,
+                    role: userData.role,
+                    amount: parseInt(topUpAmount),
+                    type: 'topup'
+                })
+            });
+            const result = await response.json();
+            if (result.token) {
+                setPaymentUrl(result.redirect_url);
+                setCurrentOrderId(result.order_id); // Save Order ID
+                setShowPaymentModal(true);
+            } else {
+                Alert.alert("Error", result.message || "Gagal membuat transaksi");
+            }
+        } catch (e) {
+            Alert.alert("Error", "Gagal menghubungi server pembayaran");
+        }
+    };
+
+    const fetchNilaiData = async () => {
+        if (!userData) return;
+        try {
+            const response = await fetch(`${BASE_URL}/app/api/nilai.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: userData.user.id,
+                    role: userData.role
+                }),
+            });
+            const result = await response.json();
+            if (result.success) {
+                setNilaiData(result.data);
+            }
+        } catch (error) {
+            console.error("Fetch nilai error:", error);
+        }
+    };
+
     const handleLogin = async () => {
         if (!username || !password) {
             Alert.alert('Error', 'Mohon isi username dan password');
@@ -679,7 +774,7 @@ export default function App() {
     };
 
     // View Components
-    const ScreenTemplate = useMemo(() => ({ title, subtitle, showBack = true, children, headerOverlap = true }) => (
+    const ScreenTemplate = useCallback(({ title, subtitle, showBack = true, children, headerOverlap = true }) => (
         <View style={[styles.dashboardWrapper, { backgroundColor: theme.bg }]}>
             <View style={styles.webHeader}>
                 <View style={styles.headerFlex}>
@@ -697,6 +792,8 @@ export default function App() {
             <ScrollView
                 style={styles.scrollView}
                 bounces={true}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
             >
                 <View style={[styles.mainContent, { paddingBottom: 120 }, !headerOverlap && { marginTop: 0 }]}>
                     {children}
@@ -706,12 +803,12 @@ export default function App() {
             {/* Navigasi tetap tampil di semua view dashboard kecuali login/scanner */}
             {renderBottomNav()}
         </View>
-    ), [theme, renderBottomNav]);
+    ), [theme, currentView, isDarkMode, language, isKeyboardVisible]); // Added isKeyboardVisible and other state deps directly
 
     const renderBottomNav = useCallback(() => {
         if (isKeyboardVisible) return null;
         return (
-            <View style={[styles.webBottomNav, { backgroundColor: theme.bottomNav, borderTopColor: isDarkMode ? '#334155' : '#f1f5f9' }]}>
+            <View style={[styles.webBottomNav, { backgroundColor: theme.bottomNav, borderTopColor: isDarkMode ? '#334155' : '#f1f5f9', height: 100 }]}>
                 {/* Home */}
                 <TouchableOpacity style={styles.navBtn} onPress={() => setCurrentView('dashboard')}>
                     <WebIcon name="home" size={28} color={currentView === 'dashboard' ? '#7c3aed' : theme.navIconIdle} />
@@ -733,7 +830,7 @@ export default function App() {
                 </TouchableOpacity>
             </View>
         );
-    }, [theme, isDarkMode, currentView, language]);
+    }, [theme, isDarkMode, currentView, language, isKeyboardVisible]); // Fix: Added isKeyboardVisible dependency
 
     // UI Renders
     const renderLogin = () => (
@@ -1561,6 +1658,94 @@ export default function App() {
         );
     };
 
+    const renderPembayaran = () => {
+        return (
+
+
+            <ScreenTemplate title="Pembayaran" onBack={() => setCurrentView('dashboard')}>
+                <ScrollView
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={fetchSaldo} />}
+                    style={{ padding: 20 }}
+                >
+                    {/* Card Saldo */}
+                    <View style={{
+                        backgroundColor: '#7c3aed',
+                        borderRadius: 24,
+                        padding: 24,
+                        marginBottom: 24,
+                        elevation: 10,
+                        shadowColor: '#7c3aed',
+                        shadowOffset: { width: 0, height: 8 },
+                        shadowOpacity: 0.3,
+                        shadowRadius: 16
+                    }}>
+                        <Text style={{ color: '#ddd6fe', fontSize: 14 }}>Saldo E-Wallet</Text>
+                        <Text style={{ color: 'white', fontSize: 32, fontWeight: 'bold', marginVertical: 8 }}>
+                            Rp {parseInt(saldo).toLocaleString('id-ID')}
+                        </Text>
+                        <TouchableOpacity
+                            style={{
+                                backgroundColor: 'white',
+                                paddingVertical: 12,
+                                borderRadius: 12,
+                                alignItems: 'center',
+                                marginTop: 12
+                            }}
+                            onPress={() => setShowTopUpModal(true)}
+                        >
+                            <Text style={{ color: '#7c3aed', fontWeight: 'bold', fontSize: 16 }}>+ Top Up Saldo</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.text, marginBottom: 15 }}>Riwayat Transaksi</Text>
+
+                    {riwayatSaldo.length === 0 ? (
+                        <View style={{ alignItems: 'center', marginTop: 30 }}>
+                            <WebIcon name="info" size={40} color={theme.textMuted} />
+                            <Text style={{ color: theme.textMuted, marginTop: 10 }}>Belum ada transaksi</Text>
+                        </View>
+                    ) : (
+                        riwayatSaldo.map((item, index) => (
+                            <View key={index} style={{
+                                flexDirection: 'row',
+                                backgroundColor: theme.card,
+                                padding: 16,
+                                borderRadius: 16,
+                                marginBottom: 12,
+                                alignItems: 'center',
+                                borderColor: theme.border,
+                                borderWidth: 1
+                            }}>
+                                <View style={{
+                                    width: 44,
+                                    height: 44,
+                                    borderRadius: 22,
+                                    backgroundColor: item.tipe === 'masuk' ? '#dcfce7' : '#fee2e2',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    marginRight: 16
+                                }}>
+                                    <WebIcon name={item.tipe === 'masuk' ? 'download' : 'upload'} size={20} color={item.tipe === 'masuk' ? '#16a34a' : '#ef4444'} />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.text }}>{item.keterangan}</Text>
+                                    <Text style={{ fontSize: 12, color: theme.textMuted }}>{new Date(item.created_at).toLocaleString()}</Text>
+                                </View>
+                                <Text style={{
+                                    fontSize: 16,
+                                    fontWeight: 'bold',
+                                    color: item.tipe === 'masuk' ? '#16a34a' : '#ef4444'
+                                }}>
+                                    {item.tipe === 'masuk' ? '+' : '-'} Rp {parseInt(item.jumlah).toLocaleString()}
+                                </Text>
+                            </View>
+                        ))
+                    )}
+                </ScrollView>
+            </ScreenTemplate>
+        );
+    };
+
     const renderKehadiran = () => {
         const summary = attendanceHistory.summary || { hadir: 0, terlambat: 0, izin: 0, sakit: 0, alpa: 0 };
         const history = attendanceHistory.history || [];
@@ -1728,18 +1913,271 @@ export default function App() {
         </ScreenTemplate>
     );
 
+    const renderNilai = () => {
+        const isSiswa = userData?.role === 'siswa';
+
+        // Filter and Sort Logic
+        let processedNilai = [...nilaiData];
+
+        // 1. Searching
+        if (nilaiSearch.trim() !== '') {
+            const query = nilaiSearch.toLowerCase();
+            if (isSiswa) {
+                processedNilai = processedNilai.filter(item =>
+                    item.mata_pelajaran.toLowerCase().includes(query) ||
+                    item.guru.toLowerCase().includes(query) ||
+                    item.grades.some(g => g.ket && g.ket.toLowerCase().includes(query))
+                );
+            } else {
+                processedNilai = processedNilai.filter(item =>
+                    item.nama_siswa.toLowerCase().includes(query) ||
+                    item.nama_mapel.toLowerCase().includes(query) ||
+                    item.tipe_nilai.toLowerCase().includes(query)
+                );
+            }
+        }
+
+        // 2. Sorting
+        processedNilai.sort((a, b) => {
+            if (isSiswa) {
+                if (nilaiSort === 'pelajaran') {
+                    return a.mata_pelajaran.localeCompare(b.mata_pelajaran);
+                }
+                const getLatestDate = (item) => Math.max(...item.grades.map(g => new Date(g.tgl).getTime()));
+                return nilaiSort === 'oldest' ? getLatestDate(a) - getLatestDate(b) : getLatestDate(b) - getLatestDate(a);
+            } else {
+                if (nilaiSort === 'pelajaran') {
+                    return a.nama_mapel.localeCompare(b.nama_mapel);
+                }
+                const dateA = new Date(a.created_at).getTime();
+                const dateB = new Date(b.created_at).getTime();
+                return nilaiSort === 'oldest' ? dateA - dateB : dateB - dateA;
+            }
+        });
+
+        const getGradeStyle = (val) => {
+            const grade = parseFloat(val);
+            if (grade >= 80) return {
+                bg: isDarkMode ? '#064e3b' : '#dcfce7',
+                text: isDarkMode ? '#34d399' : '#166534'
+            };
+            if (grade >= 60) return {
+                bg: isDarkMode ? '#713f1240' : '#fef9c3',
+                text: isDarkMode ? '#facc15' : '#854d0e'
+            };
+            return {
+                bg: isDarkMode ? '#7f1d1d' : '#fee2e2',
+                text: isDarkMode ? '#f87171' : '#991b1b'
+            };
+        };
+
+        return (
+            <View style={[styles.dashboardWrapper, { backgroundColor: theme.bg }]}>
+                {/* Fixed Header Manual - Same as E-Learning */}
+                <View style={styles.webHeader}>
+                    <View style={styles.headerFlex}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.webHeaderTitle}>{t('nilai')}</Text>
+                            <Text style={styles.webHeaderSubtitle}>{t('raportAkademik')}</Text>
+                        </View>
+                        <TouchableOpacity onPress={() => setCurrentView('dashboard')}>
+                            <WebIcon name="back" size={24} color="white" />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                {/* Scrollable Content */}
+                <ScrollView
+                    style={styles.scrollView}
+                    bounces={true}
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode="on-drag"
+                >
+                    <View style={[styles.mainContent, { paddingBottom: 120, marginTop: 0 }]}>
+                        {/* Search Bar - Exactly like E-Learning */}
+                        <View style={{ marginBottom: 15, marginTop: 10 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.card, borderRadius: 12, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.border }}>
+                                <WebIcon name="search" size={20} color={theme.textMuted} />
+                                <TextInput
+                                    style={{ flex: 1, padding: 12, color: theme.text, fontSize: 14 }}
+                                    placeholder={t('cariNilai')}
+                                    placeholderTextColor={theme.textMuted}
+                                    value={nilaiSearch}
+                                    onChangeText={setNilaiSearch}
+                                    autoCapitalize="none"
+                                />
+                                {nilaiSearch.length > 0 && (
+                                    <TouchableOpacity onPress={() => setNilaiSearch('')}>
+                                        <WebIcon name="close" size={16} color={theme.textMuted} />
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+                        </View>
+
+                        {/* Sort Dropdown - Exactly like E-Learning's time filter */}
+                        <View style={{ zIndex: 1000, marginBottom: 15 }}>
+                            <TouchableOpacity
+                                style={{
+                                    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                                    backgroundColor: theme.card, padding: 12, borderRadius: 12,
+                                    borderWidth: 1, borderColor: theme.border
+                                }}
+                                onPress={() => setIsNilaiSortDropdownOpen(!isNilaiSortDropdownOpen)}
+                            >
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <WebIcon name="calendar" size={16} color={theme.textMuted} style={{ marginRight: 8 }} />
+                                    <Text style={{ color: theme.text }}>{t('filter')}: {t(nilaiSort)}</Text>
+                                </View>
+                                <WebIcon name="back" size={16} color={theme.textMuted} style={{ transform: [{ rotate: isNilaiSortDropdownOpen ? '90deg' : '-90deg' }] }} />
+                            </TouchableOpacity>
+
+                            {isNilaiSortDropdownOpen && (
+                                <View style={{
+                                    position: 'absolute', top: 50, left: 0, right: 0,
+                                    backgroundColor: theme.card, borderRadius: 12,
+                                    borderWidth: 1, borderColor: theme.border,
+                                    shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 5,
+                                    zIndex: 2000
+                                }}>
+                                    {['newest', 'oldest', 'pelajaran'].map((option, idx) => (
+                                        <TouchableOpacity
+                                            key={option}
+                                            style={{
+                                                padding: 12,
+                                                borderBottomWidth: idx === 2 ? 0 : 1,
+                                                borderBottomColor: theme.border,
+                                                flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'
+                                            }}
+                                            onPress={() => {
+                                                setNilaiSort(option);
+                                                setIsNilaiSortDropdownOpen(false);
+                                            }}
+                                        >
+                                            <Text style={{ color: nilaiSort === option ? theme.primary : theme.text, fontWeight: nilaiSort === option ? 'bold' : 'normal' }}>
+                                                {t(option)}
+                                            </Text>
+                                            {nilaiSort === option && <WebIcon name="tag" size={14} color={theme.primary} />}
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            )}
+                        </View>
+
+                        {/* List Results */}
+                        <View>
+                            {processedNilai.length === 0 ? (
+                                <View style={{ padding: 40, alignItems: 'center', opacity: 0.8 }}>
+                                    <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
+                                        <WebIcon name="barChart" size={32} color={theme.textMuted} />
+                                    </View>
+                                    <Text style={{ color: theme.text, fontSize: 16, fontWeight: 'bold' }}>{nilaiSearch ? "Tidak Ditemukan" : "Belum Ada Nilai"}</Text>
+                                    <Text style={{ color: theme.textMuted, textAlign: 'center', marginTop: 8, fontSize: 14 }}>
+                                        {nilaiSearch ? "Coba gunakan kata kunci lain." : (isSiswa ? "Nilai Anda belum diinput oleh guru mata pelajaran." : "Anda belum menginput nilai untuk siswa manapun.")}
+                                    </Text>
+                                </View>
+                            ) : isSiswa ? (
+                                // UI SISWA - Grouped by Mapel
+                                processedNilai.map((item, index) => (
+                                    <View key={index} style={{
+                                        backgroundColor: theme.card,
+                                        borderRadius: 24,
+                                        marginBottom: 20,
+                                        padding: 20,
+                                        borderWidth: 1,
+                                        borderColor: theme.border,
+                                        shadowColor: "#000",
+                                        shadowOffset: { width: 0, height: 4 },
+                                        shadowOpacity: 0.05,
+                                        shadowRadius: 10,
+                                        elevation: 3
+                                    }}>
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: isDarkMode ? '#3b82f620' : '#eff6ff', justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
+                                                    <WebIcon name="book" size={22} color="#3b82f6" />
+                                                </View>
+                                                <View>
+                                                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.text }}>{item.mata_pelajaran}</Text>
+                                                    <Text style={{ fontSize: 12, color: theme.textMuted }}>{item.guru}</Text>
+                                                </View>
+                                            </View>
+                                        </View>
+
+                                        <View style={{ gap: 12 }}>
+                                            {item.grades.sort((a, b) => {
+                                                const dateA = new Date(a.tgl).getTime();
+                                                const dateB = new Date(b.tgl).getTime();
+                                                return nilaiSort === 'oldest' ? dateA - dateB : dateB - dateA;
+                                            }).map((g, gi) => (
+                                                <View key={gi} style={{
+                                                    flexDirection: 'row',
+                                                    alignItems: 'center',
+                                                    backgroundColor: isDarkMode ? '#0f172a' : '#f8fafc',
+                                                    padding: 12,
+                                                    borderRadius: 16,
+                                                    borderWidth: 1,
+                                                    borderColor: isDarkMode ? '#334155' : '#f1f5f9'
+                                                }}>
+                                                    <View style={{ flex: 1 }}>
+                                                        <Text style={{ fontSize: 11, fontWeight: 'bold', color: theme.textMuted, marginBottom: 2 }}>{g.tipe}</Text>
+                                                        <Text style={{ fontSize: 13, color: theme.text, fontWeight: '600' }} numberOfLines={1}>{g.ket || 'Tidak ada keterangan'}</Text>
+                                                        <Text style={{ fontSize: 10, color: theme.textMuted, marginTop: 4 }}>{new Date(g.tgl).toLocaleDateString()}</Text>
+                                                    </View>
+                                                    <View style={{
+                                                        width: 50, height: 50, borderRadius: 12,
+                                                        backgroundColor: getGradeStyle(g.nilai).bg,
+                                                        justifyContent: 'center', alignItems: 'center'
+                                                    }}>
+                                                        <Text style={{
+                                                            fontSize: 16, fontWeight: '900',
+                                                            color: getGradeStyle(g.nilai).text
+                                                        }}>{parseFloat(g.nilai)}</Text>
+                                                    </View>
+                                                </View>
+                                            ))}
+                                        </View>
+                                    </View>
+                                ))
+                            ) : (
+                                // UI GURU - List of recent grades given
+                                processedNilai.map((item, index) => (
+                                    <View key={index} style={[styles.infoItemCard, { backgroundColor: theme.card, padding: 16 }]}>
+                                        <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: getGradeStyle(item.nilai).bg, justifyContent: 'center', alignItems: 'center', marginRight: 16 }}>
+                                            <Text style={{ fontSize: 18, fontWeight: 'bold', color: getGradeStyle(item.nilai).text }}>{item.nilai}</Text>
+                                        </View>
+                                        <View style={{ flex: 1 }}>
+                                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <Text style={{ fontSize: 15, fontWeight: 'bold', color: theme.text }}>{item.nama_siswa}</Text>
+                                                <Text style={{ fontSize: 10, fontWeight: 'bold', color: getGradeStyle(item.nilai).text, backgroundColor: getGradeStyle(item.nilai).bg, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>{item.tipe_nilai}</Text>
+                                            </View>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                                                <WebIcon name="book" size={12} color={theme.textMuted} style={{ marginRight: 4 }} />
+                                                <Text style={{ fontSize: 12, color: theme.textMuted }}>{item.nama_mapel} • {item.nama_kelas}</Text>
+                                            </View>
+                                            <Text style={{ fontSize: 11, color: theme.textMuted, marginTop: 4 }}>{new Date(item.created_at).toLocaleString()}</Text>
+                                        </View>
+                                    </View>
+                                ))
+                            )}
+                        </View>
+                    </View>
+                </ScrollView>
+
+                {/* Bottom Navigation */}
+                {renderBottomNav()}
+            </View>
+        );
+    };
     const renderPengumuman = () => {
         return (
             <ScreenTemplate title={t('pengumuman')} subtitle={t('infoTerbaru')} headerOverlap={false}>
-
                 {/* Time Filter Dropdown */}
-                <View style={{ zIndex: 1000, marginTop: 20, marginHorizontal: 0 }}>
+                <View style={{ zIndex: 1000, marginTop: 20 }}>
                     <TouchableOpacity
                         style={{
                             flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
                             backgroundColor: theme.card, padding: 12, borderRadius: 12,
-                            borderWidth: 1, borderColor: theme.border,
-                            shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2
+                            borderWidth: 1, borderColor: theme.border, elevation: 2
                         }}
                         onPress={() => setIsPengumumanTimeDropdownOpen(!isPengumumanTimeDropdownOpen)}
                     >
@@ -1754,16 +2192,13 @@ export default function App() {
                         <View style={{
                             position: 'absolute', top: 50, left: 0, right: 0,
                             backgroundColor: theme.card, borderRadius: 12,
-                            borderWidth: 1, borderColor: theme.border,
-                            shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 5
+                            borderWidth: 1, borderColor: theme.border, zIndex: 2000, elevation: 5
                         }}>
                             {['newest', 'oldest', 'thisWeek', 'thisMonth'].map((option, idx) => (
                                 <TouchableOpacity
                                     key={option}
                                     style={{
-                                        padding: 12,
-                                        borderBottomWidth: idx === 3 ? 0 : 1,
-                                        borderBottomColor: theme.border,
+                                        padding: 12, borderBottomWidth: idx === 3 ? 0 : 1, borderBottomColor: theme.border,
                                         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'
                                     }}
                                     onPress={() => {
@@ -1781,15 +2216,13 @@ export default function App() {
                     )}
                 </View>
 
-                {/* List */}
+                {/* List Container */}
                 <View style={{ marginTop: 20, paddingBottom: 40 }}>
                     {pengumumanList
                         .filter(item => {
-                            // Time Filter Logic
                             let matchesTime = true;
                             const itemDate = new Date(item.tanggal_publish);
                             const now = new Date();
-
                             if (pengumumanTimeFilter === 'thisWeek') {
                                 const oneWeekAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
                                 matchesTime = itemDate >= oneWeekAgo;
@@ -1799,13 +2232,9 @@ export default function App() {
                             return matchesTime;
                         })
                         .sort((a, b) => {
-                            // Sorting Logic
                             const dateA = new Date(a.tanggal_publish);
                             const dateB = new Date(b.tanggal_publish);
-                            if (pengumumanTimeFilter === 'oldest') {
-                                return dateA - dateB;
-                            }
-                            return dateB - dateA; // Default newest
+                            return pengumumanTimeFilter === 'oldest' ? dateA - dateB : dateB - dateA;
                         })
                         .length === 0 ? (
                         <View style={{ padding: 40, alignItems: 'center', opacity: 0.7 }}>
@@ -1817,12 +2246,9 @@ export default function App() {
                     ) : (
                         pengumumanList
                             .filter(item => {
-                                // Time Filter Logic duplicated just for the map to work on the filtered list
-                                // Ideally we variable-ize the filtered list, but standard practice here is fine for now or simpler logic
                                 let matchesTime = true;
                                 const itemDate = new Date(item.tanggal_publish);
                                 const now = new Date();
-
                                 if (pengumumanTimeFilter === 'thisWeek') {
                                     const oneWeekAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
                                     matchesTime = itemDate >= oneWeekAgo;
@@ -1832,87 +2258,38 @@ export default function App() {
                                 return matchesTime;
                             })
                             .sort((a, b) => {
-                                // Sorting Logic
                                 const dateA = new Date(a.tanggal_publish);
                                 const dateB = new Date(b.tanggal_publish);
-                                if (pengumumanTimeFilter === 'oldest') {
-                                    return dateA - dateB;
-                                }
-                                return dateB - dateA; // Default newest
+                                return pengumumanTimeFilter === 'oldest' ? dateA - dateB : dateB - dateA;
                             })
                             .map((item, index) => {
-                                // Random color generator based on index for variety
                                 const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
                                 const accentColor = colors[index % colors.length];
-
                                 return (
                                     <View key={index} style={{
-                                        backgroundColor: theme.card,
-                                        borderRadius: 20,
-                                        marginBottom: 20,
-                                        overflow: 'hidden',
-                                        borderWidth: 1,
-                                        borderColor: isDarkMode ? '#334155' : '#f1f5f9',
-                                        shadowColor: accentColor,
-                                        shadowOffset: { width: 0, height: 4 },
-                                        shadowOpacity: isDarkMode ? 0 : 0.05,
-                                        shadowRadius: 10,
-                                        elevation: 3
+                                        backgroundColor: theme.card, borderRadius: 20, marginBottom: 20,
+                                        overflow: 'hidden', borderWidth: 1, borderColor: theme.border, elevation: 3
                                     }}>
-                                        {/* Color Strip Top */}
                                         <View style={{ height: 6, width: '100%', backgroundColor: accentColor }} />
-
                                         <View style={{ padding: 20 }}>
-                                            {/* Header */}
                                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                                                 <View style={{ flex: 1, paddingRight: 10 }}>
-                                                    <Text style={{ color: theme.text, fontSize: 18, fontWeight: 'bold', lineHeight: 24 }}>{item.judul}</Text>
-                                                    <Text style={{ color: theme.textMuted, fontSize: 12, marginTop: 4 }}>
-                                                        {new Date(item.tanggal_publish).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                                    </Text>
+                                                    <Text style={{ color: theme.text, fontSize: 18, fontWeight: 'bold' }}>{item.judul}</Text>
+                                                    <Text style={{ color: theme.textMuted, fontSize: 12, marginTop: 4 }}>{new Date(item.tanggal_publish).toLocaleDateString()}</Text>
                                                 </View>
-
-                                                {/* Icon & Badge Container */}
-                                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                                    {/* Badge moved here */}
-                                                    {new Date().toDateString() === new Date(item.tanggal_publish).toDateString() && (
-                                                        <View style={{ backgroundColor: '#fee2e2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, marginRight: 8 }}>
-                                                            <Text style={{ color: '#ef4444', fontSize: 10, fontWeight: 'bold' }}>{t('baru')}</Text>
-                                                        </View>
-                                                    )}
-                                                    <View style={{
-                                                        width: 40, height: 40, borderRadius: 12,
-                                                        backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#f8fafc',
-                                                        justifyContent: 'center', alignItems: 'center'
-                                                    }}>
-                                                        <WebIcon name="speaker" size={20} color={accentColor} />
-                                                    </View>
+                                                <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#f8fafc', justifyContent: 'center', alignItems: 'center' }}>
+                                                    <WebIcon name="speaker" size={20} color={accentColor} />
                                                 </View>
                                             </View>
-
-                                            {/* Body */}
                                             <View style={{ backgroundColor: isDarkMode ? 'rgba(0,0,0,0.2)' : '#f8fafc', padding: 16, borderRadius: 12, marginBottom: 16 }}>
-                                                <Text style={{ color: theme.text, fontSize: 14, lineHeight: 22, opacity: 0.9 }} numberOfLines={3}>
-                                                    {item.isi}
-                                                </Text>
+                                                <Text style={{ color: theme.text, fontSize: 14, lineHeight: 22 }} numberOfLines={3}>{item.isi}</Text>
                                             </View>
-
-                                            {/* Footer / Badge */}
                                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                                     <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: accentColor, marginRight: 8 }} />
-                                                    <Text style={{ fontSize: 12, fontWeight: '600', color: theme.textMuted }}>
-                                                        {item.target_role === 'semua' ? t('umum') : item.target_role.toUpperCase()}
-                                                    </Text>
+                                                    <Text style={{ fontSize: 12, fontWeight: '600', color: theme.textMuted }}>{item.target_role.toUpperCase()}</Text>
                                                 </View>
-
-                                                <TouchableOpacity
-                                                    style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 4 }}
-                                                    onPress={() => {
-                                                        setSelectedPengumuman(item);
-                                                        setDetailModalVisible(true);
-                                                    }}
-                                                >
+                                                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => { setSelectedPengumuman(item); setDetailModalVisible(true); }}>
                                                     <Text style={{ fontSize: 13, fontWeight: 'bold', color: theme.primary, marginRight: 4 }}>{t('lihatSelengkapnya')}</Text>
                                                     <WebIcon name="back" size={14} color={theme.primary} style={{ transform: [{ rotate: '180deg' }] }} />
                                                 </TouchableOpacity>
@@ -1936,13 +2313,13 @@ export default function App() {
             {currentView === 'profil' && renderProfil()}
             {currentView === 'kehadiran' && renderKehadiran()}
             {currentView === 'monitoring' && renderMonitoringKelas()}
-            {currentView === 'pembayaran' && renderPlaceholder('Pembayaran')}
+            {currentView === 'pembayaran' && renderPembayaran()}
 
             {currentView === 'pengumuman' && renderPengumuman()}
             {currentView === 'jadwal' && renderJadwal()}
             {currentView === 'elearning' && renderElearning()}
             {currentView === 'perizinan' && renderPlaceholder('Perizinan')}
-            {currentView === 'nilai' && renderPlaceholder('Nilai Akademik')}
+            {currentView === 'nilai' && renderNilai()}
             {currentView === 'tentang' && renderTentangAplikasi()}
 
             {/* Announcement Detail Modal - Bottom Sheet Style */}
@@ -2151,6 +2528,141 @@ export default function App() {
                 </View>
             </Modal>
 
+            {/* Top Up Input Modal */}
+            <Modal visible={showTopUpModal} transparent animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { backgroundColor: theme.card, width: '90%' }]}>
+                        <Text style={[styles.modalTitleWeb, { color: theme.text, marginBottom: 20 }]}>Top Up Saldo</Text>
+
+                        <View style={{ width: '100%', marginBottom: 20 }}>
+                            <Text style={{ color: theme.text, marginBottom: 8, fontWeight: 'bold' }}>Nominal Top Up</Text>
+                            <TextInput
+                                style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: isDarkMode ? '#1e293b' : 'white' }]}
+                                placeholder="Min. Rp 10.000"
+                                placeholderTextColor={theme.textMuted}
+                                keyboardType="numeric"
+                                value={topUpAmount}
+                                onChangeText={setTopUpAmount}
+                            />
+                        </View>
+
+                        <View style={{ flexDirection: 'row', width: '100%', gap: 10 }}>
+                            <TouchableOpacity
+                                style={{ flex: 1, padding: 16, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0', borderRadius: 12, alignItems: 'center' }}
+                                onPress={() => setShowTopUpModal(false)}
+                            >
+                                <Text style={{ color: theme.text, fontWeight: 'bold' }}>Batal</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={{ flex: 1, padding: 16, backgroundColor: theme.primary, borderRadius: 12, alignItems: 'center' }}
+                                onPress={handleTopUp}
+                            >
+                                <Text style={{ color: 'white', fontWeight: 'bold' }}>Lanjut Bayar</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Payment Webview Modal */}
+            <Modal visible={showPaymentModal} animationType="slide" onRequestClose={() => setShowPaymentModal(false)}>
+                <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' }}>
+                        <TouchableOpacity onPress={() => { setShowPaymentModal(false); fetchSaldo(); }}>
+                            <WebIcon name="close" size={24} color="black" />
+                        </TouchableOpacity>
+                        <Text style={{ fontSize: 18, fontWeight: 'bold', marginLeft: 16 }}>Pembayaran</Text>
+                    </View>
+                    {paymentUrl && (
+                        <WebView
+                            source={{ uri: paymentUrl }}
+                            style={{ flex: 1 }}
+                            onNavigationStateChange={(navState) => {
+                                // Detect if payment finished/redirected
+                                if (navState.url.includes('finish') || navState.url.includes('example.com')) {
+                                    // Assuming user configured callback to example.com or similar
+                                    // In real scenario midtrans redirects to main site or something.
+                                }
+                            }}
+                        />
+                    )}
+                </SafeAreaView>
+            </Modal>
+
+            {/* Top Up Input Modal */}
+            <Modal visible={showTopUpModal} transparent animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { backgroundColor: theme.card, width: '90%' }]}>
+                        <Text style={[styles.modalTitleWeb, { color: theme.text, marginBottom: 20 }]}>Top Up Saldo</Text>
+
+                        <View style={{ width: '100%', marginBottom: 20 }}>
+                            <Text style={{ color: theme.text, marginBottom: 8, fontWeight: 'bold' }}>Nominal Top Up</Text>
+                            <TextInput
+                                style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: isDarkMode ? '#1e293b' : 'white' }]}
+                                placeholder="Min. Rp 10.000"
+                                placeholderTextColor={theme.textMuted}
+                                keyboardType="numeric"
+                                value={topUpAmount}
+                                onChangeText={setTopUpAmount}
+                            />
+                        </View>
+
+                        <View style={{ flexDirection: 'row', width: '100%', gap: 10 }}>
+                            <TouchableOpacity
+                                style={{ flex: 1, padding: 16, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0', borderRadius: 12, alignItems: 'center' }}
+                                onPress={() => setShowTopUpModal(false)}
+                            >
+                                <Text style={{ color: theme.text, fontWeight: 'bold' }}>Batal</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={{ flex: 1, padding: 16, backgroundColor: theme.primary, borderRadius: 12, alignItems: 'center' }}
+                                onPress={handleTopUp}
+                            >
+                                <Text style={{ color: 'white', fontWeight: 'bold' }}>Lanjut Bayar</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Payment Webview Modal */}
+            <Modal visible={showPaymentModal} animationType="slide" onRequestClose={() => setShowPaymentModal(false)}>
+                <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' }}>
+                        <TouchableOpacity onPress={() => { setShowPaymentModal(false); fetchSaldo(); }}>
+                            <WebIcon name="close" size={24} color="black" />
+                        </TouchableOpacity>
+                        <Text style={{ fontSize: 18, fontWeight: 'bold', marginLeft: 16 }}>Pembayaran</Text>
+                    </View>
+                    {paymentUrl && (
+                        <WebView
+                            source={{ uri: paymentUrl }}
+                            style={{ flex: 1 }}
+                            onNavigationStateChange={async (navState) => {
+                                // Midtrans default redirect is often example.com if not configured
+                                if (navState.url.includes('example.com') || navState.url.includes('finish') || navState.url.includes('gopay/partner/app')) {
+                                    setShowPaymentModal(false);
+
+                                    // Manual Check Status to Backend
+                                    try {
+                                        if (currentOrderId) {
+                                            const checkResp = await fetch(`${BASE_URL}/app/api/payment/check_status.php?order_id=${currentOrderId}`);
+                                            const checkResult = await checkResp.json();
+                                            if (checkResult.status === 'success') {
+                                                Alert.alert('Berhasil', 'Pembayaran berhasil dikonfirmasi!');
+                                            }
+                                        }
+                                    } catch (e) {
+                                        console.log("Check status error", e);
+                                    }
+
+                                    fetchSaldo(); // Refresh balance
+                                }
+                            }}
+                        />
+                    )}
+                </SafeAreaView>
+            </Modal>
         </SafeAreaView >
     );
 }

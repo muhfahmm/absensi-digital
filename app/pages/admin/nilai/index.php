@@ -6,6 +6,7 @@ require_once __DIR__ . '/../../../config/database.php';
 
 // Cek Logged In Admin
 check_login('admin');
+$admin_id = $_SESSION['admin_id'] ?? null;
 
 // Handle Delete
 if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id'])) {
@@ -18,38 +19,30 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id']))
     }
 }
 
-// Fetch Data
-$query = "SELECT n.*, s.nama_lengkap as nama_siswa, k.nama_kelas, m.nama_mapel, g.nama_lengkap as nama_guru 
-          FROM tb_nilai n 
-          JOIN tb_siswa s ON n.id_siswa = s.id 
-          JOIN tb_kelas k ON n.id_kelas = k.id 
-          JOIN tb_mata_pelajaran m ON n.id_mapel = m.id 
-          JOIN tb_guru g ON n.id_guru = g.id 
-          ORDER BY n.created_at DESC";
-$stmt = $pdo->prepare($query);
-$stmt->execute();
-$nilai_list = $stmt->fetchAll();
-
-$admin_id = $_SESSION['admin_id'] ?? null;
+// 1. Get Admin Context for Filtering
+$mapel_id_filter = null;
 $admin_name = $_SESSION['admin_nama'] ?? 'Admin';
 $kelas_id = $_SESSION['admin_kelas_id'] ?? null;
 $initial = substr($admin_name, 0, 1);
 $nama_peran = 'Admin Global';
 
 if ($admin_id) {
-    $stmtPeran = $pdo->prepare("
-        SELECT m.nama_mapel, k.nama_kelas
+    // Cek apakah admin ini adalah Guru (punya Mapel) atau Master Admin (tanpa NUPTK)
+    $stmtAdmin = $pdo->prepare("
+        SELECT a.guru_mapel_id as admin_mapel, g.guru_mapel_id as guru_mapel, m.nama_mapel, k.nama_kelas
         FROM tb_admin a 
         LEFT JOIN tb_guru g ON a.nuptk = g.nuptk
-        LEFT JOIN tb_mata_pelajaran m ON g.guru_mapel_id = m.id 
+        LEFT JOIN tb_mata_pelajaran m ON (g.guru_mapel_id = m.id OR a.guru_mapel_id = m.id)
         LEFT JOIN tb_kelas k ON g.id_kelas_wali = k.id
         WHERE a.id = ?
     ");
-    $stmtPeran->execute([$admin_id]);
-    $peran = $stmtPeran->fetch();
+    $stmtAdmin->execute([$admin_id]);
+    $peran = $stmtAdmin->fetch();
     
-    $roles = [];
     if ($peran) {
+        $mapel_id_filter = $peran['admin_mapel'] ?: $peran['guru_mapel'];
+        
+        $roles = [];
         if (!empty($peran['nama_mapel'])) {
             $roles[] = "Guru " . $peran['nama_mapel'];
         }
@@ -63,11 +56,32 @@ if ($admin_id) {
                 $roles[] = "Wali Kelas " . $k['nama_kelas'];
             }
         }
-    }
-    if (!empty($roles)) {
-        $nama_peran = "Admin Global (" . implode(" & ", $roles) . ")";
+        
+        if (!empty($roles)) {
+            $nama_peran = "Admin Global (" . implode(" & ", $roles) . ")";
+        }
     }
 }
+
+// 2. Fetch Data with Conditional Filter
+$query = "SELECT n.*, s.nama_lengkap as nama_siswa, k.nama_kelas, m.nama_mapel, g.nama_lengkap as nama_guru 
+          FROM tb_nilai n 
+          JOIN tb_siswa s ON n.id_siswa = s.id 
+          JOIN tb_kelas k ON n.id_kelas = k.id 
+          JOIN tb_mata_pelajaran m ON n.id_mapel = m.id 
+          JOIN tb_guru g ON n.id_guru = g.id";
+
+if ($mapel_id_filter && $admin_id != 13) { // Kecuali Master Admin (id 13 atau sesuaikan)
+    $query .= " WHERE n.id_mapel = :id_mapel";
+    $query .= " ORDER BY n.created_at DESC";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute([':id_mapel' => $mapel_id_filter]);
+} else {
+    $query .= " ORDER BY n.created_at DESC";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute();
+}
+$nilai_list = $stmt->fetchAll();
 ?>
 
 <!DOCTYPE html>

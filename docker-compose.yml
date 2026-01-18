@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # 1. Aplikasi Web (Absensi)
+  app:
+    build: .
+    container_name: absensi_web
+    restart: always
+    ports:
+      - "80:80"        # Expose port 80 container ke port 80 host (sesuaikan jika ada conflict)
+    volumes:
+      - ./uploads:/var/www/html/uploads  # Persistensi Foto/File
+      # - ./app:/var/www/html/app        # Uncomment ini HANYA jika ingin edit code live (Dev mode)
+    environment:
+      - DB_HOST=db
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+    depends_on:
+      - db
+    networks:
+      - absensi_net
+
+  # 2. Database (MariaDB)
+  db:
+    image: mariadb:10.6
+    container_name: absensi_db
+    restart: always
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASS}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./database/db_absensi_digital.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - absensi_net
+
+  # 3. phpMyAdmin (Optional - Kelola DB via Web)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: absensi_pma
+    restart: always
+    environment:
+      PMA_HOST: db
+      PMA_USER: ${DB_USER}
+      PMA_PASSWORD: ${DB_PASS}
+      UPLOAD_LIMIT: 20M
+    ports:
+      - "8081:80"
+    depends_on:
+      - db
+    networks:
+      - absensi_net
+
+networks:
+  absensi_net:
+    driver: bridge
+
+volumes:
+  db_data:

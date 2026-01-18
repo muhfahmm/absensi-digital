@@ -78,11 +78,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <?php endif; ?>
 
                     <form method="POST" action="">
-                        <div class="mb-4">
-                            <label class="block text-gray-700 text-sm font-bold mb-2">Mata Pelajaran</label>
-                            <input type="text" value="<?= htmlspecialchars($default_mapel_nama ?? 'Belum diset') ?>" readonly class="w-full bg-gray-100 border border-gray-300 rounded-lg px-4 py-2 text-gray-500 cursor-not-allowed">
+                        <!-- Identity Card -->
+                        <div class="mb-6 bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider">Identitas Penginput</span>
+                                <div class="flex items-center space-x-1 text-indigo-500">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span class="text-[10px] font-bold">Terverifikasi</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-gray-500 text-[10px] uppercase font-bold mb-1">Guru Pemberi Nilai</label>
+                                    <p class="font-bold text-gray-800 text-sm"><?= htmlspecialchars($_SESSION['guru_nama']) ?></p>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-500 text-[10px] uppercase font-bold mb-1">Mata Pelajaran</label>
+                                    <p class="font-bold text-gray-800 text-sm"><?= htmlspecialchars($default_mapel_nama ?? 'Umum') ?></p>
+                                </div>
+                            </div>
                             <?php if(!$default_mapel_id): ?>
-                                <p class="text-red-500 text-xs mt-1">Hubungi admin untuk mengatur mata pelajaran Anda.</p>
+                                <p class="text-red-500 text-[10px] mt-2 italic font-medium">* Hubungi admin untuk mengatur mata pelajaran Anda.</p>
                             <?php endif; ?>
                         </div>
 

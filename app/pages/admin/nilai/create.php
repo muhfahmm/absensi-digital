@@ -12,30 +12,51 @@ $gurus = $pdo->query("SELECT id, nama_lengkap FROM tb_guru ORDER BY nama_lengkap
 $mapels = $pdo->query("SELECT id, nama_mapel FROM tb_mata_pelajaran ORDER BY nama_mapel")->fetchAll();
 $students = $pdo->query("SELECT s.id, s.nama_lengkap, k.nama_kelas, k.id as id_kelas FROM tb_siswa s JOIN tb_kelas k ON s.id_kelas = k.id ORDER BY k.nama_kelas, s.nama_lengkap")->fetchAll();
 
+// --- Auto Detect Guru & Mapel Logic ---
+$admin_id = $_SESSION['admin_id'];
+$stmtMe = $pdo->prepare("
+    SELECT g.id as guru_id, g.nama_lengkap, m.id as mapel_id, m.nama_mapel 
+    FROM tb_admin a 
+    JOIN tb_guru g ON a.nuptk = g.nuptk 
+    LEFT JOIN tb_mata_pelajaran m ON g.guru_mapel_id = m.id 
+    WHERE a.id = ?
+");
+$stmtMe->execute([$admin_id]);
+$myData = $stmtMe->fetch();
+
+// Master Admin Fallback logic (id 13)
+$is_master = ($admin_id == 13);
+$my_guru_id = $myData['guru_id'] ?? null;
+$my_mapel_id = $myData['mapel_id'] ?? null;
+
 // Handle Submit
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $id_guru = $_POST['id_guru'];
-    $id_mapel = $_POST['id_mapel'];
+    $id_guru = $_POST['id_guru'] ?? $my_guru_id;
+    $id_mapel = $_POST['id_mapel'] ?? $my_mapel_id;
     $id_siswa = $_POST['id_siswa'];
     $tipe_nilai = $_POST['tipe_nilai'];
     $nilai = $_POST['nilai'];
     $keterangan = $_POST['keterangan'];
 
-    // Get id_kelas from selected student
-    $stmt = $pdo->prepare("SELECT id_kelas FROM tb_siswa WHERE id = ?");
-    $stmt->execute([$id_siswa]);
-    $student = $stmt->fetch();
-    $id_kelas = $student['id_kelas'];
-
-    if ($id_kelas) {
-        $stmt = $pdo->prepare("INSERT INTO tb_nilai (id_siswa, id_guru, id_mapel, id_kelas, tipe_nilai, nilai, keterangan) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        if ($stmt->execute([$id_siswa, $id_guru, $id_mapel, $id_kelas, $tipe_nilai, $nilai, $keterangan])) {
-            echo "<script>alert('Nilai berhasil disimpan'); window.location.href='index.php';</script>";
-        } else {
-            $error = "Gagal menyimpan data.";
-        }
+    if (!$id_guru || !$id_mapel) {
+        $error = "Identitas Guru atau Mata Pelajaran tidak terdeteksi.";
     } else {
-        $error = "Data siswa tidak valid.";
+        // Get id_kelas from selected student
+        $stmt = $pdo->prepare("SELECT id_kelas FROM tb_siswa WHERE id = ?");
+        $stmt->execute([$id_siswa]);
+        $student = $stmt->fetch();
+        $id_kelas = $student['id_kelas'];
+
+        if ($id_kelas) {
+            $stmt = $pdo->prepare("INSERT INTO tb_nilai (id_siswa, id_guru, id_mapel, id_kelas, tipe_nilai, nilai, keterangan) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            if ($stmt->execute([$id_siswa, $id_guru, $id_mapel, $id_kelas, $tipe_nilai, $nilai, $keterangan])) {
+                echo "<script>alert('Nilai berhasil disimpan'); window.location.href='index.php';</script>";
+            } else {
+                $error = "Gagal menyimpan data.";
+            }
+        } else {
+            $error = "Data siswa tidak valid.";
+        }
     }
 }
 ?>
@@ -75,25 +96,44 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <?php endif; ?>
 
                     <form method="POST" action="">
-                        <div class="mb-4">
-                            <label class="block text-gray-700 text-sm font-bold mb-2">Guru Pemberi Nilai</label>
-                            <select name="id_guru" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                <option value="">-- Pilih Guru --</option>
-                                <?php foreach($gurus as $g): ?>
-                                    <option value="<?= $g['id'] ?>"><?= $g['nama_lengkap'] ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
+                        <?php if ($my_guru_id && $my_mapel_id && !$is_master): ?>
+                            <div class="mb-4 bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider">Informasi Penginput</span>
+                                    <i class="fas fa-check-circle text-indigo-500"></i>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-gray-500 text-xs mb-1">Guru Pemberi Nilai</label>
+                                        <p class="font-bold text-gray-800"><?= $myData['nama_lengkap'] ?></p>
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-500 text-xs mb-1">Mata Pelajaran</label>
+                                        <p class="font-bold text-gray-800"><?= $myData['nama_mapel'] ?></p>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php else: ?>
+                            <div class="mb-4">
+                                <label class="block text-gray-700 text-sm font-bold mb-2">Guru Pemberi Nilai</label>
+                                <select name="id_guru" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option value="">-- Pilih Guru --</option>
+                                    <?php foreach($gurus as $g): ?>
+                                        <option value="<?= $g['id'] ?>" <?= ($my_guru_id == $g['id']) ? 'selected' : '' ?>><?= $g['nama_lengkap'] ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
 
-                        <div class="mb-4">
-                            <label class="block text-gray-700 text-sm font-bold mb-2">Mata Pelajaran</label>
-                            <select name="id_mapel" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                <option value="">-- Pilih Mapel --</option>
-                                <?php foreach($mapels as $m): ?>
-                                    <option value="<?= $m['id'] ?>"><?= $m['nama_mapel'] ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
+                            <div class="mb-4">
+                                <label class="block text-gray-700 text-sm font-bold mb-2">Mata Pelajaran</label>
+                                <select name="id_mapel" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option value="">-- Pilih Mapel --</option>
+                                    <?php foreach($mapels as $m): ?>
+                                        <option value="<?= $m['id'] ?>" <?= ($my_mapel_id == $m['id']) ? 'selected' : '' ?>><?= $m['nama_mapel'] ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        <?php endif; ?>
 
                         <div class="mb-4">
                             <label class="block text-gray-700 text-sm font-bold mb-2">Siswa</label>

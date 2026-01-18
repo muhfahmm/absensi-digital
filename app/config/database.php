@@ -1,10 +1,11 @@
 <?php
 // app/config/database.php
 
-$host = 'localhost';
-$user = 'root';
-$pass = '';
-$dbname = 'db_absensi_digital';
+// Cek environment variables (Docker), fallback ke default XAMPP (Localhost)
+$host = getenv('DB_HOST') ?: 'localhost';
+$dbname = getenv('DB_NAME') ?: 'db_absensi_digital';
+$user = getenv('DB_USER') ?: 'root';
+$pass = getenv('DB_PASS') ?: '';
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $user, $pass);

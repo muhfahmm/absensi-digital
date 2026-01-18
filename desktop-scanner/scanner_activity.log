@@ -255,3 +255,16 @@
 2026-01-18 09:19:31,111 - INFO - --- DETEKSI BARU: 'SISWA-1-696a09826d84a' ---
 2026-01-18 09:19:31,114 - INFO - User Berhasil Diidentifikasi: siswa 1 (siswa)
 2026-01-18 09:19:31,116 - INFO - Scan ditolak: Belum 1 jam (Wait: 59m)
+2026-01-18 12:12:34,034 - INFO - --- DETEKSI BARU: 'SISWA-1-696a09826d84a' ---
+2026-01-18 12:12:34,164 - INFO - User Berhasil Diidentifikasi: siswa 1 (siswa)
+2026-01-18 12:12:34,170 - INFO - Absen Masuk Ditemukan. Memproses Absen PULANG untuk siswa 1...
+2026-01-18 12:12:34,197 - INFO - Hasil: BERHASIL PULANG (12:12:34)
+2026-01-18 12:12:37,255 - INFO - --- DETEKSI BARU: 'SISWA-1-696a09826d84a' ---
+2026-01-18 12:12:37,272 - INFO - User Berhasil Diidentifikasi: siswa 1 (siswa)
+2026-01-18 12:12:37,277 - INFO - Hasil: DUPLIKAT (User sudah absen masuk & pulang)
+2026-01-18 18:17:24,949 - INFO - --- DETEKSI BARU: 'GURU-11-696b5b7cef8da' ---
+2026-01-18 18:17:25,110 - INFO - User Berhasil Diidentifikasi: guru 1 (guru)
+2026-01-18 18:17:25,121 - INFO - Memproses Absen MASUK untuk guru 1 | Status: terlambat
+2026-01-18 18:17:25,143 - INFO - Hasil: BERHASIL MASUK (terlambat)
+2026-01-18 19:13:40,406 - INFO - --- DETEKSI BARU: '8' ---
+2026-01-18 19:13:40,517 - WARNING - Hasil: QR TIDAK DIKENAL

@@ -4,11 +4,11 @@ Selamat! Aplikasi Anda sudah mencapai tahap 80%. Namun, sebelum mengupload ke Pl
 
 ## ⚠️ Prasyarat Utama (WAJIB DILAKUKAN)
 
-Saat ini aplikasi Anda berkomunikasi dengan `http://192.168.0.103/absensi-digital 3`.
+Saat ini aplikasi Anda berkomunikasi dengan `http://192.168.0.103/absensi-digital`.
 **IP Address ini tidak akan bisa diakses oleh orang lain yang mendownload aplikasi dari Play Store.**
 
 ### 1. Hosting Backend (PHP & Database)
-Anda **HARUS** mengupload backend (folder `absensi-digital 3` kecuali `mobile-app` dan `desktop-scanner`) ke hosting publik.
+Anda **HARUS** mengupload backend (folder `absensi-digital` kecuali `mobile-app` dan `desktop-scanner`) ke hosting publik.
 - **Beli Domain & Hosting** (Contoh: Niagahoster, Domainesia, Hostinger).
 - **Upload File**: Upload semua file PHP ke `public_html`.
 - **Import Database**: Export database lokal Anda (`.sql`) dan import ke phpMyAdmin di hosting.

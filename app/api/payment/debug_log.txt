@@ -1,0 +1,8 @@
+Checking Order ID: TRX-1768742364-973
+URL: https://api.sandbox.midtrans.com/v2/TRX-1768742364-973/status
+Server Key Used: SB-Mi...
+HTTP Code: 200
+Result: {"status_code":"200","transaction_id":"cae2784d-d521-428e-a309-a989468040be","gross_amount":"10000.00","currency":"IDR","order_id":"TRX-1768742364-973","payment_type":"credit_card","signature_key":"fd3cb6869ea14f588937a93236d10c54613dffa4ceb41d760ed5314c33bbf03b0137850ec7515f87c8db10f0379d34c166e65e07c631676934da5ec56c5e2751","transaction_status":"capture","fraud_status":"accept","status_message":"Success, Credit Card capture transaction is successful","merchant_id":"G617610329","transaction_time":"2026-01-18 20:19:56","settlement_time":"2026-01-18 20:20:04","expiry_time":"2026-01-26 20:19:55","channel_response_code":"00","channel_response_message":"Approved","bank":"mega","approval_code":"1768742404819","masked_card":"41111111-1111","card_type":"debit","channel":"dragon","three_ds_version":"2","on_us":false,"challenge_completion":true,"eci":"05"}
+----------------
+Created New Saldo for User 14 (siswa) amount 10000
+History Added for Order TRX-1768742364-973
