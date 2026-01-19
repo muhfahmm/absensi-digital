@@ -1930,24 +1930,24 @@ export default function App() {
                     >
                         <View style={{
                             backgroundColor: theme.card,
-                            borderRadius: 20,
-                            padding: 4,
-                            minWidth: 180,
+                            borderRadius: 24,
+                            padding: 6,
+                            minWidth: 220,
                             shadowColor: "#000",
-                            shadowOffset: { width: 0, height: 8 },
-                            shadowOpacity: 0.25,
-                            shadowRadius: 16,
-                            elevation: 12,
+                            shadowOffset: { width: 0, height: 12 },
+                            shadowOpacity: 0.3,
+                            shadowRadius: 20,
+                            elevation: 15,
                             borderWidth: 1,
-                            borderColor: isDarkMode ? '#334155' : '#e2e8f0'
+                            borderColor: isDarkMode ? '#475569' : '#cbd5e1'
                         }}>
                             <TouchableOpacity
                                 style={{
                                     flexDirection: 'row',
                                     alignItems: 'center',
-                                    padding: 16,
-                                    borderRadius: 16,
-                                    backgroundColor: isDarkMode ? 'transparent' : 'transparent'
+                                    padding: 18,
+                                    borderRadius: 18,
+                                    backgroundColor: 'transparent'
                                 }}
                                 onPress={() => {
                                     setLongPressMenuVisible(false);
@@ -1957,27 +1957,27 @@ export default function App() {
                                 }}
                             >
                                 <View style={{
-                                    width: 36,
-                                    height: 36,
-                                    borderRadius: 10,
-                                    backgroundColor: isDarkMode ? '#1e40af20' : '#dbeafe',
+                                    width: 48,
+                                    height: 48,
+                                    borderRadius: 14,
+                                    backgroundColor: isDarkMode ? '#1e3a8a' : '#3b82f6',
                                     justifyContent: 'center',
                                     alignItems: 'center',
-                                    marginRight: 12
+                                    marginRight: 16
                                 }}>
-                                    <WebIcon name="create" size={18} color={theme.primary} />
+                                    <Text style={{ fontSize: 26, color: 'white' }}>✎</Text>
                                 </View>
-                                <Text style={{ color: theme.text, fontSize: 16, fontWeight: '600', flex: 1 }}>Edit Komentar</Text>
+                                <Text style={{ color: theme.text, fontSize: 18, fontWeight: '700', flex: 1 }}>Edit Komentar</Text>
                             </TouchableOpacity>
 
-                            <View style={{ height: 1, backgroundColor: theme.border, marginHorizontal: 12 }} />
+                            <View style={{ height: 1, backgroundColor: theme.border, marginHorizontal: 14, opacity: 0.5 }} />
 
                             <TouchableOpacity
                                 style={{
                                     flexDirection: 'row',
                                     alignItems: 'center',
-                                    padding: 16,
-                                    borderRadius: 16
+                                    padding: 18,
+                                    borderRadius: 18
                                 }}
                                 onPress={() => {
                                     setLongPressMenuVisible(false);
@@ -1987,17 +1987,17 @@ export default function App() {
                                 }}
                             >
                                 <View style={{
-                                    width: 36,
-                                    height: 36,
-                                    borderRadius: 10,
-                                    backgroundColor: isDarkMode ? '#7f1d1d20' : '#fee2e2',
+                                    width: 48,
+                                    height: 48,
+                                    borderRadius: 14,
+                                    backgroundColor: '#ef4444',
                                     justifyContent: 'center',
                                     alignItems: 'center',
-                                    marginRight: 12
+                                    marginRight: 16
                                 }}>
-                                    <WebIcon name="delete" size={18} color="#ef4444" />
+                                    <Text style={{ fontSize: 26, color: 'white' }}>✕</Text>
                                 </View>
-                                <Text style={{ color: '#ef4444', fontSize: 16, fontWeight: '600', flex: 1 }}>Hapus Komentar</Text>
+                                <Text style={{ color: '#ef4444', fontSize: 18, fontWeight: '700', flex: 1 }}>Hapus Komentar</Text>
                             </TouchableOpacity>
                         </View>
                     </TouchableOpacity>
