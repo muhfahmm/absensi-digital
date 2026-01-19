@@ -24,6 +24,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { CameraView, Camera } from "expo-camera";
 import { WebView } from "react-native-webview";
+import Constants from 'expo-constants';
 
 import QRCode from 'react-native-qrcode-svg';
 import Svg, { Path } from 'react-native-svg';
@@ -31,9 +32,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 
-// GANTI IP INI SESUAI IP KOMPUTER ANDA!
-// GANTI IP INI SESUAI IP KOMPUTER ANDA!
-const BASE_URL = 'http://192.168.0.105/absensi-digital-2';
+// BASE_URL moved to App component state for dynamic configuration
+// const BASE_URL = ...
 
 // Icon paths from dashboard.php and reference image
 const PATHS = {
@@ -177,7 +177,8 @@ const translations = {
         thisWeek: "Minggu Ini",
         thisMonth: "Bulan Ini",
         pelajaran: "Pelajaran",
-        cariNilai: "Cari nilai / pelajaran..."
+        cariNilai: "Cari nilai / pelajaran...",
+        lupaPassword: "Lupa password? Hubungi Admin Sekolah"
     },
     en: {
         loginTitle: "Digital Attendance",
@@ -270,13 +271,36 @@ const translations = {
         thisWeek: "This Week",
         thisMonth: "This Month",
         pelajaran: "Subject",
-        cariNilai: "Search grades / subjects..."
+        cariNilai: "Search grades / subjects...",
+        lupaPassword: "Forgot password? Contact School Admin"
     }
 };
 
 export default function App() {
     const systemTheme = useColorScheme();
     const [isDarkMode, setIsDarkMode] = useState(systemTheme === 'dark');
+
+    // Dynamic Server URL State
+    const [baseUrl, setBaseUrl] = useState('http://192.168.0.105/absensi-digital-2');
+
+    // Shadow global BASE_URL with state for compatibility
+    const BASE_URL = baseUrl;
+
+    useEffect(() => {
+        const loadServerConfig = async () => {
+            // Auto-detect from Expo Host (DHCP-like behavior)
+            const debuggerHost = Constants.expoConfig?.hostUri;
+            if (debuggerHost) {
+                const ip = debuggerHost.split(':')[0];
+                // Default assumption: XAMPP on port 80, project folder 'absensi-digital-2'
+                const detectedUrl = `http://${ip}/absensi-digital-2`;
+                console.log('Auto-detected Server URL:', detectedUrl);
+                setBaseUrl(detectedUrl);
+            }
+        };
+        loadServerConfig();
+    }, []);
+
     const [currentView, setCurrentView] = useState('login'); // login, dashboard, scanner, kehadiran, profil, pembayaran, pengumuman
     const [userData, setUserData] = useState(null);
     const [attendanceStatus, setAttendanceStatus] = useState(null);
@@ -1025,6 +1049,14 @@ export default function App() {
                 >
                     <WebIcon name={isDarkMode ? "sun" : "moon"} size={22} color={theme.text} />
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={{ position: 'absolute', top: 50, left: 20, padding: 10, backgroundColor: theme.card, borderRadius: 30, zIndex: 10, elevation: 3, shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 5, flexDirection: 'row', alignItems: 'center' }}
+                    onPress={() => setLanguage(language === 'id' ? 'en' : 'id')}
+                >
+                    <Text style={{ fontWeight: 'bold', color: theme.text, fontSize: 12, marginRight: 5 }}>{language.toUpperCase()}</Text>
+                    <WebIcon name="globe" size={18} color={theme.text} />
+                </TouchableOpacity>
                 <View style={{ alignItems: 'center', marginBottom: 40 }}>
                     <View style={{
                         width: 100, height: 100, borderRadius: 30,
@@ -1089,8 +1121,10 @@ export default function App() {
                     </TouchableOpacity>
 
                     <View style={{ marginTop: 25, alignItems: 'center' }}>
-                        <Text style={{ color: theme.textMuted, fontSize: 13 }}>Lupa password? Hubungi Admin Sekolah</Text>
+                        <Text style={{ color: theme.textMuted, fontSize: 13 }}>{t('lupaPassword')}</Text>
                     </View>
+
+
                 </View>
             </View>
 
@@ -1098,7 +1132,9 @@ export default function App() {
                 <Text style={{ color: theme.textMuted, opacity: 0.8, fontSize: 12, fontWeight: 'bold' }}>© 2026 Gradasi Web</Text>
                 <Text style={{ color: theme.textMuted, opacity: 0.5, fontSize: 10, marginTop: 4 }}>VERSION {CURRENT_APP_VERSION}</Text>
             </View>
-        </KeyboardAvoidingView>
+
+
+        </KeyboardAvoidingView >
     );
 
     const renderDashboard = () => {
