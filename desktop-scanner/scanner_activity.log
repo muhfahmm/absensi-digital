@@ -268,3 +268,9 @@
 2026-01-18 18:17:25,143 - INFO - Hasil: BERHASIL MASUK (terlambat)
 2026-01-18 19:13:40,406 - INFO - --- DETEKSI BARU: '8' ---
 2026-01-18 19:13:40,517 - WARNING - Hasil: QR TIDAK DIKENAL
+2026-01-19 10:09:40,934 - ERROR - GAGAL: Tidak bisa membuka kamera. Pastikan kamera terpasang dan tidak digunakan aplikasi lain.
+2026-01-19 10:14:59,165 - ERROR - GAGAL: Tidak bisa membuka kamera. Pastikan kamera terpasang dan tidak digunakan aplikasi lain.
+2026-01-19 10:15:21,639 - ERROR - GAGAL: Tidak bisa membuka kamera. Pastikan kamera terpasang dan tidak digunakan aplikasi lain.
+2026-01-19 10:31:16,402 - ERROR - GAGAL: Tidak bisa membuka kamera. Pastikan kamera terpasang dan tidak digunakan aplikasi lain.
+2026-01-19 10:31:34,671 - INFO - Kamera Aktif: 1280x720
+2026-01-19 10:31:34,745 - INFO - --- SCANNER SIAP DIGUNAKAN ---
