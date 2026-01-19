@@ -331,6 +331,8 @@ export default function App() {
     const [editingCommentText, setEditingCommentText] = useState('');
     const [longPressMenuVisible, setLongPressMenuVisible] = useState(false);
     const [selectedCommentForMenu, setSelectedCommentForMenu] = useState(null);
+    const [replyingToCommentId, setReplyingToCommentId] = useState(null);
+    const [replyingToCommentUser, setReplyingToCommentUser] = useState('');
 
     // Payment States
     const [topUpAmount, setTopUpAmount] = useState('');
@@ -1514,6 +1516,7 @@ export default function App() {
 
             const payload = {
                 materi_id: currentMateriId,
+                parent_id: replyingToCommentId,
                 user_id: userData.user.id,
                 role: userData.role,
                 komentar: newComment
@@ -1531,6 +1534,8 @@ export default function App() {
                 const data = await response.json();
                 if (data.success) {
                     setNewComment('');
+                    setReplyingToCommentId(null);
+                    setReplyingToCommentUser('');
                     fetchComments(currentMateriId); // Refresh comments
                 } else {
                     showCustomAlert('Error', 'Gagal mengirim komentar: ' + data.message, [], 'error');
@@ -1840,61 +1845,151 @@ export default function App() {
                                         const isEditing = editingCommentId === item.id;
 
                                         return (
-                                            <View key={index} style={{ marginBottom: 15, flexDirection: 'row' }}>
-                                                <Image
-                                                    source={{ uri: `${BASE_URL}/uploads/${item.role === 'siswa' ? 'siswa' : 'guru'}/${item.foto_profil}` }}
-                                                    style={{ width: 40, height: 40, borderRadius: 20, marginRight: 10, backgroundColor: '#f1f5f9' }}
-                                                />
-                                                <View style={{ flex: 1 }}>
-                                                    <TouchableOpacity
-                                                        onLongPress={() => {
-                                                            if (isOwner && !isEditing) {
-                                                                setSelectedCommentForMenu(item);
-                                                                setLongPressMenuVisible(true);
-                                                            }
-                                                        }}
-                                                        delayLongPress={500}
-                                                        activeOpacity={0.7}
-                                                    >
-                                                        <View style={{ backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9', padding: 10, borderRadius: 12, borderTopLeftRadius: 0 }}>
-                                                            <Text style={{ fontWeight: 'bold', color: theme.text, fontSize: 13 }}>{item.nama_user} <Text style={{ fontWeight: 'normal', fontSize: 11, color: theme.textMuted }}>• {item.role.toUpperCase()}</Text></Text>
+                                            <View key={index} style={{ marginBottom: 15 }}>
+                                                {/* Parent Comment */}
+                                                <View style={{ flexDirection: 'row' }}>
+                                                    <Image
+                                                        source={{ uri: `${BASE_URL}/uploads/${item.role === 'siswa' ? 'siswa' : 'guru'}/${item.foto_profil}` }}
+                                                        style={{ width: 40, height: 40, borderRadius: 20, marginRight: 10, backgroundColor: '#f1f5f9' }}
+                                                    />
+                                                    <View style={{ flex: 1 }}>
+                                                        <TouchableOpacity
+                                                            onLongPress={() => {
+                                                                if (isOwner && !isEditing) {
+                                                                    setSelectedCommentForMenu(item);
+                                                                    setLongPressMenuVisible(true);
+                                                                }
+                                                            }}
+                                                            delayLongPress={500}
+                                                            activeOpacity={0.7}
+                                                        >
+                                                            <View style={{ backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9', padding: 10, borderRadius: 12, borderTopLeftRadius: 0 }}>
+                                                                <Text style={{ fontWeight: 'bold', color: theme.text, fontSize: 13 }}>{item.nama_user} <Text style={{ fontWeight: 'normal', fontSize: 11, color: theme.textMuted }}>• {item.role.toUpperCase()}</Text></Text>
 
-                                                            {isEditing ? (
-                                                                <View style={{ marginTop: 8 }}>
-                                                                    <TextInput
-                                                                        style={{ backgroundColor: isDarkMode ? '#0f172a' : 'white', borderRadius: 8, padding: 8, color: theme.text, borderWidth: 1, borderColor: theme.border }}
-                                                                        value={editingCommentText}
-                                                                        onChangeText={setEditingCommentText}
-                                                                        multiline
-                                                                        autoFocus
+                                                                {isEditing ? (
+                                                                    <View style={{ marginTop: 8 }}>
+                                                                        <TextInput
+                                                                            style={{ backgroundColor: isDarkMode ? '#0f172a' : 'white', borderRadius: 8, padding: 8, color: theme.text, borderWidth: 1, borderColor: theme.border }}
+                                                                            value={editingCommentText}
+                                                                            onChangeText={setEditingCommentText}
+                                                                            multiline
+                                                                            autoFocus
+                                                                        />
+                                                                        <View style={{ flexDirection: 'row', marginTop: 8, gap: 8 }}>
+                                                                            <TouchableOpacity
+                                                                                style={{ flex: 1, backgroundColor: theme.primary, padding: 8, borderRadius: 8, alignItems: 'center' }}
+                                                                                onPress={handleUpdateComment}
+                                                                            >
+                                                                                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>Simpan</Text>
+                                                                            </TouchableOpacity>
+                                                                            <TouchableOpacity
+                                                                                style={{ flex: 1, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0', padding: 8, borderRadius: 8, alignItems: 'center' }}
+                                                                                onPress={() => { setEditingCommentId(null); setEditingCommentText(''); }}
+                                                                            >
+                                                                                <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: 12 }}>Batal</Text>
+                                                                            </TouchableOpacity>
+                                                                        </View>
+                                                                    </View>
+                                                                ) : (
+                                                                    <Text style={{ color: theme.text, marginTop: 4 }}>{item.komentar}</Text>
+                                                                )}
+                                                            </View>
+                                                        </TouchableOpacity>
+                                                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, marginLeft: 5 }}>
+                                                            <Text style={{ color: theme.textMuted, fontSize: 10 }}>{new Date(item.created_at).toLocaleString()}</Text>
+                                                            <TouchableOpacity
+                                                                onPress={() => {
+                                                                    setReplyingToCommentId(item.id);
+                                                                    setReplyingToCommentUser(item.nama_user);
+                                                                }}
+                                                                style={{ marginLeft: 10 }}
+                                                            >
+                                                                <Text style={{ color: theme.primary, fontSize: 10, fontWeight: 'bold' }}>Reply</Text>
+                                                            </TouchableOpacity>
+                                                        </View>
+                                                    </View>
+                                                </View>
+
+                                                {/* Nested Replies */}
+                                                {item.replies && item.replies.length > 0 && (
+                                                    <View style={{ marginLeft: 50, marginTop: 10 }}>
+                                                        {item.replies.map((reply, replyIndex) => {
+                                                            const isReplyOwner = reply.user_id === userData.user.id && reply.role === userData.role;
+                                                            const isReplyEditing = editingCommentId === reply.id;
+
+                                                            return (
+                                                                <View key={replyIndex} style={{ marginBottom: 10, flexDirection: 'row' }}>
+                                                                    <Image
+                                                                        source={{ uri: `${BASE_URL}/uploads/${reply.role === 'siswa' ? 'siswa' : 'guru'}/${reply.foto_profil}` }}
+                                                                        style={{ width: 32, height: 32, borderRadius: 16, marginRight: 8, backgroundColor: '#f1f5f9' }}
                                                                     />
-                                                                    <View style={{ flexDirection: 'row', marginTop: 8, gap: 8 }}>
+                                                                    <View style={{ flex: 1 }}>
                                                                         <TouchableOpacity
-                                                                            style={{ flex: 1, backgroundColor: theme.primary, padding: 8, borderRadius: 8, alignItems: 'center' }}
-                                                                            onPress={handleUpdateComment}
+                                                                            onLongPress={() => {
+                                                                                if (isReplyOwner && !isReplyEditing) {
+                                                                                    setSelectedCommentForMenu(reply);
+                                                                                    setLongPressMenuVisible(true);
+                                                                                }
+                                                                            }}
+                                                                            delayLongPress={500}
+                                                                            activeOpacity={0.7}
                                                                         >
-                                                                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>Simpan</Text>
+                                                                            <View style={{ backgroundColor: isDarkMode ? '#0f172a' : '#e2e8f0', padding: 8, borderRadius: 10, borderTopLeftRadius: 0 }}>
+                                                                                <Text style={{ fontWeight: 'bold', color: theme.text, fontSize: 12 }}>{reply.nama_user} <Text style={{ fontWeight: 'normal', fontSize: 10, color: theme.textMuted }}>• {reply.role.toUpperCase()}</Text></Text>
+
+                                                                                {isReplyEditing ? (
+                                                                                    <View style={{ marginTop: 6 }}>
+                                                                                        <TextInput
+                                                                                            style={{ backgroundColor: isDarkMode ? '#1e293b' : 'white', borderRadius: 6, padding: 6, color: theme.text, borderWidth: 1, borderColor: theme.border, fontSize: 12 }}
+                                                                                            value={editingCommentText}
+                                                                                            onChangeText={setEditingCommentText}
+                                                                                            multiline
+                                                                                            autoFocus
+                                                                                        />
+                                                                                        <View style={{ flexDirection: 'row', marginTop: 6, gap: 6 }}>
+                                                                                            <TouchableOpacity
+                                                                                                style={{ flex: 1, backgroundColor: theme.primary, padding: 6, borderRadius: 6, alignItems: 'center' }}
+                                                                                                onPress={handleUpdateComment}
+                                                                                            >
+                                                                                                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 11 }}>Simpan</Text>
+                                                                                            </TouchableOpacity>
+                                                                                            <TouchableOpacity
+                                                                                                style={{ flex: 1, backgroundColor: isDarkMode ? '#334155' : '#cbd5e1', padding: 6, borderRadius: 6, alignItems: 'center' }}
+                                                                                                onPress={() => { setEditingCommentId(null); setEditingCommentText(''); }}
+                                                                                            >
+                                                                                                <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: 11 }}>Batal</Text>
+                                                                                            </TouchableOpacity>
+                                                                                        </View>
+                                                                                    </View>
+                                                                                ) : (
+                                                                                    <Text style={{ color: theme.text, marginTop: 3, fontSize: 12 }}>{reply.komentar}</Text>
+                                                                                )}
+                                                                            </View>
                                                                         </TouchableOpacity>
-                                                                        <TouchableOpacity
-                                                                            style={{ flex: 1, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0', padding: 8, borderRadius: 8, alignItems: 'center' }}
-                                                                            onPress={() => { setEditingCommentId(null); setEditingCommentText(''); }}
-                                                                        >
-                                                                            <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: 12 }}>Batal</Text>
-                                                                        </TouchableOpacity>
+                                                                        <Text style={{ color: theme.textMuted, fontSize: 9, marginTop: 3, marginLeft: 4 }}>{new Date(reply.created_at).toLocaleString()}</Text>
                                                                     </View>
                                                                 </View>
-                                                            ) : (
-                                                                <Text style={{ color: theme.text, marginTop: 4 }}>{item.komentar}</Text>
-                                                            )}
-                                                        </View>
-                                                    </TouchableOpacity>
-                                                    <Text style={{ color: theme.textMuted, fontSize: 10, marginTop: 4, marginLeft: 5 }}>{new Date(item.created_at).toLocaleString()}</Text>
-                                                </View>
+                                                            );
+                                                        })}
+                                                    </View>
+                                                )}
                                             </View>
                                         );
                                     })
                                 )}
                             </ScrollView>
+
+                            {/* Replying To Indicator */}
+                            {replyingToCommentId && (
+                                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDarkMode ? '#1e293b' : '#e0e7ff', padding: 8, borderRadius: 8, marginBottom: 8 }}>
+                                    <Text style={{ flex: 1, color: theme.primary, fontSize: 12 }}>
+                                        Replying to <Text style={{ fontWeight: 'bold' }}>@{replyingToCommentUser}</Text>
+                                    </Text>
+                                    <TouchableOpacity onPress={() => { setReplyingToCommentId(null); setReplyingToCommentUser(''); }}>
+                                        <WebIcon name="close" size={16} color={theme.primary} />
+                                    </TouchableOpacity>
+                                </View>
+                            )}
 
                             <View style={{ flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 10 }}>
                                 <TextInput
