@@ -321,6 +321,17 @@ export default function App() {
     const [nilaiSort, setNilaiSort] = useState('newest'); // newest, oldest, pelajaran
     const [isNilaiSortDropdownOpen, setIsNilaiSortDropdownOpen] = useState(false);
 
+    // Comments State
+    const [commentModalVisible, setCommentModalVisible] = useState(false);
+    const [currentMateriId, setCurrentMateriId] = useState(null);
+    const [comments, setComments] = useState([]);
+    const [newComment, setNewComment] = useState('');
+    const [isCommentLoading, setIsCommentLoading] = useState(false);
+    const [editingCommentId, setEditingCommentId] = useState(null);
+    const [editingCommentText, setEditingCommentText] = useState('');
+    const [longPressMenuVisible, setLongPressMenuVisible] = useState(false);
+    const [selectedCommentForMenu, setSelectedCommentForMenu] = useState(null);
+
     // Payment States
     const [topUpAmount, setTopUpAmount] = useState('');
     const [showTopUpModal, setShowTopUpModal] = useState(false);
@@ -1478,6 +1489,146 @@ export default function App() {
             return dateB - dateA; // Default newest
         });
 
+        const fetchComments = async (materiId) => {
+            setIsCommentLoading(true);
+            try {
+                const response = await fetch(`${BASE_URL}/app/api/komentar.php?materi_id=${materiId}`);
+                const data = await response.json();
+                if (data.success) {
+                    setComments(data.data);
+                } else {
+                    showCustomAlert('Error', 'Gagal memuat komentar', [], 'error');
+                }
+            } catch (error) {
+                console.error(error);
+                showCustomAlert('Error', 'Terjadi kesalahan koneksi', [], 'error');
+            } finally {
+                setIsCommentLoading(false);
+            }
+        };
+
+        const handlePostComment = async () => {
+            if (!newComment.trim()) return;
+
+            setIsCommentLoading(true);
+
+            const payload = {
+                materi_id: currentMateriId,
+                user_id: userData.user.id,
+                role: userData.role,
+                komentar: newComment
+            };
+            console.log('Sending comment:', payload);
+
+            try {
+                const response = await fetch(`${BASE_URL}/app/api/komentar.php`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload),
+                });
+                const data = await response.json();
+                if (data.success) {
+                    setNewComment('');
+                    fetchComments(currentMateriId); // Refresh comments
+                } else {
+                    showCustomAlert('Error', 'Gagal mengirim komentar: ' + data.message, [], 'error');
+                }
+            } catch (error) {
+                console.error(error);
+                showCustomAlert('Error', 'Terjadi kesalahan koneksi', [], 'error');
+            } finally {
+                setIsCommentLoading(false);
+            }
+        };
+
+        const openCommentModal = (materiId) => {
+            setCurrentMateriId(materiId);
+            setComments([]);
+            setCommentModalVisible(true);
+            fetchComments(materiId);
+        };
+
+        const handleEditComment = (commentId, currentText) => {
+            setEditingCommentId(commentId);
+            setEditingCommentText(currentText);
+        };
+
+        const handleUpdateComment = async () => {
+            if (!editingCommentText.trim()) return;
+
+            setIsCommentLoading(true);
+            try {
+                const response = await fetch(`${BASE_URL}/app/api/komentar.php`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        id: editingCommentId,
+                        user_id: userData.user.id,
+                        role: userData.role,
+                        komentar: editingCommentText
+                    }),
+                });
+                const data = await response.json();
+                if (data.success) {
+                    setEditingCommentId(null);
+                    setEditingCommentText('');
+                    fetchComments(currentMateriId);
+                } else {
+                    showCustomAlert('Error', 'Gagal mengupdate komentar: ' + data.message, [], 'error');
+                }
+            } catch (error) {
+                console.error(error);
+                showCustomAlert('Error', 'Terjadi kesalahan koneksi', [], 'error');
+            } finally {
+                setIsCommentLoading(false);
+            }
+        };
+
+        const handleDeleteComment = async (commentId) => {
+            showCustomAlert(
+                'Konfirmasi',
+                'Apakah Anda yakin ingin menghapus komentar ini?',
+                [
+                    { text: 'Batal', style: 'cancel' },
+                    {
+                        text: 'Hapus',
+                        style: 'destructive',
+                        onPress: async () => {
+                            setIsCommentLoading(true);
+                            try {
+                                const response = await fetch(`${BASE_URL}/app/api/komentar.php`, {
+                                    method: 'DELETE',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        id: commentId,
+                                        user_id: userData.user.id,
+                                        role: userData.role
+                                    }),
+                                });
+                                const data = await response.json();
+                                if (data.success) {
+                                    fetchComments(currentMateriId);
+                                } else {
+                                    showCustomAlert('Error', 'Gagal menghapus komentar: ' + data.message, [], 'error');
+                                }
+                            } catch (error) {
+                                console.error(error);
+                                showCustomAlert('Error', 'Terjadi kesalahan koneksi', [], 'error');
+                            } finally {
+                                setIsCommentLoading(false);
+                            }
+                        }
+                    }
+                ],
+                'warning'
+            );
+        };
         return (
             <View style={[styles.dashboardWrapper, { backgroundColor: theme.bg }]}>
                 {/* Fixed Header Manual */}
@@ -1645,6 +1796,15 @@ export default function App() {
                                                 <WebIcon name="download" size={16} color={isDarkMode ? '#93c5fd' : '#2563eb'} style={{ marginRight: 8 }} />
                                                 <Text style={{ color: isDarkMode ? '#93c5fd' : '#2563eb', fontWeight: 'bold' }}>{t('download')}</Text>
                                             </TouchableOpacity>
+
+
+                                            <TouchableOpacity
+                                                style={{ flex: 1, padding: 12, backgroundColor: theme.bg, borderWidth: 1, borderColor: theme.border, borderRadius: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', marginLeft: 8 }}
+                                                onPress={() => openCommentModal(item.id)}
+                                            >
+                                                <WebIcon name="chat" size={16} color={theme.textMuted} style={{ marginRight: 8 }} />
+                                                <Text style={{ color: theme.textMuted, fontWeight: '600' }}>Komentar</Text>
+                                            </TouchableOpacity>
                                         </View>
                                     </View>
                                 ))
@@ -1652,6 +1812,196 @@ export default function App() {
                         </View>
                     </View >
                 </ScrollView >
+
+                {/* COMMENT MODAL */}
+                <Modal
+                    visible={commentModalVisible}
+                    transparent={true}
+                    animationType="slide"
+                    onRequestClose={() => setCommentModalVisible(false)}
+                >
+                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+                        <View style={{ backgroundColor: theme.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, height: '80%', padding: 20 }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+                                <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.text }}>Komentar</Text>
+                                <TouchableOpacity onPress={() => setCommentModalVisible(false)}>
+                                    <WebIcon name="close" size={24} color={theme.text} />
+                                </TouchableOpacity>
+                            </View>
+
+                            <ScrollView style={{ flex: 1, marginBottom: 10 }}>
+                                {isCommentLoading && comments.length === 0 ? (
+                                    <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 20 }} />
+                                ) : comments.length === 0 ? (
+                                    <Text style={{ textAlign: 'center', color: theme.textMuted, marginTop: 20 }}>Belum ada komentar.</Text>
+                                ) : (
+                                    comments.map((item, index) => {
+                                        const isOwner = item.user_id === userData.user.id && item.role === userData.role;
+                                        const isEditing = editingCommentId === item.id;
+
+                                        return (
+                                            <View key={index} style={{ marginBottom: 15, flexDirection: 'row' }}>
+                                                <Image
+                                                    source={{ uri: `${BASE_URL}/uploads/${item.role === 'siswa' ? 'siswa' : 'guru'}/${item.foto_profil}` }}
+                                                    style={{ width: 40, height: 40, borderRadius: 20, marginRight: 10, backgroundColor: '#f1f5f9' }}
+                                                />
+                                                <View style={{ flex: 1 }}>
+                                                    <TouchableOpacity
+                                                        onLongPress={() => {
+                                                            if (isOwner && !isEditing) {
+                                                                setSelectedCommentForMenu(item);
+                                                                setLongPressMenuVisible(true);
+                                                            }
+                                                        }}
+                                                        delayLongPress={500}
+                                                        activeOpacity={0.7}
+                                                    >
+                                                        <View style={{ backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9', padding: 10, borderRadius: 12, borderTopLeftRadius: 0 }}>
+                                                            <Text style={{ fontWeight: 'bold', color: theme.text, fontSize: 13 }}>{item.nama_user} <Text style={{ fontWeight: 'normal', fontSize: 11, color: theme.textMuted }}>• {item.role.toUpperCase()}</Text></Text>
+
+                                                            {isEditing ? (
+                                                                <View style={{ marginTop: 8 }}>
+                                                                    <TextInput
+                                                                        style={{ backgroundColor: isDarkMode ? '#0f172a' : 'white', borderRadius: 8, padding: 8, color: theme.text, borderWidth: 1, borderColor: theme.border }}
+                                                                        value={editingCommentText}
+                                                                        onChangeText={setEditingCommentText}
+                                                                        multiline
+                                                                        autoFocus
+                                                                    />
+                                                                    <View style={{ flexDirection: 'row', marginTop: 8, gap: 8 }}>
+                                                                        <TouchableOpacity
+                                                                            style={{ flex: 1, backgroundColor: theme.primary, padding: 8, borderRadius: 8, alignItems: 'center' }}
+                                                                            onPress={handleUpdateComment}
+                                                                        >
+                                                                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>Simpan</Text>
+                                                                        </TouchableOpacity>
+                                                                        <TouchableOpacity
+                                                                            style={{ flex: 1, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0', padding: 8, borderRadius: 8, alignItems: 'center' }}
+                                                                            onPress={() => { setEditingCommentId(null); setEditingCommentText(''); }}
+                                                                        >
+                                                                            <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: 12 }}>Batal</Text>
+                                                                        </TouchableOpacity>
+                                                                    </View>
+                                                                </View>
+                                                            ) : (
+                                                                <Text style={{ color: theme.text, marginTop: 4 }}>{item.komentar}</Text>
+                                                            )}
+                                                        </View>
+                                                    </TouchableOpacity>
+                                                    <Text style={{ color: theme.textMuted, fontSize: 10, marginTop: 4, marginLeft: 5 }}>{new Date(item.created_at).toLocaleString()}</Text>
+                                                </View>
+                                            </View>
+                                        );
+                                    })
+                                )}
+                            </ScrollView>
+
+                            <View style={{ flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 10 }}>
+                                <TextInput
+                                    style={{ flex: 1, backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9', borderRadius: 20, paddingHorizontal: 15, paddingVertical: 10, color: theme.text, marginRight: 10 }}
+                                    placeholder="Tulis komentar..."
+                                    placeholderTextColor={theme.textMuted}
+                                    value={newComment}
+                                    onChangeText={setNewComment}
+                                />
+                                <TouchableOpacity
+                                    style={{ backgroundColor: theme.primary, width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' }}
+                                    onPress={handlePostComment}
+                                    disabled={isCommentLoading}
+                                >
+                                    {isCommentLoading ? <ActivityIndicator size="small" color="white" /> : <WebIcon name="back" size={20} color="white" style={{ transform: [{ rotate: '180deg' }] }} />}
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
+
+                {/* FLOATING MENU FOR LONG PRESS */}
+                <Modal
+                    visible={longPressMenuVisible}
+                    transparent={true}
+                    animationType="fade"
+                    onRequestClose={() => setLongPressMenuVisible(false)}
+                >
+                    <TouchableOpacity
+                        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' }}
+                        activeOpacity={1}
+                        onPress={() => setLongPressMenuVisible(false)}
+                    >
+                        <View style={{
+                            backgroundColor: theme.card,
+                            borderRadius: 20,
+                            padding: 4,
+                            minWidth: 180,
+                            shadowColor: "#000",
+                            shadowOffset: { width: 0, height: 8 },
+                            shadowOpacity: 0.25,
+                            shadowRadius: 16,
+                            elevation: 12,
+                            borderWidth: 1,
+                            borderColor: isDarkMode ? '#334155' : '#e2e8f0'
+                        }}>
+                            <TouchableOpacity
+                                style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    padding: 16,
+                                    borderRadius: 16,
+                                    backgroundColor: isDarkMode ? 'transparent' : 'transparent'
+                                }}
+                                onPress={() => {
+                                    setLongPressMenuVisible(false);
+                                    if (selectedCommentForMenu) {
+                                        handleEditComment(selectedCommentForMenu.id, selectedCommentForMenu.komentar);
+                                    }
+                                }}
+                            >
+                                <View style={{
+                                    width: 36,
+                                    height: 36,
+                                    borderRadius: 10,
+                                    backgroundColor: isDarkMode ? '#1e40af20' : '#dbeafe',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    marginRight: 12
+                                }}>
+                                    <WebIcon name="create" size={18} color={theme.primary} />
+                                </View>
+                                <Text style={{ color: theme.text, fontSize: 16, fontWeight: '600', flex: 1 }}>Edit Komentar</Text>
+                            </TouchableOpacity>
+
+                            <View style={{ height: 1, backgroundColor: theme.border, marginHorizontal: 12 }} />
+
+                            <TouchableOpacity
+                                style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    padding: 16,
+                                    borderRadius: 16
+                                }}
+                                onPress={() => {
+                                    setLongPressMenuVisible(false);
+                                    if (selectedCommentForMenu) {
+                                        handleDeleteComment(selectedCommentForMenu.id);
+                                    }
+                                }}
+                            >
+                                <View style={{
+                                    width: 36,
+                                    height: 36,
+                                    borderRadius: 10,
+                                    backgroundColor: isDarkMode ? '#7f1d1d20' : '#fee2e2',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    marginRight: 12
+                                }}>
+                                    <WebIcon name="delete" size={18} color="#ef4444" />
+                                </View>
+                                <Text style={{ color: '#ef4444', fontSize: 16, fontWeight: '600', flex: 1 }}>Hapus Komentar</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </TouchableOpacity>
+                </Modal>
 
                 {renderBottomNav()}
             </View >
