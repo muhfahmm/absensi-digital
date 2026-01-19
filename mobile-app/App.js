@@ -32,7 +32,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const { width, height } = Dimensions.get('window');
 
 // GANTI IP INI SESUAI IP KOMPUTER ANDA!
-const BASE_URL = 'http://192.168.0.103/absensi-digital';
+// GANTI IP INI SESUAI IP KOMPUTER ANDA!
+const BASE_URL = 'http://192.168.0.105/absensi-digital-2';
 
 // Icon paths from dashboard.php and reference image
 const PATHS = {
