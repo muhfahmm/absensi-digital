@@ -108,6 +108,14 @@ function is_active($keyword) {
                     Keuangan
                 </a>
             </li>
+
+            <!-- Database (phpMyAdmin) -->
+            <li>
+                <a href="http://localhost/phpmyadmin/index.php?route=/database/structure&db=db_absensi_digital" target="_blank" class="flex items-center px-6 py-3 transition rounded-r-full mr-2 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+                    Database
+                </a>
+            </li>
             
             <li>
                 <a href="<?= base_url('app/pages/auth/logout.php?role=admin') ?>" class="flex items-center px-6 py-3 text-red-600 hover:bg-red-50 hover:text-red-700 transition">
