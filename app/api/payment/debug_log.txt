@@ -30,3 +30,15 @@ Server Key Used: Mid-s...
 HTTP Code: 200
 Result: {"status_code":"201","transaction_id":"c44a2de6-7540-4966-ab85-cce8106de4f7","gross_amount":"100000.00","currency":"IDR","order_id":"TRX-1768901861-317","payment_type":"bank_transfer","signature_key":"31c7bb4c8aa7177eb83f5d70888fe55e010fc886c5cd32e869885b40df142770a2dd131871a5e2496e8bcb4a269725ec6958806e8714dd30e64d5680db0810a7","transaction_status":"pending","fraud_status":"accept","status_message":"Success, transaction is found","merchant_id":"G617610329","va_numbers":[{"bank":"bni","va_number":"8578689796835466"}],"payment_amounts":[{"amount":"100000.00","paid_at":"2026-01-20 16:37:50"}],"transaction_time":"2026-01-20 16:37:50","expiry_time":"2026-01-21 16:37:50"}
 ----------------
+Checking Order ID: TRX-1768902569-793
+URL: https://api.midtrans.com/v2/TRX-1768902569-793/status
+Server Key Used: Mid-s...
+Checking Order ID: TRX-1768902569-793
+URL: https://api.midtrans.com/v2/TRX-1768902569-793/status
+Server Key Used: Mid-s...
+HTTP Code: 200
+Result: {"status_code":"201","transaction_id":"f2925d93-8ae3-4225-aa00-0ec60d563180","gross_amount":"1000000.00","currency":"IDR","order_id":"TRX-1768902569-793","payment_type":"gopay","signature_key":"a100d75aef2e93897a66d81601cc90bc770e973bc38ef10afa56c7435721e5d041f7ee5284502552de012d11f4413db592acbe2aed6a21d6325c3eedb4df7729","transaction_status":"pending","fraud_status":"accept","status_message":"Success, transaction is found","merchant_id":"G617610329","transaction_time":"2026-01-20 16:49:39","expiry_time":"2026-01-20 17:04:39"}
+----------------
+HTTP Code: 200
+Result: {"status_code":"201","transaction_id":"f2925d93-8ae3-4225-aa00-0ec60d563180","gross_amount":"1000000.00","currency":"IDR","order_id":"TRX-1768902569-793","payment_type":"gopay","signature_key":"a100d75aef2e93897a66d81601cc90bc770e973bc38ef10afa56c7435721e5d041f7ee5284502552de012d11f4413db592acbe2aed6a21d6325c3eedb4df7729","transaction_status":"pending","fraud_status":"accept","status_message":"Success, transaction is found","merchant_id":"G617610329","transaction_time":"2026-01-20 16:49:39","expiry_time":"2026-01-20 17:04:39"}
+----------------

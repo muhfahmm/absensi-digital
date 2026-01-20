@@ -17,41 +17,44 @@ $stmt = $pdo->query("SELECT * FROM tb_kelas ORDER BY nama_kelas ASC");
 $kelas_list = $stmt->fetchAll();
 ?>
 
-<div class="min-h-screen flex items-center justify-center bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1497294815431-9365093b7331?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');">
-    <div class="absolute inset-0 bg-black bg-opacity-40"></div>
-    
-    <div class="relative w-full max-w-md p-8 glass rounded-2xl shadow-2xl mx-4">
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500">
+    <div class="w-full max-w-md p-8 bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl shadow-2xl mx-4 border border-white border-opacity-20">
         <div class="text-center mb-8">
+            <div class="inline-block p-3 bg-white bg-opacity-20 rounded-full mb-4">
+                <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                </svg>
+            </div>
             <h1 class="text-3xl font-bold text-white mb-2">Absensi Digital</h1>
-            <p class="text-gray-200">Silakan login untuk melanjutkan</p>
+            <p class="text-gray-100 text-sm">Silakan login untuk melanjutkan</p>
         </div>
 
         <?php if ($error): ?>
-            <div class="bg-red-500 bg-opacity-80 text-white p-3 rounded-lg mb-4 text-center">
+            <div class="bg-red-500 bg-opacity-90 text-white p-3 rounded-lg mb-4 text-center">
                 <?= $error ?>
             </div>
         <?php endif; ?>
 
         <?php if ($success): ?>
-            <div class="bg-green-500 bg-opacity-80 text-white p-3 rounded-lg mb-4 text-center">
+            <div class="bg-green-500 bg-opacity-90 text-white p-3 rounded-lg mb-4 text-center">
                 <?= $success ?>
             </div>
         <?php endif; ?>
         
-        <form action="<?= base_url('app/auth/api-login.php') ?>" method="POST" class="space-y-6">
+        <form action="<?= base_url('app/auth/api-login.php') ?>" method="POST" class="space-y-5">
             <div>
-                <label for="username" class="block text-sm font-medium text-gray-200 mb-1">Username / NIS</label>
-                <input type="text" id="username" name="username" class="w-full px-4 py-3 bg-white bg-opacity-20 border border-gray-300 border-opacity-30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition" placeholder="Masukkan ID Anda" required>
+                <label for="username" class="block text-sm font-medium text-white mb-2">Username / NIS / NUPTK</label>
+                <input type="text" id="username" name="username" class="w-full px-4 py-3 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-gray-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:bg-opacity-30 transition" placeholder="Masukkan ID Anda" required>
             </div>
             
             <div>
-                <label for="password" class="block text-sm font-medium text-gray-200 mb-1">Password</label>
-                <input type="password" id="password" name="password" class="w-full px-4 py-3 bg-white bg-opacity-20 border border-gray-300 border-opacity-30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition" placeholder="••••••••" required>
+                <label for="password" class="block text-sm font-medium text-white mb-2">Password</label>
+                <input type="password" id="password" name="password" class="w-full px-4 py-3 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-gray-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:bg-opacity-30 transition" placeholder="••••••••" required>
             </div>
 
             <div>
-                <label for="id_kelas" class="block text-sm font-medium text-gray-200 mb-1">Masuk Sebagai Wali Kelas (Pilih Kelas - Opsional)</label>
-                <select id="id_kelas" name="id_kelas" class="w-full px-4 py-3 bg-white bg-opacity-20 border border-gray-300 border-opacity-30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition appearance-none">
+                <label for="id_kelas" class="block text-sm font-medium text-white mb-2">Masuk Sebagai Wali Kelas (Opsional)</label>
+                <select id="id_kelas" name="id_kelas" class="w-full px-4 py-3 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 transition appearance-none">
                     <option value="" class="bg-gray-800">Semua Kelas (Default)</option>
                     <?php foreach($kelas_list as $kelas): ?>
                         <option value="<?= $kelas['id'] ?>" class="bg-gray-800"><?= $kelas['nama_kelas'] ?></option>
@@ -59,17 +62,17 @@ $kelas_list = $stmt->fetchAll();
                 </select>
             </div>
             
-            <button type="submit" class="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold rounded-lg transform transition hover:scale-[1.02] shadow-lg">
+            <button type="submit" class="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold rounded-lg transform transition hover:scale-105 shadow-lg">
                 Masuk Sekarang
             </button>
             
             <div class="text-center mt-6">
-                <a href="#" class="text-sm text-gray-300 hover:text-white transition block mb-3">Lupa password? Hubungi Admin.</a>
+                <a href="#" class="text-sm text-gray-200 hover:text-white transition block mb-3">Lupa password? Hubungi Admin</a>
                 
-                <div class="border-t border-white/20 pt-4">
-                    <p class="text-xs text-gray-300 mb-2">Belum punya akun Admin?</p>
+                <div class="border-t border-white border-opacity-20 pt-4">
+                    <p class="text-xs text-gray-200 mb-2">Belum punya akun Admin?</p>
                     <a href="<?= base_url('app/pages/auth/register.php') ?>" class="text-sm font-bold text-white hover:underline transition">Daftar Admin</a>
-                    <p class="text-xs text-gray-400 mt-3">Siswa & Guru didaftarkan oleh Admin</p>
+                    <p class="text-xs text-gray-300 mt-3">Siswa & Guru didaftarkan oleh Admin</p>
                 </div>
             </div>
         </form>

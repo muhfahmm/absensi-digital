@@ -62,9 +62,9 @@ $item_details = [
 
 $base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]";
 // Dynamic path construction
-$current_dir = dirname($_SERVER['SCRIPT_NAME']); // e.g., /absensi-digital 3/app/api/payment
+$current_dir = dirname($_SERVER['SCRIPT_NAME']); 
 // Ensure spaces are encoded for URL
-$current_dir_url = str_replace(' ', '%20', $current_dir); // /absensi-digital%203/app/api/payment
+$current_dir_url = str_replace(' ', '%20', $current_dir); 
 $finish_redirect_url = $base_url . $current_dir_url . "/payment_finish.php?order_id=$order_id";
 
 $params = [

@@ -14,7 +14,6 @@ function base_url($path = '') {
     // Deteksi host (localhost atau domain)
     $host = $_SERVER['HTTP_HOST'];
     
-    // Nama folder project (asumsi di localhost/absensi-digital)
     // Sesuaikan jika folder project berbeda
     $projectDir = '/absensi-digital-2'; // Ubah sesuai nama folder di htdocs
     

@@ -18,7 +18,7 @@ Namun, jika Anda ingin mengisinya sebagai cadangan (misalnya jika kode gagal men
   
 - **Production (Domain Asli):**
   Jika nanti sudah online dengan domain sendiri (misal: `sekolahku.com`), isi dengan:
-  `https://sekolahku.com/absensi-digital/app/api/payment/payment_finish.php`
+  `https://sekolahku.com/absensi-digital-2/app/api/payment/payment_finish.php`
 
 ---
 
@@ -33,11 +33,11 @@ Ini adalah bagian yang **SANGAT PENTING**. Midtrans mengirim laporan status (Ber
 4.  Isi dengan alamat berikut:
 
     **Untuk Development (Ngrok):**
-    `https://[ID-NGROK-ANDA].ngrok-free.app/absensi-digital/app/api/payment/notification.php`
+    `https://[ID-NGROK-ANDA].ngrok-free.app/absensi-digital-2/app/api/payment/notification.php`
     *(Ingat: Update ini setiap kali Anda restart Ngrok)*
 
     **Untuk Production:**
-    `https://[DOMAIN-ANDA]/absensi-digital/app/api/payment/notification.php`
+    `https://[DOMAIN-ANDA]/absensi-digital-2/app/api/payment/notification.php`
 
 ---
 
