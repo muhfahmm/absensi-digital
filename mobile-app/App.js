@@ -281,10 +281,10 @@ export default function App() {
     const [isDarkMode, setIsDarkMode] = useState(systemTheme === 'dark');
 
     // Dynamic Server URL State
-    // const [baseUrl, setBaseUrl] = useState('http://192.168.0.105/absensi-digital-2'); yang saat ini digunakan
+    const [baseUrl, setBaseUrl] = useState('http://192.168.0.105/absensi-digital-2');
     
     // ip tathering hp
-    const [baseUrl, setBaseUrl] = useState('http://10.152.126.24/absensi-digital-2');
+    // const [baseUrl, setBaseUrl] = useState('http://10.152.126.24/absensi-digital-2');
 
     // Shadow global BASE_URL with state for compatibility
     const BASE_URL = baseUrl;

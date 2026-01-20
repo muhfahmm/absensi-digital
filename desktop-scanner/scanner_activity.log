@@ -278,3 +278,32 @@
 2026-01-20 09:25:38,217 - INFO - --- SCANNER SIAP DIGUNAKAN ---
 2026-01-20 14:32:03,287 - INFO - Kamera Aktif: 1280x720
 2026-01-20 14:32:03,358 - INFO - --- SCANNER SIAP DIGUNAKAN ---
+2026-01-20 14:47:11,681 - INFO - --- DETEKSI BARU: '' ---
+2026-01-20 14:47:11,763 - WARNING - Hasil: QR TIDAK DIKENAL
+2026-01-20 14:58:52,899 - INFO - --- DETEKSI BARU: 'SISWA-1-696a09826d84a' ---
+2026-01-20 14:58:52,927 - INFO - User Berhasil Diidentifikasi: siswa 1 (siswa)
+2026-01-20 14:58:52,935 - INFO - Absen Masuk Ditemukan. Memproses Absen PULANG untuk siswa 1...
+2026-01-20 14:58:52,954 - INFO - Hasil: BERHASIL PULANG (14:58:52)
+2026-01-20 14:58:55,830 - INFO - --- DETEKSI BARU: 'SISWA-1-696a09826d84a' ---
+2026-01-20 14:58:55,833 - INFO - User Berhasil Diidentifikasi: siswa 1 (siswa)
+2026-01-20 14:58:55,834 - INFO - Hasil: DUPLIKAT (User sudah absen masuk & pulang)
+2026-01-20 14:59:11,282 - INFO - --- DETEKSI BARU: 'SISWA-1-696a09826d84a' ---
+2026-01-20 14:59:11,288 - INFO - User Berhasil Diidentifikasi: siswa 1 (siswa)
+2026-01-20 14:59:11,289 - INFO - Hasil: DUPLIKAT (User sudah absen masuk & pulang)
+2026-01-20 14:59:14,241 - INFO - --- DETEKSI BARU: 'SISWA-1-696a09826d84a' ---
+2026-01-20 14:59:14,253 - INFO - User Berhasil Diidentifikasi: siswa 1 (siswa)
+2026-01-20 14:59:14,255 - INFO - Hasil: DUPLIKAT (User sudah absen masuk & pulang)
+2026-01-20 14:59:35,706 - INFO - --- DETEKSI BARU: 'GURU-11-696b5b7cef8da' ---
+2026-01-20 14:59:35,709 - INFO - User Berhasil Diidentifikasi: guru 1 (guru)
+2026-01-20 14:59:35,710 - INFO - Absen Masuk Ditemukan. Memproses Absen PULANG untuk guru 1...
+2026-01-20 14:59:35,712 - INFO - Hasil: BERHASIL PULANG (14:59:35)
+2026-01-20 14:59:43,288 - INFO - --- DETEKSI BARU: 'GURU-11-696b5b7cef8da' ---
+2026-01-20 14:59:43,299 - INFO - User Berhasil Diidentifikasi: guru 1 (guru)
+2026-01-20 14:59:43,301 - INFO - Hasil: DUPLIKAT (User sudah absen masuk & pulang)
+2026-01-20 14:59:46,244 - INFO - --- DETEKSI BARU: 'GURU-11-696b5b7cef8da' ---
+2026-01-20 14:59:46,249 - INFO - User Berhasil Diidentifikasi: guru 1 (guru)
+2026-01-20 14:59:46,249 - INFO - Hasil: DUPLIKAT (User sudah absen masuk & pulang)
+2026-01-20 14:59:51,653 - INFO - --- DETEKSI BARU: '1069' ---
+2026-01-20 14:59:51,658 - WARNING - Hasil: QR TIDAK DIKENAL
+2026-01-20 14:59:54,617 - INFO - --- DETEKSI BARU: '1069' ---
+2026-01-20 14:59:54,621 - WARNING - Hasil: QR TIDAK DIKENAL
