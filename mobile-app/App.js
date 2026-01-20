@@ -282,7 +282,7 @@ export default function App() {
 
     // Dynamic Server URL State
     const [baseUrl, setBaseUrl] = useState('http://192.168.0.105/absensi-digital-2');
-    
+
     // ip tathering hp
     // const [baseUrl, setBaseUrl] = useState('http://10.152.126.24/absensi-digital-2');
 
@@ -452,7 +452,63 @@ export default function App() {
                 console.log('Failed to load language');
             }
         };
+
+        const loadStoredAuth = async () => {
+            try {
+                const token = await AsyncStorage.getItem('jwt_token');
+                const storedUserData = await AsyncStorage.getItem('user_data');
+
+                if (token && storedUserData) {
+                    // Verify token is still valid
+                    const response = await fetch(`${BASE_URL}/app/api/verify_token.php`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const result = await response.json();
+
+                    if (result.valid) {
+                        // Token is valid, restore user session
+                        setUserData(JSON.parse(storedUserData));
+                        setCurrentView('dashboard');
+                    } else {
+                        // Token expired, try to refresh
+                        const refreshToken = await AsyncStorage.getItem('refresh_token');
+                        if (refreshToken) {
+                            const refreshResponse = await fetch(`${BASE_URL}/app/api/refresh_token.php`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ refresh_token: refreshToken })
+                            });
+
+                            const refreshResult = await refreshResponse.json();
+
+                            if (refreshResult.success) {
+                                // Update tokens
+                                await AsyncStorage.setItem('jwt_token', refreshResult.token);
+                                await AsyncStorage.setItem('refresh_token', refreshResult.refresh_token);
+
+                                setUserData(JSON.parse(storedUserData));
+                                setCurrentView('dashboard');
+                            } else {
+                                // Refresh failed, clear storage
+                                await AsyncStorage.removeItem('jwt_token');
+                                await AsyncStorage.removeItem('refresh_token');
+                                await AsyncStorage.removeItem('user_data');
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                console.log('Failed to load stored auth:', e);
+            }
+        };
+
         loadLanguage();
+        loadStoredAuth();
 
         // Cek versi aplikasi secara berkala (setiap 1 menit)
         const versionInterval = setInterval(checkAppVersion, 60000);
@@ -930,6 +986,11 @@ export default function App() {
             const data = await response.json();
 
             if (data.success) {
+                // Store JWT tokens in AsyncStorage
+                await AsyncStorage.setItem('jwt_token', data.token);
+                await AsyncStorage.setItem('refresh_token', data.refresh_token);
+                await AsyncStorage.setItem('user_data', JSON.stringify(data));
+
                 setUserData(data);
                 setCurrentView('dashboard');
                 setPassword('');
@@ -943,7 +1004,12 @@ export default function App() {
         }
     };
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        // Clear JWT tokens from AsyncStorage
+        await AsyncStorage.removeItem('jwt_token');
+        await AsyncStorage.removeItem('refresh_token');
+        await AsyncStorage.removeItem('user_data');
+
         setUserData(null);
         setCurrentView('login');
         setUsername('');
