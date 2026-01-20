@@ -280,11 +280,14 @@ export default function App() {
     const systemTheme = useColorScheme();
     const [isDarkMode, setIsDarkMode] = useState(systemTheme === 'dark');
 
-    // Dynamic Server URL State
+    // wifi gradasi
     const [baseUrl, setBaseUrl] = useState('http://192.168.0.105/absensi-digital-2');
 
     // ip tathering hp
     // const [baseUrl, setBaseUrl] = useState('http://10.152.126.24/absensi-digital-2');
+
+    // ip wifiarea
+    // const [baseUrl, setBaseUrl] = useState('http://172.200.2.91/absensi-digital-2');
 
     // Shadow global BASE_URL with state for compatibility
     const BASE_URL = baseUrl;
@@ -2210,6 +2213,12 @@ export default function App() {
                         <View style={{ flex: 1 }}>
                             <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.text }}>Muhammad Fahiim</Text>
                             <Text style={{ fontSize: 14, color: theme.textMuted }}>Fullstack Developer</Text>
+                            <Text style={{ fontSize: 13, color: theme.textMuted, marginTop: 4, fontWeight: '600' }}>Developer: Gradasi Web</Text>
+                            <Text style={{ fontSize: 13, color: theme.textMuted }}>Part of Gradasinet</Text>
+                            <TouchableOpacity onPress={() => Linking.openURL('https://gradasiweb.com')} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2, alignSelf: 'flex-start' }}>
+                                <WebIcon name="globe" size={12} color={theme.primary} style={{ marginRight: 4 }} />
+                                <Text style={{ fontSize: 12, color: theme.primary, fontWeight: '700' }}>gradasiweb.com</Text>
+                            </TouchableOpacity>
                             <TouchableOpacity onPress={() => Linking.openURL('https://gradasi.net')} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, alignSelf: 'flex-start' }}>
                                 <WebIcon name="globe" size={12} color={theme.primary} style={{ marginRight: 4 }} />
                                 <Text style={{ fontSize: 12, color: theme.primary, fontWeight: '700' }}>gradasi.net</Text>
