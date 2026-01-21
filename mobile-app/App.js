@@ -71,7 +71,8 @@ const PATHS = {
     barChart: "M18 20V10 M12 20V4 M6 20v6",
 
     chat: "M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z",
-    reply: "M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+    reply: "M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6",
+    send: "M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"
 };
 
 const WebIcon = ({ name, size = 24, color = "white", strokeWidth = 2, style }) => (
