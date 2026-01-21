@@ -25,7 +25,7 @@ import { StatusBar } from 'expo-status-bar';
 import { CameraView, Camera } from "expo-camera";
 import { WebView } from "react-native-webview";
 import Constants from 'expo-constants';
-import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
+import { GestureHandlerRootView, Swipeable, PanGestureHandler, State } from 'react-native-gesture-handler';
 
 import QRCode from 'react-native-qrcode-svg';
 import Svg, { Path } from 'react-native-svg';
@@ -354,6 +354,45 @@ export default function App() {
     const [showPaymentMethodModal, setShowPaymentMethodModal] = useState(false);
     const [selectedTagihan, setSelectedTagihan] = useState(null);
     const [replyingToCommentText, setReplyingToCommentText] = useState('');
+    const commentModalY = React.useRef(new Animated.Value(height)).current; // Start off-screen
+
+    const closeCommentModal = () => {
+        Animated.timing(commentModalY, {
+            toValue: height,
+            duration: 250,
+            useNativeDriver: true,
+        }).start(() => setCommentModalVisible(false));
+    };
+
+    const onCommentGestureEvent = Animated.event(
+        [{ nativeEvent: { translationY: commentModalY } }],
+        { useNativeDriver: true }
+    );
+
+    const onCommentHandlerStateChange = event => {
+        if (event.nativeEvent.oldState === State.ACTIVE) {
+            const { translationY } = event.nativeEvent;
+            if (translationY > 100) {
+                closeCommentModal();
+            } else {
+                Animated.spring(commentModalY, {
+                    toValue: 0,
+                    useNativeDriver: true,
+                }).start();
+            }
+        }
+    };
+
+    useEffect(() => {
+        if (commentModalVisible) {
+            commentModalY.setValue(height);
+            Animated.spring(commentModalY, {
+                toValue: 0,
+                useNativeDriver: true,
+                damping: 20,
+            }).start();
+        }
+    }, [commentModalVisible]);
 
     // --- CUSTOM ALERT STATE ---
     const [alertConfig, setAlertConfig] = useState({
@@ -1751,7 +1790,7 @@ export default function App() {
 
                 return (
                     <TouchableOpacity
-                        style={{ width: 80, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.primary, borderRadius: 12, marginLeft: 10, height: '80%', marginTop: 15 }}
+                        style={{ width: 80, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.primary, borderRadius: 12, height: '100%' }}
                         onPress={() => {
                             setReplyingToCommentId(comment.id);
                             setReplyingToCommentUser(comment.nama_user);
@@ -1769,22 +1808,22 @@ export default function App() {
 
             return (
                 <View style={{ marginLeft: depth > 0 ? 20 : 0, marginTop: 10, borderLeftWidth: depth > 0 ? 2 : 0, borderLeftColor: theme.border, paddingLeft: depth > 0 ? 10 : 0 }}>
-                    <Swipeable
-                        ref={swipeableRef}
-                        renderRightActions={renderRightActions}
-                        onSwipeableOpen={() => {
-                            setReplyingToCommentId(comment.id);
-                            setReplyingToCommentUser(comment.nama_user);
-                            setReplyingToCommentText(comment.komentar);
-                            swipeableRef.current?.close();
-                        }}
-                    >
-                        <View style={{ flexDirection: 'row' }}>
-                            <Image
-                                source={{ uri: `${BASE_URL}/uploads/${comment.role === 'siswa' ? 'siswa' : 'guru'}/${comment.foto_profil}` }}
-                                style={{ width: 32, height: 32, borderRadius: 16, marginRight: 10, backgroundColor: '#f1f5f9' }}
-                            />
-                            <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row' }}>
+                        <Image
+                            source={{ uri: `${BASE_URL}/uploads/${comment.role === 'siswa' ? 'siswa' : 'guru'}/${comment.foto_profil}` }}
+                            style={{ width: 32, height: 32, borderRadius: 16, marginRight: 10, backgroundColor: '#f1f5f9' }}
+                        />
+                        <View style={{ flex: 1 }}>
+                            <Swipeable
+                                ref={swipeableRef}
+                                renderRightActions={renderRightActions}
+                                onSwipeableOpen={() => {
+                                    setReplyingToCommentId(comment.id);
+                                    setReplyingToCommentUser(comment.nama_user);
+                                    setReplyingToCommentText(comment.komentar);
+                                    swipeableRef.current?.close();
+                                }}
+                            >
                                 <TouchableOpacity
                                     onLongPress={() => {
                                         if (isOwner && !isEditing) {
@@ -1829,23 +1868,24 @@ export default function App() {
                                         )}
                                     </View>
                                 </TouchableOpacity>
+                            </Swipeable>
 
-                                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, marginLeft: 5 }}>
-                                    <Text style={{ color: theme.textMuted, fontSize: 10 }}>{new Date(comment.created_at).toLocaleString()}</Text>
-                                    <TouchableOpacity
-                                        onPress={() => {
-                                            setReplyingToCommentId(comment.id);
-                                            setReplyingToCommentUser(comment.nama_user);
-                                            setReplyingToCommentText(comment.komentar);
-                                        }}
-                                        style={{ marginLeft: 10 }}
-                                    >
-                                        <Text style={{ color: theme.primary, fontSize: 10, fontWeight: 'bold' }}>Reply</Text>
-                                    </TouchableOpacity>
-                                </View>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, marginLeft: 5 }}>
+                                <Text style={{ color: theme.textMuted, fontSize: 10 }}>{new Date(comment.created_at).toLocaleString()}</Text>
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        setReplyingToCommentId(comment.id);
+                                        setReplyingToCommentUser(comment.nama_user);
+                                        setReplyingToCommentText(comment.komentar);
+                                    }}
+                                    style={{ marginLeft: 10 }}
+                                >
+                                    <Text style={{ color: theme.primary, fontSize: 10, fontWeight: 'bold' }}>Reply</Text>
+                                </TouchableOpacity>
                             </View>
                         </View>
-                    </Swipeable>
+                    </View>
+                    {/* Swipeable Close Tag was removed because I am rewriting the block structure */}
 
                     {/* Recursive Children */}
                     {comment.children && comment.children.length > 0 && (
@@ -2045,11 +2085,12 @@ export default function App() {
 
                 {/* COMMENT MODAL */}
                 {/* COMMENT MODAL */}
+                {/* COMMENT MODAL */}
                 <Modal
                     visible={commentModalVisible}
                     transparent={true}
-                    animationType="slide"
-                    onRequestClose={() => setCommentModalVisible(false)}
+                    animationType="fade"
+                    onRequestClose={closeCommentModal}
                 >
                     <GestureHandlerRootView style={{ flex: 1 }}>
                         <KeyboardAvoidingView
@@ -2060,65 +2101,88 @@ export default function App() {
                                 <TouchableOpacity
                                     style={{ flex: 1 }}
                                     activeOpacity={1}
-                                    onPress={() => setCommentModalVisible(false)}
+                                    onPress={closeCommentModal}
                                 />
-                                <View style={{ backgroundColor: theme.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, height: '80%', padding: 20 }}>
-                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
-                                        <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.text }}>Komentar</Text>
-                                        <TouchableOpacity onPress={() => setCommentModalVisible(false)}>
-                                            <WebIcon name="close" size={24} color={theme.text} />
-                                        </TouchableOpacity>
-                                    </View>
+                                <PanGestureHandler
+                                    onGestureEvent={onCommentGestureEvent}
+                                    onHandlerStateChange={onCommentHandlerStateChange}
+                                >
+                                    <Animated.View style={{
+                                        backgroundColor: theme.card,
+                                        borderTopLeftRadius: 24,
+                                        borderTopRightRadius: 24,
+                                        height: '80%',
+                                        padding: 20,
+                                        transform: [{
+                                            translateY: commentModalY.interpolate({
+                                                inputRange: [0, height],
+                                                outputRange: [0, height],
+                                                extrapolate: 'clamp'
+                                            })
+                                        }]
+                                    }}>
+                                        {/* Drag Handle */}
+                                        <View style={{ alignItems: 'center', marginBottom: 10 }}>
+                                            <View style={{ width: 40, height: 4, backgroundColor: theme.border, borderRadius: 2 }} />
+                                        </View>
 
-                                    <ScrollView style={{ flex: 1, marginBottom: 10 }}>
-                                        {isCommentLoading && comments.length === 0 ? (
-                                            <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 20 }} />
-                                        ) : comments.length === 0 ? (
-                                            <Text style={{ textAlign: 'center', color: theme.textMuted, marginTop: 20 }}>Belum ada komentar.</Text>
-                                        ) : (
-                                            (() => {
-                                                const tree = buildCommentTree(comments);
-                                                return tree.map((comment) => (
-                                                    <CommentItem key={comment.id} comment={comment} />
-                                                ));
-                                            })()
-                                        )}
-                                    </ScrollView>
-
-                                    {/* Replying To Indicator */}
-                                    {replyingToCommentId && (
-                                        <View style={[styles.replyPreviewContainer, { borderColor: theme.border, borderLeftColor: theme.primary, backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc' }]}>
-                                            <View style={{ flex: 1 }}>
-                                                <Text style={{ color: theme.primary, fontSize: 12, fontWeight: 'bold', marginBottom: 2 }}>
-                                                    Replying to @{replyingToCommentUser}
-                                                </Text>
-                                                <Text style={{ color: theme.textMuted, fontSize: 12 }} numberOfLines={1}>
-                                                    {replyingToCommentText}
-                                                </Text>
-                                            </View>
-                                            <TouchableOpacity onPress={() => {
-                                                setReplyingToCommentId(null);
-                                                setReplyingToCommentUser('');
-                                                setReplyingToCommentText('');
-                                            }}>
-                                                <WebIcon name="close" size={20} color={theme.textMuted} />
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+                                            <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.text }}>Komentar</Text>
+                                            <TouchableOpacity onPress={closeCommentModal}>
+                                                <WebIcon name="close" size={24} color={theme.text} />
                                             </TouchableOpacity>
                                         </View>
-                                    )}
 
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 10 }}>
-                                        <TextInput
-                                            style={{ flex: 1, backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9', borderRadius: 20, paddingHorizontal: 15, paddingVertical: 10, color: theme.text, marginRight: 10 }}
-                                            placeholder="Tulis komentar..."
-                                            placeholderTextColor={theme.textMuted}
-                                            value={newComment}
-                                            onChangeText={setNewComment}
-                                        />
-                                        <TouchableOpacity onPress={handlePostComment}>
-                                            <WebIcon name="send" size={24} color={theme.primary} />
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
+                                        <ScrollView style={{ flex: 1, marginBottom: 10 }}>
+                                            {isCommentLoading && comments.length === 0 ? (
+                                                <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 20 }} />
+                                            ) : comments.length === 0 ? (
+                                                <Text style={{ textAlign: 'center', color: theme.textMuted, marginTop: 20 }}>Belum ada komentar.</Text>
+                                            ) : (
+                                                (() => {
+                                                    const tree = buildCommentTree(comments);
+                                                    return tree.map((comment) => (
+                                                        <CommentItem key={comment.id} comment={comment} />
+                                                    ));
+                                                })()
+                                            )}
+                                        </ScrollView>
+
+                                        {/* Replying To Indicator */}
+                                        {replyingToCommentId && (
+                                            <View style={[styles.replyPreviewContainer, { borderColor: theme.border, borderLeftColor: theme.primary, backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc' }]}>
+                                                <View style={{ flex: 1 }}>
+                                                    <Text style={{ color: theme.primary, fontSize: 12, fontWeight: 'bold', marginBottom: 2 }}>
+                                                        Replying to @{replyingToCommentUser}
+                                                    </Text>
+                                                    <Text style={{ color: theme.textMuted, fontSize: 12 }} numberOfLines={1}>
+                                                        {replyingToCommentText}
+                                                    </Text>
+                                                </View>
+                                                <TouchableOpacity onPress={() => {
+                                                    setReplyingToCommentId(null);
+                                                    setReplyingToCommentUser('');
+                                                    setReplyingToCommentText('');
+                                                }}>
+                                                    <WebIcon name="close" size={20} color={theme.textMuted} />
+                                                </TouchableOpacity>
+                                            </View>
+                                        )}
+
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 10 }}>
+                                            <TextInput
+                                                style={{ flex: 1, backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9', borderRadius: 20, paddingHorizontal: 15, paddingVertical: 10, color: theme.text, marginRight: 10 }}
+                                                placeholder="Tulis komentar..."
+                                                placeholderTextColor={theme.textMuted}
+                                                value={newComment}
+                                                onChangeText={setNewComment}
+                                            />
+                                            <TouchableOpacity onPress={handlePostComment}>
+                                                <WebIcon name="send" size={24} color={theme.primary} />
+                                            </TouchableOpacity>
+                                        </View>
+                                    </Animated.View>
+                                </PanGestureHandler>
                             </View>
                         </KeyboardAvoidingView>
                     </GestureHandlerRootView>
