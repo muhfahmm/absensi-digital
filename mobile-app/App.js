@@ -1765,9 +1765,20 @@ export default function App() {
                 );
             };
 
+            const swipeableRef = React.useRef(null);
+
             return (
                 <View style={{ marginLeft: depth > 0 ? 20 : 0, marginTop: 10, borderLeftWidth: depth > 0 ? 2 : 0, borderLeftColor: theme.border, paddingLeft: depth > 0 ? 10 : 0 }}>
-                    <Swipeable renderRightActions={renderRightActions}>
+                    <Swipeable
+                        ref={swipeableRef}
+                        renderRightActions={renderRightActions}
+                        onSwipeableOpen={() => {
+                            setReplyingToCommentId(comment.id);
+                            setReplyingToCommentUser(comment.nama_user);
+                            setReplyingToCommentText(comment.komentar);
+                            swipeableRef.current?.close();
+                        }}
+                    >
                         <View style={{ flexDirection: 'row' }}>
                             <Image
                                 source={{ uri: `${BASE_URL}/uploads/${comment.role === 'siswa' ? 'siswa' : 'guru'}/${comment.foto_profil}` }}
