@@ -1,0 +1,14 @@
+﻿app
+desktop-scanner
+docs
+mobile-app
+uploads
+.env
+.gitignore
+.htaccess
+docker-compose.yml
+Dockerfile
+filelist.txt
+index.php
+README.md
+README_temp.md
