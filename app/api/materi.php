@@ -15,7 +15,8 @@ try {
     // Basic query to fetch materials
     // You might want to filter this by class later if needed
     $sql = "
-        SELECT m.*, g.nama_lengkap as nama_guru, mp.nama_mapel, k.nama_kelas 
+        SELECT m.*, g.nama_lengkap as nama_guru, mp.nama_mapel, k.nama_kelas,
+        (SELECT COUNT(*) FROM tb_komentar_elearning WHERE materi_id = m.id) as total_komentar
         FROM tb_materi m
         JOIN tb_guru g ON m.id_guru = g.id
         LEFT JOIN tb_mata_pelajaran mp ON m.id_mapel = mp.id

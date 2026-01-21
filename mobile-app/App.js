@@ -1880,7 +1880,7 @@ export default function App() {
                                                 onPress={() => openCommentModal(item.id)}
                                             >
                                                 <WebIcon name="chat" size={16} color={theme.textMuted} style={{ marginRight: 8 }} />
-                                                <Text style={{ color: theme.textMuted, fontWeight: '600' }}>Komentar</Text>
+                                                <Text style={{ color: theme.textMuted, fontWeight: '600' }}>Komentar {item.total_komentar > 0 ? `(${item.total_komentar})` : ''}</Text>
                                             </TouchableOpacity>
                                         </View>
                                     </View>
