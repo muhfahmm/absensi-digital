@@ -25,6 +25,7 @@ import { StatusBar } from 'expo-status-bar';
 import { CameraView, Camera } from "expo-camera";
 import { WebView } from "react-native-webview";
 import Constants from 'expo-constants';
+import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 
 import QRCode from 'react-native-qrcode-svg';
 import Svg, { Path } from 'react-native-svg';
@@ -69,7 +70,8 @@ const PATHS = {
     fileText: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8",
     barChart: "M18 20V10 M12 20V4 M6 20v6",
 
-    chat: "M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+    chat: "M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z",
+    reply: "M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
 };
 
 const WebIcon = ({ name, size = 24, color = "white", strokeWidth = 2, style }) => (
@@ -350,6 +352,7 @@ export default function App() {
     const [currentOrderId, setCurrentOrderId] = useState(null);
     const [showPaymentMethodModal, setShowPaymentMethodModal] = useState(false);
     const [selectedTagihan, setSelectedTagihan] = useState(null);
+    const [replyingToCommentText, setReplyingToCommentText] = useState('');
 
     // --- CUSTOM ALERT STATE ---
     const [alertConfig, setAlertConfig] = useState({
@@ -1465,6 +1468,7 @@ export default function App() {
                     <Text style={[styles.webHeaderSubtitle, { color: theme.textMuted, fontSize: 18, marginTop: 4 }]}>{user.nama_kelas || '-'}</Text>
                 </View>
 
+
                 <View style={{ marginTop: 20 }}>
                     <InfoCard icon="tag" iconBg="#eef2ff" iconColor="#4f46e5" label={role === 'guru' ? t('nuptk') : t('nis')} value={user.nis || user.nuptk || '-'} theme={theme} isDarkMode={isDarkMode} />
                     <InfoCard icon="building" iconBg="#f5f3ff" iconColor="#7c3aed" label={t('kelas')} value={user.nama_kelas || '-'} theme={theme} isDarkMode={isDarkMode} />
@@ -1527,9 +1531,35 @@ export default function App() {
                     <WebIcon name="logout" size={20} color="white" style={{ marginRight: 10 }} />
                     <Text style={styles.logoutBtnText}>{t('keluarAkun')}</Text>
                 </TouchableOpacity>
+
             </ScreenTemplate >
         );
     };
+
+    // --- COMMENT HELPERS ---
+    const buildCommentTree = (flatComments) => {
+        const commentMap = {};
+        const roots = [];
+
+        // First pass: map items and initialize children
+        flatComments.forEach(comment => {
+            comment.children = [];
+            commentMap[comment.id] = comment;
+        });
+
+        // Second pass: link children to parents
+        flatComments.forEach(comment => {
+            if (comment.parent_id && commentMap[comment.parent_id]) {
+                commentMap[comment.parent_id].children.push(comment);
+            } else {
+                roots.push(comment);
+            }
+        });
+
+        return roots;
+    };
+
+
 
     const renderElearning = () => {
         // Filter Logic
@@ -1706,6 +1736,117 @@ export default function App() {
                 'warning'
             );
         };
+
+        const CommentItem = ({ comment, depth = 0 }) => {
+            const isOwner = comment.user_id === userData.user.id && comment.role === userData.role;
+            const isEditing = editingCommentId === comment.id;
+
+            const renderRightActions = (progress, dragX) => {
+                const trans = dragX.interpolate({
+                    inputRange: [-100, 0],
+                    outputRange: [1, 0],
+                    extrapolate: 'clamp',
+                });
+
+                return (
+                    <TouchableOpacity
+                        style={{ width: 80, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.primary, borderRadius: 12, marginLeft: 10, height: '80%', marginTop: 15 }}
+                        onPress={() => {
+                            setReplyingToCommentId(comment.id);
+                            setReplyingToCommentUser(comment.nama_user);
+                            setReplyingToCommentText(comment.komentar);
+                        }}
+                    >
+                        <Animated.View style={{ transform: [{ scale: trans }] }}>
+                            <WebIcon name="reply" size={24} color="white" />
+                        </Animated.View>
+                    </TouchableOpacity>
+                );
+            };
+
+            return (
+                <View style={{ marginLeft: depth > 0 ? 20 : 0, marginTop: 10, borderLeftWidth: depth > 0 ? 2 : 0, borderLeftColor: theme.border, paddingLeft: depth > 0 ? 10 : 0 }}>
+                    <Swipeable renderRightActions={renderRightActions}>
+                        <View style={{ flexDirection: 'row' }}>
+                            <Image
+                                source={{ uri: `${BASE_URL}/uploads/${comment.role === 'siswa' ? 'siswa' : 'guru'}/${comment.foto_profil}` }}
+                                style={{ width: 32, height: 32, borderRadius: 16, marginRight: 10, backgroundColor: '#f1f5f9' }}
+                            />
+                            <View style={{ flex: 1 }}>
+                                <TouchableOpacity
+                                    onLongPress={() => {
+                                        if (isOwner && !isEditing) {
+                                            setSelectedCommentForMenu(comment);
+                                            setLongPressMenuVisible(true);
+                                        }
+                                    }}
+                                    delayLongPress={500}
+                                    activeOpacity={0.7}
+                                >
+                                    <View style={{ backgroundColor: isDarkMode ? (depth % 2 === 0 ? '#1e293b' : '#0f172a') : (depth % 2 === 0 ? '#f1f5f9' : '#e2e8f0'), padding: 10, borderRadius: 12, borderTopLeftRadius: 0 }}>
+                                        <Text style={{ fontWeight: 'bold', color: theme.text, fontSize: 13 }}>
+                                            {comment.nama_user} <Text style={{ fontWeight: 'normal', fontSize: 11, color: theme.textMuted }}>• {comment.role?.toUpperCase()}</Text>
+                                        </Text>
+
+                                        {isEditing ? (
+                                            <View style={{ marginTop: 8 }}>
+                                                <TextInput
+                                                    style={{ backgroundColor: isDarkMode ? '#0f172a' : 'white', borderRadius: 8, padding: 8, color: theme.text, borderWidth: 1, borderColor: theme.border }}
+                                                    value={editingCommentText}
+                                                    onChangeText={setEditingCommentText}
+                                                    multiline
+                                                    autoFocus
+                                                />
+                                                <View style={{ flexDirection: 'row', marginTop: 8, gap: 8 }}>
+                                                    <TouchableOpacity
+                                                        style={{ flex: 1, backgroundColor: theme.primary, padding: 8, borderRadius: 8, alignItems: 'center' }}
+                                                        onPress={handleUpdateComment}
+                                                    >
+                                                        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>Simpan</Text>
+                                                    </TouchableOpacity>
+                                                    <TouchableOpacity
+                                                        style={{ flex: 1, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0', padding: 8, borderRadius: 8, alignItems: 'center' }}
+                                                        onPress={() => { setEditingCommentId(null); setEditingCommentText(''); }}
+                                                    >
+                                                        <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: 12 }}>Batal</Text>
+                                                    </TouchableOpacity>
+                                                </View>
+                                            </View>
+                                        ) : (
+                                            <Text style={{ color: theme.text, marginTop: 4 }}>{comment.komentar}</Text>
+                                        )}
+                                    </View>
+                                </TouchableOpacity>
+
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, marginLeft: 5 }}>
+                                    <Text style={{ color: theme.textMuted, fontSize: 10 }}>{new Date(comment.created_at).toLocaleString()}</Text>
+                                    <TouchableOpacity
+                                        onPress={() => {
+                                            setReplyingToCommentId(comment.id);
+                                            setReplyingToCommentUser(comment.nama_user);
+                                            setReplyingToCommentText(comment.komentar);
+                                        }}
+                                        style={{ marginLeft: 10 }}
+                                    >
+                                        <Text style={{ color: theme.primary, fontSize: 10, fontWeight: 'bold' }}>Reply</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </View>
+                    </Swipeable>
+
+                    {/* Recursive Children */}
+                    {comment.children && comment.children.length > 0 && (
+                        <View>
+                            {comment.children.map(child => (
+                                <CommentItem key={child.id} comment={child} depth={depth + 1} />
+                            ))}
+                        </View>
+                    )}
+                </View>
+            );
+        };
+
         return (
             <View style={[styles.dashboardWrapper, { backgroundColor: theme.bg }]}>
                 {/* Fixed Header Manual */}
@@ -1891,204 +2032,94 @@ export default function App() {
                 </ScrollView >
 
                 {/* COMMENT MODAL */}
+                {/* COMMENT MODAL */}
                 <Modal
                     visible={commentModalVisible}
                     transparent={true}
                     animationType="slide"
                     onRequestClose={() => setCommentModalVisible(false)}
                 >
-                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-                        <View style={{ backgroundColor: theme.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, height: '80%', padding: 20 }}>
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
-                                <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.text }}>Komentar</Text>
-                                <TouchableOpacity onPress={() => setCommentModalVisible(false)}>
-                                    <WebIcon name="close" size={24} color={theme.text} />
-                                </TouchableOpacity>
-                            </View>
-
-                            <ScrollView style={{ flex: 1, marginBottom: 10 }}>
-                                {isCommentLoading && comments.length === 0 ? (
-                                    <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 20 }} />
-                                ) : comments.length === 0 ? (
-                                    <Text style={{ textAlign: 'center', color: theme.textMuted, marginTop: 20 }}>Belum ada komentar.</Text>
-                                ) : (
-                                    comments.map((item, index) => {
-                                        const isOwner = item.user_id === userData.user.id && item.role === userData.role;
-                                        const isEditing = editingCommentId === item.id;
-
-                                        return (
-                                            <View key={index} style={{ marginBottom: 15 }}>
-                                                {/* Parent Comment */}
-                                                <View style={{ flexDirection: 'row' }}>
-                                                    <Image
-                                                        source={{ uri: `${BASE_URL}/uploads/${item.role === 'siswa' ? 'siswa' : 'guru'}/${item.foto_profil}` }}
-                                                        style={{ width: 40, height: 40, borderRadius: 20, marginRight: 10, backgroundColor: '#f1f5f9' }}
-                                                    />
-                                                    <View style={{ flex: 1 }}>
-                                                        <TouchableOpacity
-                                                            onLongPress={() => {
-                                                                if (isOwner && !isEditing) {
-                                                                    setSelectedCommentForMenu(item);
-                                                                    setLongPressMenuVisible(true);
-                                                                }
-                                                            }}
-                                                            delayLongPress={500}
-                                                            activeOpacity={0.7}
-                                                        >
-                                                            <View style={{ backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9', padding: 10, borderRadius: 12, borderTopLeftRadius: 0 }}>
-                                                                <Text style={{ fontWeight: 'bold', color: theme.text, fontSize: 13 }}>{item.nama_user} <Text style={{ fontWeight: 'normal', fontSize: 11, color: theme.textMuted }}>• {item.role.toUpperCase()}</Text></Text>
-
-                                                                {isEditing ? (
-                                                                    <View style={{ marginTop: 8 }}>
-                                                                        <TextInput
-                                                                            style={{ backgroundColor: isDarkMode ? '#0f172a' : 'white', borderRadius: 8, padding: 8, color: theme.text, borderWidth: 1, borderColor: theme.border }}
-                                                                            value={editingCommentText}
-                                                                            onChangeText={setEditingCommentText}
-                                                                            multiline
-                                                                            autoFocus
-                                                                        />
-                                                                        <View style={{ flexDirection: 'row', marginTop: 8, gap: 8 }}>
-                                                                            <TouchableOpacity
-                                                                                style={{ flex: 1, backgroundColor: theme.primary, padding: 8, borderRadius: 8, alignItems: 'center' }}
-                                                                                onPress={handleUpdateComment}
-                                                                            >
-                                                                                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>Simpan</Text>
-                                                                            </TouchableOpacity>
-                                                                            <TouchableOpacity
-                                                                                style={{ flex: 1, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0', padding: 8, borderRadius: 8, alignItems: 'center' }}
-                                                                                onPress={() => { setEditingCommentId(null); setEditingCommentText(''); }}
-                                                                            >
-                                                                                <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: 12 }}>Batal</Text>
-                                                                            </TouchableOpacity>
-                                                                        </View>
-                                                                    </View>
-                                                                ) : (
-                                                                    <Text style={{ color: theme.text, marginTop: 4 }}>{item.komentar}</Text>
-                                                                )}
-                                                            </View>
-                                                        </TouchableOpacity>
-                                                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, marginLeft: 5 }}>
-                                                            <Text style={{ color: theme.textMuted, fontSize: 10 }}>{new Date(item.created_at).toLocaleString()}</Text>
-                                                            <TouchableOpacity
-                                                                onPress={() => {
-                                                                    setReplyingToCommentId(item.id);
-                                                                    setReplyingToCommentUser(item.nama_user);
-                                                                }}
-                                                                style={{ marginLeft: 10 }}
-                                                            >
-                                                                <Text style={{ color: theme.primary, fontSize: 10, fontWeight: 'bold' }}>Reply</Text>
-                                                            </TouchableOpacity>
-                                                        </View>
-                                                    </View>
-                                                </View>
-
-                                                {/* Nested Replies */}
-                                                {item.replies && item.replies.length > 0 && (
-                                                    <View style={{ marginLeft: 50, marginTop: 10 }}>
-                                                        {item.replies.map((reply, replyIndex) => {
-                                                            const isReplyOwner = reply.user_id === userData.user.id && reply.role === userData.role;
-                                                            const isReplyEditing = editingCommentId === reply.id;
-
-                                                            return (
-                                                                <View key={replyIndex} style={{ marginBottom: 10, flexDirection: 'row' }}>
-                                                                    <Image
-                                                                        source={{ uri: `${BASE_URL}/uploads/${reply.role === 'siswa' ? 'siswa' : 'guru'}/${reply.foto_profil}` }}
-                                                                        style={{ width: 32, height: 32, borderRadius: 16, marginRight: 8, backgroundColor: '#f1f5f9' }}
-                                                                    />
-                                                                    <View style={{ flex: 1 }}>
-                                                                        <TouchableOpacity
-                                                                            onLongPress={() => {
-                                                                                if (isReplyOwner && !isReplyEditing) {
-                                                                                    setSelectedCommentForMenu(reply);
-                                                                                    setLongPressMenuVisible(true);
-                                                                                }
-                                                                            }}
-                                                                            delayLongPress={500}
-                                                                            activeOpacity={0.7}
-                                                                        >
-                                                                            <View style={{ backgroundColor: isDarkMode ? '#0f172a' : '#e2e8f0', padding: 8, borderRadius: 10, borderTopLeftRadius: 0 }}>
-                                                                                <Text style={{ fontWeight: 'bold', color: theme.text, fontSize: 12 }}>{reply.nama_user} <Text style={{ fontWeight: 'normal', fontSize: 10, color: theme.textMuted }}>• {reply.role.toUpperCase()}</Text></Text>
-
-                                                                                {isReplyEditing ? (
-                                                                                    <View style={{ marginTop: 6 }}>
-                                                                                        <TextInput
-                                                                                            style={{ backgroundColor: isDarkMode ? '#1e293b' : 'white', borderRadius: 6, padding: 6, color: theme.text, borderWidth: 1, borderColor: theme.border, fontSize: 12 }}
-                                                                                            value={editingCommentText}
-                                                                                            onChangeText={setEditingCommentText}
-                                                                                            multiline
-                                                                                            autoFocus
-                                                                                        />
-                                                                                        <View style={{ flexDirection: 'row', marginTop: 6, gap: 6 }}>
-                                                                                            <TouchableOpacity
-                                                                                                style={{ flex: 1, backgroundColor: theme.primary, padding: 6, borderRadius: 6, alignItems: 'center' }}
-                                                                                                onPress={handleUpdateComment}
-                                                                                            >
-                                                                                                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 11 }}>Simpan</Text>
-                                                                                            </TouchableOpacity>
-                                                                                            <TouchableOpacity
-                                                                                                style={{ flex: 1, backgroundColor: isDarkMode ? '#334155' : '#cbd5e1', padding: 6, borderRadius: 6, alignItems: 'center' }}
-                                                                                                onPress={() => { setEditingCommentId(null); setEditingCommentText(''); }}
-                                                                                            >
-                                                                                                <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: 11 }}>Batal</Text>
-                                                                                            </TouchableOpacity>
-                                                                                        </View>
-                                                                                    </View>
-                                                                                ) : (
-                                                                                    <Text style={{ color: theme.text, marginTop: 3, fontSize: 12 }}>{reply.komentar}</Text>
-                                                                                )}
-                                                                            </View>
-                                                                        </TouchableOpacity>
-                                                                        <Text style={{ color: theme.textMuted, fontSize: 9, marginTop: 3, marginLeft: 4 }}>{new Date(reply.created_at).toLocaleString()}</Text>
-                                                                    </View>
-                                                                </View>
-                                                            );
-                                                        })}
-                                                    </View>
-                                                )}
-                                            </View>
-                                        );
-                                    })
-                                )}
-                            </ScrollView>
-
-                            {/* Replying To Indicator */}
-                            {replyingToCommentId && (
-                                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDarkMode ? '#1e293b' : '#e0e7ff', padding: 8, borderRadius: 8, marginBottom: 8 }}>
-                                    <Text style={{ flex: 1, color: theme.primary, fontSize: 12 }}>
-                                        Replying to <Text style={{ fontWeight: 'bold' }}>@{replyingToCommentUser}</Text>
-                                    </Text>
-                                    <TouchableOpacity onPress={() => { setReplyingToCommentId(null); setReplyingToCommentUser(''); }}>
-                                        <WebIcon name="close" size={16} color={theme.primary} />
-                                    </TouchableOpacity>
-                                </View>
-                            )}
-
-                            <View style={{ flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 10 }}>
-                                <TextInput
-                                    style={{ flex: 1, backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9', borderRadius: 20, paddingHorizontal: 15, paddingVertical: 10, color: theme.text, marginRight: 10 }}
-                                    placeholder="Tulis komentar..."
-                                    placeholderTextColor={theme.textMuted}
-                                    value={newComment}
-                                    onChangeText={setNewComment}
-                                />
+                    <GestureHandlerRootView style={{ flex: 1 }}>
+                        <KeyboardAvoidingView
+                            behavior={Platform.OS === "ios" ? "padding" : "height"}
+                            style={{ flex: 1 }}
+                        >
+                            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
                                 <TouchableOpacity
-                                    style={{ backgroundColor: theme.primary, width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' }}
-                                    onPress={handlePostComment}
-                                    disabled={isCommentLoading}
-                                >
-                                    {isCommentLoading ? <ActivityIndicator size="small" color="white" /> : <WebIcon name="back" size={20} color="white" style={{ transform: [{ rotate: '180deg' }] }} />}
-                                </TouchableOpacity>
+                                    style={{ flex: 1 }}
+                                    activeOpacity={1}
+                                    onPress={() => setCommentModalVisible(false)}
+                                />
+                                <View style={{ backgroundColor: theme.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, height: '80%', padding: 20 }}>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+                                        <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.text }}>Komentar</Text>
+                                        <TouchableOpacity onPress={() => setCommentModalVisible(false)}>
+                                            <WebIcon name="close" size={24} color={theme.text} />
+                                        </TouchableOpacity>
+                                    </View>
+
+                                    <ScrollView style={{ flex: 1, marginBottom: 10 }}>
+                                        {isCommentLoading && comments.length === 0 ? (
+                                            <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 20 }} />
+                                        ) : comments.length === 0 ? (
+                                            <Text style={{ textAlign: 'center', color: theme.textMuted, marginTop: 20 }}>Belum ada komentar.</Text>
+                                        ) : (
+                                            (() => {
+                                                const tree = buildCommentTree(comments);
+                                                return tree.map((comment) => (
+                                                    <CommentItem key={comment.id} comment={comment} />
+                                                ));
+                                            })()
+                                        )}
+                                    </ScrollView>
+
+                                    {/* Replying To Indicator */}
+                                    {replyingToCommentId && (
+                                        <View style={[styles.replyPreviewContainer, { borderColor: theme.border, borderLeftColor: theme.primary, backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc' }]}>
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={{ color: theme.primary, fontSize: 12, fontWeight: 'bold', marginBottom: 2 }}>
+                                                    Replying to @{replyingToCommentUser}
+                                                </Text>
+                                                <Text style={{ color: theme.textMuted, fontSize: 12 }} numberOfLines={1}>
+                                                    {replyingToCommentText}
+                                                </Text>
+                                            </View>
+                                            <TouchableOpacity onPress={() => {
+                                                setReplyingToCommentId(null);
+                                                setReplyingToCommentUser('');
+                                                setReplyingToCommentText('');
+                                            }}>
+                                                <WebIcon name="close" size={20} color={theme.textMuted} />
+                                            </TouchableOpacity>
+                                        </View>
+                                    )}
+
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 10 }}>
+                                        <TextInput
+                                            style={{ flex: 1, backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9', borderRadius: 20, paddingHorizontal: 15, paddingVertical: 10, color: theme.text, marginRight: 10 }}
+                                            placeholder="Tulis komentar..."
+                                            placeholderTextColor={theme.textMuted}
+                                            value={newComment}
+                                            onChangeText={setNewComment}
+                                        />
+                                        <TouchableOpacity onPress={handlePostComment}>
+                                            <WebIcon name="send" size={24} color={theme.primary} />
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
                             </View>
-                        </View>
-                    </View>
+                        </KeyboardAvoidingView>
+                    </GestureHandlerRootView>
                 </Modal>
 
+
                 {/* FLOATING MENU FOR LONG PRESS */}
-                <Modal
+                < Modal
                     visible={longPressMenuVisible}
                     transparent={true}
                     animationType="fade"
-                    onRequestClose={() => setLongPressMenuVisible(false)}
+                    onRequestClose={() => setLongPressMenuVisible(false)
+                    }
                 >
                     <TouchableOpacity
                         style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' }}
@@ -2168,7 +2199,7 @@ export default function App() {
                             </TouchableOpacity>
                         </View>
                     </TouchableOpacity>
-                </Modal>
+                </Modal >
 
                 {renderBottomNav()}
             </View >
@@ -3232,422 +3263,424 @@ export default function App() {
     };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: isDarkMode ? '#0f172a' : '#f3f4f6' }]}>
-            <StatusBar style="light" />
-            {currentView === 'login' && renderLogin()}
-            {currentView === 'dashboard' && renderDashboard()}
-            {currentView === 'scanner' && renderScanner()}
-            {currentView === 'profil' && renderProfil()}
-            {currentView === 'kehadiran' && renderKehadiran()}
-            {currentView === 'monitoring' && renderMonitoringKelas()}
-            {currentView === 'pembayaran' && renderPembayaran()}
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <SafeAreaView style={[styles.container, { backgroundColor: isDarkMode ? '#0f172a' : '#f3f4f6' }]}>
+                <StatusBar style="light" />
+                {currentView === 'login' && renderLogin()}
+                {currentView === 'dashboard' && renderDashboard()}
+                {currentView === 'scanner' && renderScanner()}
+                {currentView === 'profil' && renderProfil()}
+                {currentView === 'kehadiran' && renderKehadiran()}
+                {currentView === 'monitoring' && renderMonitoringKelas()}
+                {currentView === 'pembayaran' && renderPembayaran()}
 
-            {currentView === 'pengumuman' && renderPengumuman()}
-            {currentView === 'jadwal' && renderJadwal()}
-            {currentView === 'elearning' && renderElearning()}
-            {currentView === 'perizinan' && renderPlaceholder('Perizinan')}
-            {currentView === 'nilai' && renderNilai()}
-            {currentView === 'tentang' && renderTentangAplikasi()}
+                {currentView === 'pengumuman' && renderPengumuman()}
+                {currentView === 'jadwal' && renderJadwal()}
+                {currentView === 'elearning' && renderElearning()}
+                {currentView === 'perizinan' && renderPlaceholder('Perizinan')}
+                {currentView === 'nilai' && renderNilai()}
+                {currentView === 'tentang' && renderTentangAplikasi()}
 
-            {/* Announcement Detail Modal - Bottom Sheet Style */}
-            <Modal visible={detailModalVisible} transparent animationType="fade" onRequestClose={() => setDetailModalVisible(false)}>
-                <View style={{ flex: 1, backgroundColor: 'transparent', justifyContent: 'flex-end' }}>
-                    {/* Backdrop tap to close */}
-                    <TouchableOpacity style={{ flex: 1 }} onPress={() => setDetailModalVisible(false)} />
+                {/* Announcement Detail Modal - Bottom Sheet Style */}
+                <Modal visible={detailModalVisible} transparent animationType="fade" onRequestClose={() => setDetailModalVisible(false)}>
+                    <View style={{ flex: 1, backgroundColor: 'transparent', justifyContent: 'flex-end' }}>
+                        {/* Backdrop tap to close */}
+                        <TouchableOpacity style={{ flex: 1 }} onPress={() => setDetailModalVisible(false)} />
 
-                    <Animated.View
-                        style={{
+                        <Animated.View
+                            style={{
+                                backgroundColor: theme.card,
+                                borderTopLeftRadius: 30,
+                                borderTopRightRadius: 30,
+                                height: modalAnimation.interpolate({
+                                    inputRange: [-1, 0, 1],
+                                    outputRange: ['0%', '50%', '90%']
+                                }),
+                                opacity: modalAnimation.interpolate({
+                                    inputRange: [-1, 0],
+                                    outputRange: [0, 1],
+                                    extrapolate: 'clamp'
+                                }),
+                                padding: 0,
+                                shadowColor: "#000",
+                                shadowOffset: { width: 0, height: -5 },
+                                shadowOpacity: 0.1,
+                                shadowRadius: 20,
+                                elevation: 20
+                            }}>
+                            {/* Drag Handle & Header - Attach PanResponder Here */}
+                            <View {...panResponder.panHandlers}>
+                                <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 8 }}>
+                                    <View style={{ width: 60, height: 6, borderRadius: 3, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0' }} />
+                                </View>
+
+                                {/* Modal Header */}
+                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: theme.border }}>
+                                    <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.text }}>{t('detailPengumuman')}</Text>
+                                    <TouchableOpacity onPress={() => setDetailModalVisible(false)} style={{ padding: 4, backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9', borderRadius: 20 }}>
+                                        <WebIcon name="close" size={20} color={theme.textMuted} />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
+                            <ScrollView style={{ paddingHorizontal: 24 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40, paddingTop: 20 }}>
+                                {selectedPengumuman && (
+                                    <>
+                                        {/* Meta Tags */}
+                                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
+                                            <View style={{
+                                                flexDirection: 'row', alignItems: 'center',
+                                                backgroundColor: selectedPengumuman.target_role === 'guru' ? '#f0fdf4' : (selectedPengumuman.target_role === 'siswa' ? '#eff6ff' : '#f5f3ff'),
+                                                paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
+                                                borderWidth: 1, borderColor: selectedPengumuman.target_role === 'guru' ? '#dcfce7' : (selectedPengumuman.target_role === 'siswa' ? '#dbeafe' : '#ede9fe')
+                                            }}>
+                                                <WebIcon name="user" size={14} color={selectedPengumuman.target_role === 'guru' ? '#16a34a' : (selectedPengumuman.target_role === 'siswa' ? '#2563eb' : '#7c3aed')} style={{ marginRight: 6 }} />
+                                                <Text style={{ fontSize: 12, fontWeight: 'bold', color: selectedPengumuman.target_role === 'guru' ? '#15803d' : (selectedPengumuman.target_role === 'siswa' ? '#1d4ed8' : '#6d28d9') }}>
+                                                    {selectedPengumuman.target_role === 'semua' ? t('semuaWarga') : (selectedPengumuman.target_role === 'guru' ? t('khususGuru') : t('khususSiswa'))}
+                                                </Text>
+                                            </View>
+
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDarkMode ? '#334155' : '#f8fafc', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 }}>
+                                                <WebIcon name="calendar" size={14} color={theme.textMuted} style={{ marginRight: 6 }} />
+                                                <Text style={{ fontSize: 12, color: theme.textMuted }}>
+                                                    {new Date(selectedPengumuman.tanggal_publish).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                                </Text>
+                                            </View>
+                                        </View>
+
+                                        <Text style={{ fontSize: 26, fontWeight: '900', color: theme.text, marginBottom: 20, lineHeight: 34 }}>{selectedPengumuman.judul}</Text>
+
+                                        <View style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#f8fafc', padding: 20, borderRadius: 16 }}>
+                                            <Text style={{ fontSize: 16, color: theme.text, lineHeight: 28 }}>{selectedPengumuman.isi}</Text>
+                                        </View>
+
+                                        <View style={{ marginTop: 30, alignItems: 'center' }}>
+                                            <Text style={{ fontSize: 12, color: theme.textMuted, textAlign: 'center' }}>
+                                                {t('diterbitkanPada')} {new Date(selectedPengumuman.created_at).toLocaleString()}
+                                            </Text>
+                                        </View>
+                                    </>
+                                )}
+                            </ScrollView>
+
+                            {/* Footer Close Button */}
+                            <View style={{ padding: 24, borderTopWidth: 1, borderTopColor: theme.border }}>
+                                <TouchableOpacity
+                                    style={{ backgroundColor: theme.primary, padding: 16, borderRadius: 16, alignItems: 'center', shadowColor: theme.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10 }}
+                                    onPress={() => setDetailModalVisible(false)}
+                                >
+                                    <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>{t('tutup')}</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </Animated.View>
+                    </View>
+                </Modal>
+
+                {/* Global QR Modal */}
+                <Modal visible={qrModalVisible} transparent animationType="fade">
+                    <View style={styles.modalOverlay}>
+                        <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
+                            <View style={styles.modalHeaderFlex}>
+                                <Text style={[styles.modalTitleWeb, { color: theme.text }]}>QR Code Absensi</Text>
+                                <TouchableOpacity onPress={() => setQrModalVisible(false)}>
+                                    <WebIcon name="close" size={24} color={theme.textMuted} />
+                                </TouchableOpacity>
+                            </View>
+                            <Text style={[styles.modalSubWeb, { color: theme.textMuted }]}>Tunjukkan QR Code ini untuk absensi</Text>
+                            <View style={[styles.qrInnerBox, { backgroundColor: isDarkMode ? '#0f172a' : '#f5f3ff' }]}>
+                                <QRCode value={userData?.user?.kode_qr || 'EMPTY'} size={210} color={isDarkMode ? '#ffffff' : '#000000'} backgroundColor="transparent" />
+                            </View>
+                            <View style={[styles.qrValueBox, { backgroundColor: isDarkMode ? '#334155' : '#f9fafb' }]}><Text style={[styles.qrValueTxt, { color: isDarkMode ? '#e2e8f0' : '#4b5563' }]}>{userData?.user?.kode_qr}</Text></View>
+                            <TouchableOpacity style={[styles.btnDownloadWeb, { backgroundColor: theme.primary }]}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <WebIcon name="download" size={20} color="white" style={{ marginRight: 10 }} />
+                                    <Text style={styles.btnDownloadTxt}>Download QR Code</Text>
+                                </View>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Modal>
+
+                {/* Profile Photo Modal */}
+                <Modal visible={profileModalVisible} transparent animationType="slide">
+                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' }}>
+                        <TouchableOpacity
+                            style={{ position: 'absolute', top: 50, right: 20, zIndex: 10, padding: 10, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20 }}
+                            onPress={() => setProfileModalVisible(false)}
+                        >
+                            <WebIcon name="close" size={30} color="white" />
+                        </TouchableOpacity>
+
+                        <View style={{ width: width - 40, height: width - 40, borderRadius: 20, overflow: 'hidden', borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)', backgroundColor: '#1e293b' }}>
+                            {userData?.user?.foto_profil ? (
+                                <Image
+                                    source={{ uri: `${BASE_URL}/uploads/${userData?.role}/${encodeURIComponent(userData?.user?.foto_profil)}` }}
+                                    style={{ width: '100%', height: '100%' }}
+                                    resizeMode="cover"
+                                />
+                            ) : (
+                                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                                    <WebIcon name="user" size={100} color="#cbd5e1" />
+                                </View>
+                            )}
+                        </View>
+
+                        <Text style={{ color: 'white', fontSize: 24, fontWeight: 'bold', marginTop: 30 }}>{userData?.user?.nama}</Text>
+                        <Text style={{ color: '#94a3b8', fontSize: 16, marginTop: 5 }}>{userData?.user?.nama_kelas || (userData?.role === 'guru' ? 'Guru' : 'Siswa')}</Text>
+                    </View>
+                </Modal>
+                {/* Menu Modal - Detail Lengkap */}
+                <Modal visible={menuModalVisible} transparent animationType="slide">
+                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+                        <TouchableOpacity style={{ flex: 1 }} onPress={() => setMenuModalVisible(false)} />
+                        <View style={{
                             backgroundColor: theme.card,
                             borderTopLeftRadius: 30,
                             borderTopRightRadius: 30,
-                            height: modalAnimation.interpolate({
-                                inputRange: [-1, 0, 1],
-                                outputRange: ['0%', '50%', '90%']
-                            }),
-                            opacity: modalAnimation.interpolate({
-                                inputRange: [-1, 0],
-                                outputRange: [0, 1],
-                                extrapolate: 'clamp'
-                            }),
-                            padding: 0,
+                            padding: 30,
+                            paddingBottom: 50,
                             shadowColor: "#000",
-                            shadowOffset: { width: 0, height: -5 },
+                            shadowOffset: { width: 0, height: -10 },
                             shadowOpacity: 0.1,
                             shadowRadius: 20,
                             elevation: 20
                         }}>
-                        {/* Drag Handle & Header - Attach PanResponder Here */}
-                        <View {...panResponder.panHandlers}>
-                            <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 8 }}>
-                                <View style={{ width: 60, height: 6, borderRadius: 3, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0' }} />
+                            <View style={{ alignSelf: 'center', width: 50, height: 6, borderRadius: 3, backgroundColor: theme.border, marginBottom: 25 }} />
+
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 25 }}>
+                                <WebIcon name="fileText" size={28} color={theme.primary} style={{ marginRight: 15 }} />
+                                <Text style={{ fontSize: 24, fontWeight: 'bold', color: theme.text }}>Menu Lengkap</Text>
                             </View>
 
-                            {/* Modal Header */}
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: theme.border }}>
-                                <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.text }}>{t('detailPengumuman')}</Text>
-                                <TouchableOpacity onPress={() => setDetailModalVisible(false)} style={{ padding: 4, backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9', borderRadius: 20 }}>
-                                    <WebIcon name="close" size={20} color={theme.textMuted} />
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-
-                        <ScrollView style={{ paddingHorizontal: 24 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40, paddingTop: 20 }}>
-                            {selectedPengumuman && (
-                                <>
-                                    {/* Meta Tags */}
-                                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
-                                        <View style={{
-                                            flexDirection: 'row', alignItems: 'center',
-                                            backgroundColor: selectedPengumuman.target_role === 'guru' ? '#f0fdf4' : (selectedPengumuman.target_role === 'siswa' ? '#eff6ff' : '#f5f3ff'),
-                                            paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
-                                            borderWidth: 1, borderColor: selectedPengumuman.target_role === 'guru' ? '#dcfce7' : (selectedPengumuman.target_role === 'siswa' ? '#dbeafe' : '#ede9fe')
-                                        }}>
-                                            <WebIcon name="user" size={14} color={selectedPengumuman.target_role === 'guru' ? '#16a34a' : (selectedPengumuman.target_role === 'siswa' ? '#2563eb' : '#7c3aed')} style={{ marginRight: 6 }} />
-                                            <Text style={{ fontSize: 12, fontWeight: 'bold', color: selectedPengumuman.target_role === 'guru' ? '#15803d' : (selectedPengumuman.target_role === 'siswa' ? '#1d4ed8' : '#6d28d9') }}>
-                                                {selectedPengumuman.target_role === 'semua' ? t('semuaWarga') : (selectedPengumuman.target_role === 'guru' ? t('khususGuru') : t('khususSiswa'))}
-                                            </Text>
-                                        </View>
-
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDarkMode ? '#334155' : '#f8fafc', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 }}>
-                                            <WebIcon name="calendar" size={14} color={theme.textMuted} style={{ marginRight: 6 }} />
-                                            <Text style={{ fontSize: 12, color: theme.textMuted }}>
-                                                {new Date(selectedPengumuman.tanggal_publish).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                            </Text>
-                                        </View>
-                                    </View>
-
-                                    <Text style={{ fontSize: 26, fontWeight: '900', color: theme.text, marginBottom: 20, lineHeight: 34 }}>{selectedPengumuman.judul}</Text>
-
-                                    <View style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#f8fafc', padding: 20, borderRadius: 16 }}>
-                                        <Text style={{ fontSize: 16, color: theme.text, lineHeight: 28 }}>{selectedPengumuman.isi}</Text>
-                                    </View>
-
-                                    <View style={{ marginTop: 30, alignItems: 'center' }}>
-                                        <Text style={{ fontSize: 12, color: theme.textMuted, textAlign: 'center' }}>
-                                            {t('diterbitkanPada')} {new Date(selectedPengumuman.created_at).toLocaleString()}
-                                        </Text>
-                                    </View>
-                                </>
-                            )}
-                        </ScrollView>
-
-                        {/* Footer Close Button */}
-                        <View style={{ padding: 24, borderTopWidth: 1, borderTopColor: theme.border }}>
-                            <TouchableOpacity
-                                style={{ backgroundColor: theme.primary, padding: 16, borderRadius: 16, alignItems: 'center', shadowColor: theme.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10 }}
-                                onPress={() => setDetailModalVisible(false)}
-                            >
-                                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>{t('tutup')}</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </Animated.View>
-                </View>
-            </Modal>
-
-            {/* Global QR Modal */}
-            <Modal visible={qrModalVisible} transparent animationType="fade">
-                <View style={styles.modalOverlay}>
-                    <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
-                        <View style={styles.modalHeaderFlex}>
-                            <Text style={[styles.modalTitleWeb, { color: theme.text }]}>QR Code Absensi</Text>
-                            <TouchableOpacity onPress={() => setQrModalVisible(false)}>
-                                <WebIcon name="close" size={24} color={theme.textMuted} />
-                            </TouchableOpacity>
-                        </View>
-                        <Text style={[styles.modalSubWeb, { color: theme.textMuted }]}>Tunjukkan QR Code ini untuk absensi</Text>
-                        <View style={[styles.qrInnerBox, { backgroundColor: isDarkMode ? '#0f172a' : '#f5f3ff' }]}>
-                            <QRCode value={userData?.user?.kode_qr || 'EMPTY'} size={210} color={isDarkMode ? '#ffffff' : '#000000'} backgroundColor="transparent" />
-                        </View>
-                        <View style={[styles.qrValueBox, { backgroundColor: isDarkMode ? '#334155' : '#f9fafb' }]}><Text style={[styles.qrValueTxt, { color: isDarkMode ? '#e2e8f0' : '#4b5563' }]}>{userData?.user?.kode_qr}</Text></View>
-                        <TouchableOpacity style={[styles.btnDownloadWeb, { backgroundColor: theme.primary }]}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                <WebIcon name="download" size={20} color="white" style={{ marginRight: 10 }} />
-                                <Text style={styles.btnDownloadTxt}>Download QR Code</Text>
-                            </View>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
-
-            {/* Profile Photo Modal */}
-            <Modal visible={profileModalVisible} transparent animationType="slide">
-                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' }}>
-                    <TouchableOpacity
-                        style={{ position: 'absolute', top: 50, right: 20, zIndex: 10, padding: 10, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20 }}
-                        onPress={() => setProfileModalVisible(false)}
-                    >
-                        <WebIcon name="close" size={30} color="white" />
-                    </TouchableOpacity>
-
-                    <View style={{ width: width - 40, height: width - 40, borderRadius: 20, overflow: 'hidden', borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)', backgroundColor: '#1e293b' }}>
-                        {userData?.user?.foto_profil ? (
-                            <Image
-                                source={{ uri: `${BASE_URL}/uploads/${userData?.role}/${encodeURIComponent(userData?.user?.foto_profil)}` }}
-                                style={{ width: '100%', height: '100%' }}
-                                resizeMode="cover"
-                            />
-                        ) : (
-                            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                                <WebIcon name="user" size={100} color="#cbd5e1" />
-                            </View>
-                        )}
-                    </View>
-
-                    <Text style={{ color: 'white', fontSize: 24, fontWeight: 'bold', marginTop: 30 }}>{userData?.user?.nama}</Text>
-                    <Text style={{ color: '#94a3b8', fontSize: 16, marginTop: 5 }}>{userData?.user?.nama_kelas || (userData?.role === 'guru' ? 'Guru' : 'Siswa')}</Text>
-                </View>
-            </Modal>
-            {/* Menu Modal - Detail Lengkap */}
-            <Modal visible={menuModalVisible} transparent animationType="slide">
-                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-                    <TouchableOpacity style={{ flex: 1 }} onPress={() => setMenuModalVisible(false)} />
-                    <View style={{
-                        backgroundColor: theme.card,
-                        borderTopLeftRadius: 30,
-                        borderTopRightRadius: 30,
-                        padding: 30,
-                        paddingBottom: 50,
-                        shadowColor: "#000",
-                        shadowOffset: { width: 0, height: -10 },
-                        shadowOpacity: 0.1,
-                        shadowRadius: 20,
-                        elevation: 20
-                    }}>
-                        <View style={{ alignSelf: 'center', width: 50, height: 6, borderRadius: 3, backgroundColor: theme.border, marginBottom: 25 }} />
-
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 25 }}>
-                            <WebIcon name="fileText" size={28} color={theme.primary} style={{ marginRight: 15 }} />
-                            <Text style={{ fontSize: 24, fontWeight: 'bold', color: theme.text }}>Menu Lengkap</Text>
-                        </View>
-
-                        {[
-                            { label: 'Biodata Lengkap', desc: 'Lihat data diri secara penuh', icon: 'fileText', color: '#3b82f6' },
-                            { label: 'Edit Profil', desc: 'Perbarui nama & foto profil', icon: 'user', color: '#8b5cf6' },
-                            { label: 'Ganti Password', desc: 'Amankan akun anda', icon: 'lock', color: '#f59e0b' },
-                            { label: 'Pusat Bantuan', desc: 'Laporkan masalah & FAQ', icon: 'info', color: '#10b981' },
-                        ].map((m, i) => (
-                            <TouchableOpacity
-                                key={i}
-                                style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#334155' : '#f1f5f9' }}
-                                onPress={() => {
-                                    setMenuModalVisible(false);
-                                    showCustomAlert(m.label, "Fitur ini akan segera hadir.", [], 'info');
-                                }}
-                            >
-                                <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: isDarkMode ? m.color + '20' : m.color + '15', justifyContent: 'center', alignItems: 'center', marginRight: 16 }}>
-                                    <WebIcon name={m.icon} size={22} color={m.color} />
-                                </View>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.text }}>{m.label}</Text>
-                                    <Text style={{ fontSize: 13, color: theme.textMuted }}>{m.desc}</Text>
-                                </View>
-                                <WebIcon name="back" size={18} color={theme.textMuted} style={{ transform: [{ rotate: '180deg' }] }} />
-                            </TouchableOpacity>
-                        ))}
-
-                        <TouchableOpacity
-                            style={{ marginTop: 25, backgroundColor: isDarkMode ? '#334155' : '#f1f5f9', padding: 18, borderRadius: 16, alignItems: 'center' }}
-                            onPress={() => setMenuModalVisible(false)}
-                        >
-                            <Text style={{ fontWeight: 'bold', color: theme.text }}>Tutup Menu</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
-
-            {/* Top Up Input Modal */}
-            <Modal visible={showTopUpModal} transparent animationType="fade">
-                <View style={styles.modalOverlay}>
-                    <View style={[styles.modalContent, { backgroundColor: theme.card, width: '90%' }]}>
-                        <Text style={[styles.modalTitleWeb, { color: theme.text, marginBottom: 20 }]}>Top Up Saldo</Text>
-
-                        <View style={{ width: '100%', marginBottom: 20 }}>
-                            <Text style={{ color: theme.text, marginBottom: 8, fontWeight: 'bold' }}>Nominal Top Up</Text>
-                            <TextInput
-                                style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: isDarkMode ? '#1e293b' : 'white' }]}
-                                placeholder="Min. Rp 10.000"
-                                placeholderTextColor={theme.textMuted}
-                                keyboardType="numeric"
-                                value={topUpAmount}
-                                onChangeText={setTopUpAmount}
-                            />
-                        </View>
-
-                        <View style={{ flexDirection: 'row', width: '100%', gap: 10 }}>
-                            <TouchableOpacity
-                                style={{ flex: 1, padding: 16, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0', borderRadius: 12, alignItems: 'center' }}
-                                onPress={() => setShowTopUpModal(false)}
-                            >
-                                <Text style={{ color: theme.text, fontWeight: 'bold' }}>Batal</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={{ flex: 1, padding: 16, backgroundColor: theme.primary, borderRadius: 12, alignItems: 'center' }}
-                                onPress={handleTopUp}
-                            >
-                                <Text style={{ color: 'white', fontWeight: 'bold' }}>Lanjut Bayar</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
-
-            {/* Payment Webview Modal */}
-            <Modal visible={showPaymentModal} animationType="slide" onRequestClose={() => setShowPaymentModal(false)}>
-                <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' }}>
-                        <TouchableOpacity onPress={() => { setShowPaymentModal(false); fetchSaldo(); }}>
-                            <WebIcon name="close" size={24} color="black" />
-                        </TouchableOpacity>
-                        <Text style={{ fontSize: 18, fontWeight: 'bold', marginLeft: 16 }}>Pembayaran</Text>
-                    </View>
-                    {paymentUrl && (
-                        <WebView
-                            source={{ uri: paymentUrl }}
-                            style={{ flex: 1 }}
-                            onNavigationStateChange={(navState) => {
-                                // Detect if payment finished/redirected
-                                if (navState.url.includes('finish') || navState.url.includes('example.com')) {
-                                    // Assuming user configured callback to example.com or similar
-                                    // In real scenario midtrans redirects to main site or something.
-                                }
-                            }}
-                        />
-                    )}
-                </SafeAreaView>
-            </Modal>
-
-            {/* Top Up Input Modal */}
-            <Modal visible={showTopUpModal} transparent animationType="fade">
-                <View style={styles.modalOverlay}>
-                    <View style={[styles.modalContent, { backgroundColor: theme.card, width: '90%' }]}>
-                        <Text style={[styles.modalTitleWeb, { color: theme.text, marginBottom: 20 }]}>Top Up Saldo</Text>
-
-                        <View style={{ width: '100%', marginBottom: 20 }}>
-                            <Text style={{ color: theme.text, marginBottom: 8, fontWeight: 'bold' }}>Nominal Top Up</Text>
-                            <TextInput
-                                style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: isDarkMode ? '#1e293b' : 'white' }]}
-                                placeholder="Min. Rp 10.000"
-                                placeholderTextColor={theme.textMuted}
-                                keyboardType="numeric"
-                                value={topUpAmount}
-                                onChangeText={setTopUpAmount}
-                            />
-                        </View>
-
-                        <View style={{ flexDirection: 'row', width: '100%', gap: 10 }}>
-                            <TouchableOpacity
-                                style={{ flex: 1, padding: 16, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0', borderRadius: 12, alignItems: 'center' }}
-                                onPress={() => setShowTopUpModal(false)}
-                            >
-                                <Text style={{ color: theme.text, fontWeight: 'bold' }}>Batal</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={{ flex: 1, padding: 16, backgroundColor: theme.primary, borderRadius: 12, alignItems: 'center' }}
-                                onPress={handleTopUp}
-                            >
-                                <Text style={{ color: 'white', fontWeight: 'bold' }}>Lanjut Bayar</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
-
-            {/* Payment Webview Modal */}
-            <Modal visible={showPaymentModal} animationType="slide" onRequestClose={() => setShowPaymentModal(false)}>
-                <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' }}>
-                        <TouchableOpacity onPress={() => { setShowPaymentModal(false); fetchSaldo(); }}>
-                            <WebIcon name="close" size={24} color="black" />
-                        </TouchableOpacity>
-                        <Text style={{ fontSize: 18, fontWeight: 'bold', marginLeft: 16 }}>Pembayaran</Text>
-                    </View>
-                    {paymentUrl && (
-                        <WebView
-                            source={{ uri: paymentUrl }}
-                            style={{ flex: 1 }}
-                            onNavigationStateChange={async (navState) => {
-                                // Midtrans default redirect is often example.com if not configured
-                                if (navState.url.includes('example.com') || navState.url.includes('finish') || navState.url.includes('gopay/partner/app')) {
-                                    setShowPaymentModal(false);
-
-                                    // Manual Check Status to Backend
-                                    try {
-                                        if (currentOrderId) {
-                                            const checkResp = await fetch(`${BASE_URL}/app/api/payment/check_status.php?order_id=${currentOrderId}`);
-                                            const checkResult = await checkResp.json();
-                                            if (checkResult.status === 'success') {
-                                                showCustomAlert('Berhasil', 'Pembayaran berhasil dikonfirmasi!', [], 'success');
-                                            }
-                                        }
-                                    } catch (e) {
-                                        console.log("Check status error", e);
-                                    }
-
-                                    fetchSaldo(); // Refresh balance
-                                }
-                            }}
-                        />
-                    )}
-                </SafeAreaView>
-            </Modal>
-
-            {/* --- GLOBAL CUSTOM ALERT MODAL --- */}
-            <Modal
-                visible={alertConfig.visible}
-                transparent={true}
-                animationType="fade"
-                onRequestClose={closeCustomAlert}
-            >
-                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-                    <View style={{ backgroundColor: theme.card, borderRadius: 24, padding: 24, width: '100%', maxWidth: 340, alignItems: 'center', shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.25, shadowRadius: 10, elevation: 10 }}>
-
-                        {/* Icon Based on Type */}
-                        <View style={{
-                            width: 72, height: 72, borderRadius: 36,
-                            backgroundColor: alertConfig.type === 'success' ? '#dcfce7' : (alertConfig.type === 'error' ? '#fee2e2' : (alertConfig.type === 'warning' ? '#fef9c3' : '#e0e7ff')),
-                            justifyContent: 'center', alignItems: 'center', marginBottom: 20
-                        }}>
-                            <WebIcon
-                                name={alertConfig.type === 'success' ? 'check' : (alertConfig.type === 'error' ? 'close' : (alertConfig.type === 'warning' ? 'tag' : 'info'))}
-                                size={32}
-                                color={alertConfig.type === 'success' ? '#16a34a' : (alertConfig.type === 'error' ? '#ef4444' : (alertConfig.type === 'warning' ? '#ca8a04' : '#4f46e5'))}
-                            />
-                        </View>
-
-                        <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.text, textAlign: 'center', marginBottom: 12 }}>
-                            {alertConfig.title}
-                        </Text>
-
-                        <Text style={{ fontSize: 15, color: theme.textMuted, textAlign: 'center', lineHeight: 22, marginBottom: 28 }}>
-                            {alertConfig.message}
-                        </Text>
-
-                        <View style={{ flexDirection: 'row', justifyContent: 'center', width: '100%', gap: 12 }}>
-                            {alertConfig.buttons.map((btn, index) => (
+                            {[
+                                { label: 'Biodata Lengkap', desc: 'Lihat data diri secara penuh', icon: 'fileText', color: '#3b82f6' },
+                                { label: 'Edit Profil', desc: 'Perbarui nama & foto profil', icon: 'user', color: '#8b5cf6' },
+                                { label: 'Ganti Password', desc: 'Amankan akun anda', icon: 'lock', color: '#f59e0b' },
+                                { label: 'Pusat Bantuan', desc: 'Laporkan masalah & FAQ', icon: 'info', color: '#10b981' },
+                            ].map((m, i) => (
                                 <TouchableOpacity
-                                    key={index}
-                                    style={{
-                                        flex: 1,
-                                        backgroundColor: btn.style === 'cancel' ? (isDarkMode ? '#334155' : '#f1f5f9') : theme.primary,
-                                        paddingVertical: 14,
-                                        borderRadius: 14,
-                                        alignItems: 'center'
-                                    }}
+                                    key={i}
+                                    style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#334155' : '#f1f5f9' }}
                                     onPress={() => {
-                                        closeCustomAlert();
-                                        if (btn.onPress) btn.onPress();
+                                        setMenuModalVisible(false);
+                                        showCustomAlert(m.label, "Fitur ini akan segera hadir.", [], 'info');
                                     }}
                                 >
-                                    <Text style={{ color: btn.style === 'cancel' ? theme.text : 'white', fontWeight: 'bold', fontSize: 16 }}>
-                                        {btn.text}
-                                    </Text>
+                                    <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: isDarkMode ? m.color + '20' : m.color + '15', justifyContent: 'center', alignItems: 'center', marginRight: 16 }}>
+                                        <WebIcon name={m.icon} size={22} color={m.color} />
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.text }}>{m.label}</Text>
+                                        <Text style={{ fontSize: 13, color: theme.textMuted }}>{m.desc}</Text>
+                                    </View>
+                                    <WebIcon name="back" size={18} color={theme.textMuted} style={{ transform: [{ rotate: '180deg' }] }} />
                                 </TouchableOpacity>
                             ))}
+
+                            <TouchableOpacity
+                                style={{ marginTop: 25, backgroundColor: isDarkMode ? '#334155' : '#f1f5f9', padding: 18, borderRadius: 16, alignItems: 'center' }}
+                                onPress={() => setMenuModalVisible(false)}
+                            >
+                                <Text style={{ fontWeight: 'bold', color: theme.text }}>Tutup Menu</Text>
+                            </TouchableOpacity>
                         </View>
                     </View>
-                </View>
-            </Modal>
-        </SafeAreaView >
+                </Modal>
+
+                {/* Top Up Input Modal */}
+                <Modal visible={showTopUpModal} transparent animationType="fade">
+                    <View style={styles.modalOverlay}>
+                        <View style={[styles.modalContent, { backgroundColor: theme.card, width: '90%' }]}>
+                            <Text style={[styles.modalTitleWeb, { color: theme.text, marginBottom: 20 }]}>Top Up Saldo</Text>
+
+                            <View style={{ width: '100%', marginBottom: 20 }}>
+                                <Text style={{ color: theme.text, marginBottom: 8, fontWeight: 'bold' }}>Nominal Top Up</Text>
+                                <TextInput
+                                    style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: isDarkMode ? '#1e293b' : 'white' }]}
+                                    placeholder="Min. Rp 10.000"
+                                    placeholderTextColor={theme.textMuted}
+                                    keyboardType="numeric"
+                                    value={topUpAmount}
+                                    onChangeText={setTopUpAmount}
+                                />
+                            </View>
+
+                            <View style={{ flexDirection: 'row', width: '100%', gap: 10 }}>
+                                <TouchableOpacity
+                                    style={{ flex: 1, padding: 16, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0', borderRadius: 12, alignItems: 'center' }}
+                                    onPress={() => setShowTopUpModal(false)}
+                                >
+                                    <Text style={{ color: theme.text, fontWeight: 'bold' }}>Batal</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={{ flex: 1, padding: 16, backgroundColor: theme.primary, borderRadius: 12, alignItems: 'center' }}
+                                    onPress={handleTopUp}
+                                >
+                                    <Text style={{ color: 'white', fontWeight: 'bold' }}>Lanjut Bayar</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
+
+                {/* Payment Webview Modal */}
+                <Modal visible={showPaymentModal} animationType="slide" onRequestClose={() => setShowPaymentModal(false)}>
+                    <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' }}>
+                            <TouchableOpacity onPress={() => { setShowPaymentModal(false); fetchSaldo(); }}>
+                                <WebIcon name="close" size={24} color="black" />
+                            </TouchableOpacity>
+                            <Text style={{ fontSize: 18, fontWeight: 'bold', marginLeft: 16 }}>Pembayaran</Text>
+                        </View>
+                        {paymentUrl && (
+                            <WebView
+                                source={{ uri: paymentUrl }}
+                                style={{ flex: 1 }}
+                                onNavigationStateChange={(navState) => {
+                                    // Detect if payment finished/redirected
+                                    if (navState.url.includes('finish') || navState.url.includes('example.com')) {
+                                        // Assuming user configured callback to example.com or similar
+                                        // In real scenario midtrans redirects to main site or something.
+                                    }
+                                }}
+                            />
+                        )}
+                    </SafeAreaView>
+                </Modal>
+
+                {/* Top Up Input Modal */}
+                <Modal visible={showTopUpModal} transparent animationType="fade">
+                    <View style={styles.modalOverlay}>
+                        <View style={[styles.modalContent, { backgroundColor: theme.card, width: '90%' }]}>
+                            <Text style={[styles.modalTitleWeb, { color: theme.text, marginBottom: 20 }]}>Top Up Saldo</Text>
+
+                            <View style={{ width: '100%', marginBottom: 20 }}>
+                                <Text style={{ color: theme.text, marginBottom: 8, fontWeight: 'bold' }}>Nominal Top Up</Text>
+                                <TextInput
+                                    style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: isDarkMode ? '#1e293b' : 'white' }]}
+                                    placeholder="Min. Rp 10.000"
+                                    placeholderTextColor={theme.textMuted}
+                                    keyboardType="numeric"
+                                    value={topUpAmount}
+                                    onChangeText={setTopUpAmount}
+                                />
+                            </View>
+
+                            <View style={{ flexDirection: 'row', width: '100%', gap: 10 }}>
+                                <TouchableOpacity
+                                    style={{ flex: 1, padding: 16, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0', borderRadius: 12, alignItems: 'center' }}
+                                    onPress={() => setShowTopUpModal(false)}
+                                >
+                                    <Text style={{ color: theme.text, fontWeight: 'bold' }}>Batal</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={{ flex: 1, padding: 16, backgroundColor: theme.primary, borderRadius: 12, alignItems: 'center' }}
+                                    onPress={handleTopUp}
+                                >
+                                    <Text style={{ color: 'white', fontWeight: 'bold' }}>Lanjut Bayar</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
+
+                {/* Payment Webview Modal */}
+                <Modal visible={showPaymentModal} animationType="slide" onRequestClose={() => setShowPaymentModal(false)}>
+                    <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' }}>
+                            <TouchableOpacity onPress={() => { setShowPaymentModal(false); fetchSaldo(); }}>
+                                <WebIcon name="close" size={24} color="black" />
+                            </TouchableOpacity>
+                            <Text style={{ fontSize: 18, fontWeight: 'bold', marginLeft: 16 }}>Pembayaran</Text>
+                        </View>
+                        {paymentUrl && (
+                            <WebView
+                                source={{ uri: paymentUrl }}
+                                style={{ flex: 1 }}
+                                onNavigationStateChange={async (navState) => {
+                                    // Midtrans default redirect is often example.com if not configured
+                                    if (navState.url.includes('example.com') || navState.url.includes('finish') || navState.url.includes('gopay/partner/app')) {
+                                        setShowPaymentModal(false);
+
+                                        // Manual Check Status to Backend
+                                        try {
+                                            if (currentOrderId) {
+                                                const checkResp = await fetch(`${BASE_URL}/app/api/payment/check_status.php?order_id=${currentOrderId}`);
+                                                const checkResult = await checkResp.json();
+                                                if (checkResult.status === 'success') {
+                                                    showCustomAlert('Berhasil', 'Pembayaran berhasil dikonfirmasi!', [], 'success');
+                                                }
+                                            }
+                                        } catch (e) {
+                                            console.log("Check status error", e);
+                                        }
+
+                                        fetchSaldo(); // Refresh balance
+                                    }
+                                }}
+                            />
+                        )}
+                    </SafeAreaView>
+                </Modal>
+
+                {/* --- GLOBAL CUSTOM ALERT MODAL --- */}
+                <Modal
+                    visible={alertConfig.visible}
+                    transparent={true}
+                    animationType="fade"
+                    onRequestClose={closeCustomAlert}
+                >
+                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+                        <View style={{ backgroundColor: theme.card, borderRadius: 24, padding: 24, width: '100%', maxWidth: 340, alignItems: 'center', shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.25, shadowRadius: 10, elevation: 10 }}>
+
+                            {/* Icon Based on Type */}
+                            <View style={{
+                                width: 72, height: 72, borderRadius: 36,
+                                backgroundColor: alertConfig.type === 'success' ? '#dcfce7' : (alertConfig.type === 'error' ? '#fee2e2' : (alertConfig.type === 'warning' ? '#fef9c3' : '#e0e7ff')),
+                                justifyContent: 'center', alignItems: 'center', marginBottom: 20
+                            }}>
+                                <WebIcon
+                                    name={alertConfig.type === 'success' ? 'check' : (alertConfig.type === 'error' ? 'close' : (alertConfig.type === 'warning' ? 'tag' : 'info'))}
+                                    size={32}
+                                    color={alertConfig.type === 'success' ? '#16a34a' : (alertConfig.type === 'error' ? '#ef4444' : (alertConfig.type === 'warning' ? '#ca8a04' : '#4f46e5'))}
+                                />
+                            </View>
+
+                            <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.text, textAlign: 'center', marginBottom: 12 }}>
+                                {alertConfig.title}
+                            </Text>
+
+                            <Text style={{ fontSize: 15, color: theme.textMuted, textAlign: 'center', lineHeight: 22, marginBottom: 28 }}>
+                                {alertConfig.message}
+                            </Text>
+
+                            <View style={{ flexDirection: 'row', justifyContent: 'center', width: '100%', gap: 12 }}>
+                                {alertConfig.buttons.map((btn, index) => (
+                                    <TouchableOpacity
+                                        key={index}
+                                        style={{
+                                            flex: 1,
+                                            backgroundColor: btn.style === 'cancel' ? (isDarkMode ? '#334155' : '#f1f5f9') : theme.primary,
+                                            paddingVertical: 14,
+                                            borderRadius: 14,
+                                            alignItems: 'center'
+                                        }}
+                                        onPress={() => {
+                                            closeCustomAlert();
+                                            if (btn.onPress) btn.onPress();
+                                        }}
+                                    >
+                                        <Text style={{ color: btn.style === 'cancel' ? theme.text : 'white', fontWeight: 'bold', fontSize: 16 }}>
+                                            {btn.text}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
+            </SafeAreaView >
+        </GestureHandlerRootView>
     );
 }
 
@@ -3749,5 +3782,36 @@ const styles = StyleSheet.create({
     overlayScanner: { position: 'absolute', bottom: 50, width: '100%', alignItems: 'center' },
     scanText: { color: 'white', fontSize: 16, marginBottom: 20, backgroundColor: 'rgba(0,0,0,0.6)', padding: 12, borderRadius: 12 },
     closeBtnScanner: { backgroundColor: 'white', paddingVertical: 14, paddingHorizontal: 40, borderRadius: 30 },
-    closeTxtScanner: { fontWeight: 'bold' }
+    closeTxtScanner: { fontWeight: 'bold' },
+
+    // Custom Comment Modal
+    customModalOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 2000, // Higher than everything
+        justifyContent: 'flex-end'
+    },
+    customModalContent: {
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: 20,
+        height: '80%',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 20
+    },
+    replyPreviewContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 10,
+        borderRadius: 12,
+        marginBottom: 10,
+        borderWidth: 1,
+        borderLeftWidth: 4
+    }
 });

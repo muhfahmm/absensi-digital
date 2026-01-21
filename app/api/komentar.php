@@ -20,6 +20,8 @@ if ($method === 'GET') {
     }
 
     try {
+        // Fetch ALL comments for this materi_id, ordered by created_at
+        // We will build the tree on the client side (React Native)
         $sql = "
             SELECT k.*, 
                 CASE 
@@ -36,39 +38,13 @@ if ($method === 'GET') {
             LEFT JOIN tb_siswa s ON k.user_id = s.id AND k.role = 'siswa'
             LEFT JOIN tb_guru g ON k.user_id = g.id AND k.role = 'guru'
             LEFT JOIN tb_admin a ON k.user_id = a.id AND k.role = 'admin'
-            WHERE k.materi_id = ? AND k.parent_id IS NULL
+            WHERE k.materi_id = ?
             ORDER BY k.created_at ASC
         ";
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$materi_id]);
         $comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Fetch replies for each comment
-        foreach ($comments as &$comment) {
-            $replySql = "
-                SELECT k.*, 
-                    CASE 
-                        WHEN k.role = 'siswa' THEN s.nama_lengkap 
-                        WHEN k.role = 'guru' THEN g.nama_lengkap 
-                        WHEN k.role = 'admin' THEN a.nama_lengkap 
-                    END as nama_user,
-                    CASE 
-                        WHEN k.role = 'siswa' THEN s.foto_profil 
-                        WHEN k.role = 'guru' THEN g.foto_profil 
-                        WHEN k.role = 'admin' THEN a.foto_profil 
-                    END as foto_profil
-                FROM tb_komentar_elearning k
-                LEFT JOIN tb_siswa s ON k.user_id = s.id AND k.role = 'siswa'
-                LEFT JOIN tb_guru g ON k.user_id = g.id AND k.role = 'guru'
-                LEFT JOIN tb_admin a ON k.user_id = a.id AND k.role = 'admin'
-                WHERE k.parent_id = ?
-                ORDER BY k.created_at ASC
-            ";
-            $replyStmt = $pdo->prepare($replySql);
-            $replyStmt->execute([$comment['id']]);
-            $comment['replies'] = $replyStmt->fetchAll(PDO::FETCH_ASSOC);
-        }
 
         echo json_encode(['success' => true, 'data' => $comments]);
     } catch (PDOException $e) {
