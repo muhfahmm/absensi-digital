@@ -2103,86 +2103,89 @@ export default function App() {
                                     activeOpacity={1}
                                     onPress={closeCommentModal}
                                 />
-                                <PanGestureHandler
-                                    onGestureEvent={onCommentGestureEvent}
-                                    onHandlerStateChange={onCommentHandlerStateChange}
-                                >
-                                    <Animated.View style={{
-                                        backgroundColor: theme.card,
-                                        borderTopLeftRadius: 24,
-                                        borderTopRightRadius: 24,
-                                        height: '80%',
-                                        padding: 20,
-                                        transform: [{
-                                            translateY: commentModalY.interpolate({
-                                                inputRange: [0, height],
-                                                outputRange: [0, height],
-                                                extrapolate: 'clamp'
-                                            })
-                                        }]
-                                    }}>
-                                        {/* Drag Handle */}
-                                        <View style={{ alignItems: 'center', marginBottom: 10 }}>
-                                            <View style={{ width: 40, height: 4, backgroundColor: theme.border, borderRadius: 2 }} />
-                                        </View>
+                                <Animated.View style={{
+                                    backgroundColor: theme.card,
+                                    borderTopLeftRadius: 24,
+                                    borderTopRightRadius: 24,
+                                    height: '80%',
+                                    padding: 20,
+                                    transform: [{
+                                        translateY: commentModalY.interpolate({
+                                            inputRange: [0, height],
+                                            outputRange: [0, height],
+                                            extrapolate: 'clamp'
+                                        })
+                                    }]
+                                }}>
+                                    <PanGestureHandler
+                                        onGestureEvent={onCommentGestureEvent}
+                                        onHandlerStateChange={onCommentHandlerStateChange}
+                                    >
+                                        <Animated.View>
+                                            {/* Drag Handle */}
+                                            <View style={{ alignItems: 'center', marginBottom: 10 }}>
+                                                <View style={{ width: 40, height: 4, backgroundColor: theme.border, borderRadius: 2 }} />
+                                            </View>
 
-                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
-                                            <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.text }}>Komentar</Text>
-                                            <TouchableOpacity onPress={closeCommentModal}>
-                                                <WebIcon name="close" size={24} color={theme.text} />
-                                            </TouchableOpacity>
-                                        </View>
-
-                                        <ScrollView style={{ flex: 1, marginBottom: 10 }}>
-                                            {isCommentLoading && comments.length === 0 ? (
-                                                <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 20 }} />
-                                            ) : comments.length === 0 ? (
-                                                <Text style={{ textAlign: 'center', color: theme.textMuted, marginTop: 20 }}>Belum ada komentar.</Text>
-                                            ) : (
-                                                (() => {
-                                                    const tree = buildCommentTree(comments);
-                                                    return tree.map((comment) => (
-                                                        <CommentItem key={comment.id} comment={comment} />
-                                                    ));
-                                                })()
-                                            )}
-                                        </ScrollView>
-
-                                        {/* Replying To Indicator */}
-                                        {replyingToCommentId && (
-                                            <View style={[styles.replyPreviewContainer, { borderColor: theme.border, borderLeftColor: theme.primary, backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc' }]}>
-                                                <View style={{ flex: 1 }}>
-                                                    <Text style={{ color: theme.primary, fontSize: 12, fontWeight: 'bold', marginBottom: 2 }}>
-                                                        Replying to @{replyingToCommentUser}
-                                                    </Text>
-                                                    <Text style={{ color: theme.textMuted, fontSize: 12 }} numberOfLines={1}>
-                                                        {replyingToCommentText}
-                                                    </Text>
-                                                </View>
-                                                <TouchableOpacity onPress={() => {
-                                                    setReplyingToCommentId(null);
-                                                    setReplyingToCommentUser('');
-                                                    setReplyingToCommentText('');
-                                                }}>
-                                                    <WebIcon name="close" size={20} color={theme.textMuted} />
+                                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+                                                <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.text }}>Komentar</Text>
+                                                <TouchableOpacity onPress={closeCommentModal}>
+                                                    <WebIcon name="close" size={24} color={theme.text} />
                                                 </TouchableOpacity>
                                             </View>
-                                        )}
+                                        </Animated.View>
+                                    </PanGestureHandler>
 
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 10 }}>
-                                            <TextInput
-                                                style={{ flex: 1, backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9', borderRadius: 20, paddingHorizontal: 15, paddingVertical: 10, color: theme.text, marginRight: 10 }}
-                                                placeholder="Tulis komentar..."
-                                                placeholderTextColor={theme.textMuted}
-                                                value={newComment}
-                                                onChangeText={setNewComment}
-                                            />
-                                            <TouchableOpacity onPress={handlePostComment}>
-                                                <WebIcon name="send" size={24} color={theme.primary} />
+                                    <ScrollView style={{ flex: 1, marginBottom: 10 }}>
+                                        {isCommentLoading && comments.length === 0 ? (
+                                            <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 20 }} />
+                                        ) : comments.length === 0 ? (
+                                            <Text style={{ textAlign: 'center', color: theme.textMuted, marginTop: 20 }}>Belum ada komentar.</Text>
+                                        ) : (
+                                            (() => {
+                                                const tree = buildCommentTree(comments);
+                                                return tree.map((comment) => (
+                                                    <CommentItem key={comment.id} comment={comment} />
+                                                ));
+                                            })()
+                                        )}
+                                    </ScrollView>
+
+                                    {/* Replying To Indicator */}
+                                    {replyingToCommentId && (
+                                        <View style={[styles.replyPreviewContainer, { borderColor: theme.border, borderLeftColor: theme.primary, backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc' }]}>
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={{ color: theme.primary, fontSize: 12, fontWeight: 'bold', marginBottom: 2 }}>
+                                                    Replying to @{replyingToCommentUser}
+                                                </Text>
+                                                <Text style={{ color: theme.textMuted, fontSize: 12 }} numberOfLines={1}>
+                                                    {replyingToCommentText}
+                                                </Text>
+                                            </View>
+                                            <TouchableOpacity onPress={() => {
+                                                setReplyingToCommentId(null);
+                                                setReplyingToCommentUser('');
+                                                setReplyingToCommentText('');
+                                            }}>
+                                                <WebIcon name="close" size={20} color={theme.textMuted} />
                                             </TouchableOpacity>
                                         </View>
-                                    </Animated.View>
-                                </PanGestureHandler>
+                                    )}
+
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 10 }}>
+                                        <TextInput
+                                            style={{ flex: 1, backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9', borderRadius: 20, paddingHorizontal: 15, paddingVertical: 10, color: theme.text, marginRight: 10 }}
+                                            placeholder="Tulis komentar..."
+                                            placeholderTextColor={theme.textMuted}
+                                            value={newComment}
+                                            onChangeText={setNewComment}
+                                        />
+                                        <TouchableOpacity onPress={handlePostComment}>
+                                            <WebIcon name="send" size={24} color={theme.primary} />
+                                        </TouchableOpacity>
+                                    </View>
+                                </Animated.View>
+
                             </View>
                         </KeyboardAvoidingView>
                     </GestureHandlerRootView>
