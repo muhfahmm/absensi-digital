@@ -507,7 +507,7 @@ export default function App() {
 
                 if (token && storedUserData) {
                     // Verify token is still valid
-                    const response = await fetch(`${BASE_URL}/app/api/verify_token.php`, {
+                    const response = await fetch(`${BASE_URL}/app/pages/auth/api/api-verify-token.php`, {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${token}`,
@@ -525,7 +525,7 @@ export default function App() {
                         // Token expired, try to refresh
                         const refreshToken = await AsyncStorage.getItem('refresh_token');
                         if (refreshToken) {
-                            const refreshResponse = await fetch(`${BASE_URL}/app/api/refresh_token.php`, {
+                            const refreshResponse = await fetch(`${BASE_URL}/app/pages/auth/api/api-refresh-token.php`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ refresh_token: refreshToken })
@@ -574,7 +574,7 @@ export default function App() {
     const fetchSppData = async () => {
         setIsSppLoading(true);
         try {
-            const response = await fetch(`${BASE_URL}/app/api/payment/get_spp.php?user_id=${userData.user.id}`);
+            const response = await fetch(`${BASE_URL}/app/pages/admin/keuangan/api/get_spp.php?user_id=${userData.user.id}`);
             const result = await response.json();
             if (result.success) {
                 setSppData(result.data);
@@ -595,7 +595,7 @@ export default function App() {
         setIsSppLoading(true);
         closePaymentMethodModal(); // Use close helper
         try {
-            const response = await fetch(`${BASE_URL}/app/api/payment/pay_spp_wallet.php`, {
+            const response = await fetch(`${BASE_URL}/app/pages/admin/keuangan/api/pay_spp_wallet.php`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -629,7 +629,7 @@ export default function App() {
     const handlePaySppMidtrans = async (tagihanId, amount) => {
         closePaymentMethodModal(); // Use close helper
         try {
-            const response = await fetch(`${BASE_URL}/app/api/payment/snap_token.php`, {
+            const response = await fetch(`${BASE_URL}/app/pages/admin/keuangan/api/snap_token.php`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -985,7 +985,7 @@ export default function App() {
     const fetchSaldo = async () => {
         if (!userData) return;
         try {
-            const response = await fetch(`${BASE_URL}/app/api/payment/get_saldo.php?user_id=${userData.user.id}&role=${userData.role}`);
+            const response = await fetch(`${BASE_URL}/app/pages/admin/keuangan/api/get_saldo.php?user_id=${userData.user.id}&role=${userData.role}`);
             const result = await response.json();
             if (result.status === 'success') {
                 setSaldo(result.saldo);
@@ -1004,7 +1004,7 @@ export default function App() {
         setShowTopUpModal(false);
 
         try {
-            const response = await fetch(`${BASE_URL}/app/api/payment/snap_token.php`, {
+            const response = await fetch(`${BASE_URL}/app/pages/admin/keuangan/api/snap_token.php`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -1099,7 +1099,7 @@ export default function App() {
         setScanned(true);
 
         try {
-            const response = await fetch(`${BASE_URL}/app/api/scan.php`, {
+            const response = await fetch(`${BASE_URL}/app/pages/admin/scanner/api/api-scan.php`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

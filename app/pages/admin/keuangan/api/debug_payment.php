@@ -1,7 +1,7 @@
 <?php
 // app/api/payment/debug_payment.php
 header('Content-Type: text/plain'); // Plain text for easy reading in browser
-require_once '../../config/database.php';
+require_once '../../../../config/database.php';
 require_once '../../config/midtrans_config.php';
 
 $order_id = $_GET['order_id'] ?? null;

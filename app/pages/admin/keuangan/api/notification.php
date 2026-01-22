@@ -1,6 +1,6 @@
 <?php
-require_once '../../config/database.php';
-require_once '../../config/midtrans_config.php';
+require_once '../../../../config/database.php';
+require_once '../../../../config/midtrans_config.php';
 
 $json_result = file_get_contents('php://input');
 $result = json_decode($json_result, true);

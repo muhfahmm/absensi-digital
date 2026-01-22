@@ -1,7 +1,7 @@
 <?php
 header('Content-Type: application/json');
-require_once '../../config/database.php';
-require_once '../../config/midtrans_config.php';
+require_once '../../../../config/database.php';
+require_once '../../../../config/midtrans_config.php';
 
 $order_id = $_GET['order_id'] ?? null;
 

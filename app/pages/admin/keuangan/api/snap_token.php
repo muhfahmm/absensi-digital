@@ -1,8 +1,8 @@
 <?php
 header('Content-Type: application/json');
 
-require_once '../../config/database.php';
-require_once '../../config/midtrans_config.php';
+require_once '../../../../config/database.php';
+require_once '../../../../config/midtrans_config.php';
 
 $data = json_decode(file_get_contents('php://input'), true);
 
