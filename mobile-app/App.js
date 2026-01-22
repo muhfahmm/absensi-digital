@@ -851,7 +851,7 @@ export default function App() {
 
     const fetchJadwal = async () => {
         try {
-            const response = await fetch(`${BASE_URL}/app/api/jadwal.php`, {
+            const response = await fetch(`${BASE_URL}/app/pages/admin/jadwal/api/api-jadwal.php`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -870,7 +870,7 @@ export default function App() {
 
     const fetchLearningMaterials = async () => {
         try {
-            const response = await fetch(`${BASE_URL}/app/api/materi.php`);
+            const response = await fetch(`${BASE_URL}/app/pages/admin/materi/api/api-materi.php`);
             const result = await response.json();
             if (result.success) {
                 setLearningMaterials(result.data);
@@ -882,7 +882,7 @@ export default function App() {
 
     const fetchPengumuman = async () => {
         try {
-            const response = await fetch(`${BASE_URL}/app/api/pengumuman.php?role=${userData ? userData.role : 'semua'}`);
+            const response = await fetch(`${BASE_URL}/app/pages/admin/pengumuman/api/api-pengumuman.php?role=${userData ? userData.role : 'semua'}`);
             const result = await response.json();
             if (result.success) {
                 setPengumumanList(result.data);
@@ -894,7 +894,7 @@ export default function App() {
 
     const fetchClassMonitoring = async () => {
         try {
-            const response = await fetch(`${BASE_URL}/app/api/wali_kelas_monitoring.php`, {
+            const response = await fetch(`${BASE_URL}/app/pages/admin/kelas/api/api-wali-kelas-monitoring.php`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -951,6 +951,37 @@ export default function App() {
         }
     };
 
+    const handleToggleCommentStatus = async (materiId, currentStatus) => {
+        const newStatus = currentStatus == 1 ? 0 : 1;
+
+        // Optimistic update
+        setLearningMaterials(prev => prev.map(m => m.id === materiId ? { ...m, is_comment_enabled: newStatus } : m));
+
+        try {
+            const response = await fetch(`${BASE_URL}/app/pages/admin/materi/api/toggle_comment.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    materi_id: materiId,
+                    user_id: userData.user.id,
+                    status: newStatus
+                })
+            });
+
+            const result = await response.json();
+            if (!result.success) {
+                // Revert if failed
+                setLearningMaterials(prev => prev.map(m => m.id === materiId ? { ...m, is_comment_enabled: currentStatus } : m));
+                showCustomAlert('Gagal', result.message, [], 'error');
+            }
+        } catch (error) {
+            console.error("Toggle comment error:", error);
+            // Revert
+            setLearningMaterials(prev => prev.map(m => m.id === materiId ? { ...m, is_comment_enabled: currentStatus } : m));
+            showCustomAlert('Error', 'Gagal menghubungi server', [], 'error');
+        }
+    };
+
     const fetchSaldo = async () => {
         if (!userData) return;
         try {
@@ -999,7 +1030,7 @@ export default function App() {
     const fetchNilaiData = async () => {
         if (!userData) return;
         try {
-            const response = await fetch(`${BASE_URL}/app/api/nilai.php`, {
+            const response = await fetch(`${BASE_URL}/app/pages/admin/nilai/api/api-nilai.php`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -1432,23 +1463,31 @@ export default function App() {
                             </View>
 
                             {/* Menu Grid */}
-                            <View style={styles.webGrid}>
-                                <View style={styles.webRow}>
-                                    <WebMenuItem iconName="clipboard" iconColor="#2563eb" iconBg="#dbeafe" title={t('kehadiran')} sub={t('riwayatAbsensi')} onPress={() => setCurrentView('kehadiran')} theme={theme} isDarkMode={isDarkMode} />
-                                    <WebMenuItem iconName="user" iconColor="#7c3aed" iconBg="#f5f3ff" title={t('profil')} sub={t('infoPribadi')} onPress={() => setCurrentView('profil')} theme={theme} isDarkMode={isDarkMode} />
-                                </View>
-                                <View style={styles.webRow}>
-                                    <WebMenuItem iconName="card" iconColor="#16a34a" iconBg="#dcfce7" title={t('pembayaran')} sub={t('statusSpp')} onPress={() => setCurrentView('pembayaran')} theme={theme} isDarkMode={isDarkMode} />
-                                    <WebMenuItem iconName="speaker" iconColor="#ea580c" iconBg="#ffedd5" title={t('pengumuman')} sub={t('infoTerbaru')} onPress={() => setCurrentView('pengumuman')} theme={theme} isDarkMode={isDarkMode} />
-                                </View>
-                                <View style={styles.webRow}>
-                                    <WebMenuItem iconName="book" iconColor="#e11d48" iconBg="#ffe4e6" title={t('jadwalPelajaran')} sub={t('lihatJadwal')} onPress={() => setCurrentView('jadwal')} theme={theme} isDarkMode={isDarkMode} />
-                                    <WebMenuItem iconName="globe" iconColor="#0891b2" iconBg="#cffafe" title={t('elearning')} sub={t('aksesMateri')} onPress={() => setCurrentView('elearning')} theme={theme} isDarkMode={isDarkMode} />
-                                </View>
-                                <View style={styles.webRow}>
-                                    <WebMenuItem iconName="fileText" iconColor="#ec4899" iconBg="#fce7f3" title={t('perizinan')} sub={t('izinSakit')} onPress={() => setCurrentView('perizinan')} theme={theme} isDarkMode={isDarkMode} />
-                                    <WebMenuItem iconName="barChart" iconColor="#8b5cf6" iconBg="#ede9fe" title={t('nilai')} sub={t('raportAkademik')} onPress={() => setCurrentView('nilai')} theme={theme} isDarkMode={isDarkMode} />
-                                </View>
+                            {/* Menu Grid */}
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -10 }}>
+                                {[
+                                    { iconName: "clipboard", iconColor: "#2563eb", iconBg: "#dbeafe", title: t('kehadiran'), sub: t('riwayatAbsensi'), onPress: () => setCurrentView('kehadiran'), show: true },
+                                    { iconName: "user", iconColor: "#7c3aed", iconBg: "#f5f3ff", title: t('profil'), sub: t('infoPribadi'), onPress: () => setCurrentView('profil'), show: true },
+                                    { iconName: "card", iconColor: "#16a34a", iconBg: "#dcfce7", title: t('pembayaran'), sub: t('statusSpp'), onPress: () => setCurrentView('pembayaran'), show: role !== 'guru' },
+                                    { iconName: "speaker", iconColor: "#ea580c", iconBg: "#ffedd5", title: t('pengumuman'), sub: t('infoTerbaru'), onPress: () => setCurrentView('pengumuman'), show: true },
+                                    { iconName: "book", iconColor: "#e11d48", iconBg: "#ffe4e6", title: t('jadwalPelajaran'), sub: t('lihatJadwal'), onPress: () => setCurrentView('jadwal'), show: true },
+                                    { iconName: "globe", iconColor: "#0891b2", iconBg: "#cffafe", title: t('elearning'), sub: t('aksesMateri'), onPress: () => setCurrentView('elearning'), show: true },
+                                    { iconName: "fileText", iconColor: "#ec4899", iconBg: "#fce7f3", title: t('perizinan'), sub: t('izinSakit'), onPress: () => setCurrentView('perizinan'), show: role !== 'guru' },
+                                    { iconName: "barChart", iconColor: "#8b5cf6", iconBg: "#ede9fe", title: t('nilai'), sub: t('raportAkademik'), onPress: () => setCurrentView('nilai'), show: role !== 'guru' },
+                                ].filter(item => item.show).map((item, index) => (
+                                    <View key={index} style={{ width: '50%', padding: 10 }}>
+                                        <WebMenuItem
+                                            iconName={item.iconName}
+                                            iconColor={item.iconColor}
+                                            iconBg={item.iconBg}
+                                            title={item.title}
+                                            sub={item.sub}
+                                            onPress={item.onPress}
+                                            theme={theme}
+                                            isDarkMode={isDarkMode}
+                                        />
+                                    </View>
+                                ))}
                             </View>
                         </View>
                     </ScrollView>
@@ -1637,7 +1676,7 @@ export default function App() {
         const fetchComments = async (materiId) => {
             setIsCommentLoading(true);
             try {
-                const response = await fetch(`${BASE_URL}/app/api/komentar.php?materi_id=${materiId}`);
+                const response = await fetch(`${BASE_URL}/app/pages/admin/materi/api/api-komentar.php?materi_id=${materiId}`);
                 const data = await response.json();
                 if (data.success) {
                     setComments(data.data);
@@ -1667,7 +1706,7 @@ export default function App() {
             console.log('Sending comment:', payload);
 
             try {
-                const response = await fetch(`${BASE_URL}/app/api/komentar.php`, {
+                const response = await fetch(`${BASE_URL}/app/pages/admin/materi/api/api-komentar.php`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1708,7 +1747,7 @@ export default function App() {
 
             setIsCommentLoading(true);
             try {
-                const response = await fetch(`${BASE_URL}/app/api/komentar.php`, {
+                const response = await fetch(`${BASE_URL}/app/pages/admin/materi/api/api-komentar.php`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1748,7 +1787,7 @@ export default function App() {
                         onPress: async () => {
                             setIsCommentLoading(true);
                             try {
-                                const response = await fetch(`${BASE_URL}/app/api/komentar.php`, {
+                                const response = await fetch(`${BASE_URL}/app/pages/admin/materi/api/api-komentar.php`, {
                                     method: 'DELETE',
                                     headers: {
                                         'Content-Type': 'application/json',
@@ -2036,6 +2075,19 @@ export default function App() {
                                                 )}
                                                 <Text style={{ fontSize: 12, color: theme.textMuted, marginBottom: 4 }}>{new Date(item.created_at).toLocaleDateString()}</Text>
                                             </View>
+
+                                            {/* Teacher Controls */}
+                                            {userData?.role === 'guru' && userData.user.id === item.id_guru && (
+                                                <TouchableOpacity
+                                                    style={{ marginLeft: 'auto', padding: 8, backgroundColor: item.is_comment_enabled == 1 ? '#dcfce7' : '#fee2e2', borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
+                                                    onPress={() => handleToggleCommentStatus(item.id, item.is_comment_enabled)}
+                                                >
+                                                    <WebIcon name={item.is_comment_enabled == 1 ? "chat" : "close"} size={14} color={item.is_comment_enabled == 1 ? "#16a34a" : "#ef4444"} style={{ marginRight: 4 }} />
+                                                    <Text style={{ fontSize: 10, fontWeight: 'bold', color: item.is_comment_enabled == 1 ? "#16a34a" : "#ef4444" }}>
+                                                        {item.is_comment_enabled == 1 ? "Komentar Aktif" : "Komentar Nonaktif"}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            )}
                                         </View>
 
                                         <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.text, marginBottom: 4 }}>{item.judul}</Text>
@@ -2159,41 +2211,56 @@ export default function App() {
                                         )}
                                     </ScrollView>
 
-                                    {/* Replying To Indicator */}
-                                    {replyingToCommentId && (
-                                        <View style={[styles.replyPreviewContainer, { borderColor: theme.border, borderLeftColor: theme.primary, backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc' }]}>
-                                            <View style={{ flex: 1 }}>
-                                                <Text style={{ color: theme.primary, fontSize: 12, fontWeight: 'bold', marginBottom: 2 }}>
-                                                    Replying to @{replyingToCommentUser}
-                                                </Text>
-                                                <Text style={{ color: theme.textMuted, fontSize: 12 }} numberOfLines={1}>
-                                                    {replyingToCommentText}
-                                                </Text>
-                                            </View>
-                                            <TouchableOpacity onPress={() => {
-                                                setReplyingToCommentId(null);
-                                                setReplyingToCommentUser('');
-                                                setReplyingToCommentText('');
-                                            }}>
-                                                <WebIcon name="close" size={20} color={theme.textMuted} />
-                                            </TouchableOpacity>
+                                    {/* Disabled Banner */}
+                                    {learningMaterials.find(m => m.id === currentMateriId)?.is_comment_enabled == 0 && (
+                                        <View style={{ backgroundColor: '#fee2e2', padding: 10, borderRadius: 8, marginBottom: 10, flexDirection: 'row', alignItems: 'center' }}>
+                                            <WebIcon name="lock" size={16} color="#ef4444" style={{ marginRight: 8 }} />
+                                            <Text style={{ color: '#ef4444', fontSize: 12, fontWeight: 'bold' }}>
+                                                {userData?.role === 'guru' && userData?.user.id === learningMaterials.find(m => m.id === currentMateriId)?.id_guru
+                                                    ? "Komentar dinonaktifkan. Anda masih bisa melihatnya."
+                                                    : "Komentar telah dinonaktifkan oleh guru."}
+                                            </Text>
                                         </View>
                                     )}
 
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 10 }}>
-                                        <TextInput
-                                            style={{ flex: 1, backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9', borderRadius: 20, paddingHorizontal: 15, paddingVertical: 10, color: theme.text, marginRight: 10 }}
-                                            placeholder="Tulis komentar..."
-                                            placeholderTextColor={theme.textMuted}
-                                            value={newComment}
-                                            onChangeText={setNewComment}
-                                        />
-                                        <TouchableOpacity onPress={handlePostComment}>
-                                            <WebIcon name="send" size={24} color={theme.primary} />
-                                        </TouchableOpacity>
-                                    </View>
-                                </Animated.View>
+                                    {/* Input Section */}
+                                    {learningMaterials.find(m => m.id === currentMateriId)?.is_comment_enabled == 1 && (
+                                        <>
+                                            {replyingToCommentId && (
+                                                <View style={[styles.replyPreviewContainer, { borderColor: theme.border, borderLeftColor: theme.primary, backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc' }]}>
+                                                    <View style={{ flex: 1 }}>
+                                                        <Text style={{ color: theme.primary, fontSize: 12, fontWeight: 'bold', marginBottom: 2 }}>
+                                                            Replying to @{replyingToCommentUser}
+                                                        </Text>
+                                                        <Text style={{ color: theme.textMuted, fontSize: 12 }} numberOfLines={1}>
+                                                            {replyingToCommentText}
+                                                        </Text>
+                                                    </View>
+                                                    <TouchableOpacity onPress={() => {
+                                                        setReplyingToCommentId(null);
+                                                        setReplyingToCommentUser('');
+                                                        setReplyingToCommentText('');
+                                                    }}>
+                                                        <WebIcon name="close" size={20} color={theme.textMuted} />
+                                                    </TouchableOpacity>
+                                                </View>
+                                            )}
 
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 10 }}>
+                                                <TextInput
+                                                    style={{ flex: 1, backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9', borderRadius: 20, paddingHorizontal: 15, paddingVertical: 10, color: theme.text, marginRight: 10 }}
+                                                    placeholder="Tulis komentar..."
+                                                    placeholderTextColor={theme.textMuted}
+                                                    value={newComment}
+                                                    onChangeText={setNewComment}
+                                                />
+                                                <TouchableOpacity onPress={handlePostComment}>
+                                                    <WebIcon name="send" size={24} color={theme.primary} />
+                                                </TouchableOpacity>
+                                            </View>
+                                        </>
+                                    )}
+                                </Animated.View>
                             </View>
                         </KeyboardAvoidingView>
                     </GestureHandlerRootView>

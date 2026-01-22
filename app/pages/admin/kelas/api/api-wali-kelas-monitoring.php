@@ -1,7 +1,7 @@
 <?php
 // app/api/wali_kelas_monitoring.php
 header('Content-Type: application/json');
-require_once '../config/database.php';
+require_once '../../../../config/database.php';
 
 // Allow CORS
 header("Access-Control-Allow-Origin: *");

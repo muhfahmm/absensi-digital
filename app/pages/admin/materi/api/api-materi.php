@@ -9,13 +9,13 @@ header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers
 error_reporting(0);
 ini_set('display_errors', 0);
 
-require_once '../config/database.php';
+require_once '../../../../config/database.php';
 
 try {
     // Basic query to fetch materials
     // You might want to filter this by class later if needed
     $sql = "
-        SELECT m.*, g.nama_lengkap as nama_guru, mp.nama_mapel, k.nama_kelas,
+        SELECT m.*, m.is_comment_enabled, g.nama_lengkap as nama_guru, mp.nama_mapel, k.nama_kelas,
         (SELECT COUNT(*) FROM tb_komentar_elearning WHERE materi_id = m.id) as total_komentar
         FROM tb_materi m
         JOIN tb_guru g ON m.id_guru = g.id

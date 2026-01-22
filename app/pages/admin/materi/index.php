@@ -31,7 +31,8 @@ $stmtMe->execute([$_SESSION['admin_id']]);
 $my_guru_id = $stmtMe->fetchColumn();
 
 $sql = "
-    SELECT m.*, g.nama_lengkap as nama_guru, mp.nama_mapel, k.nama_kelas 
+    SELECT m.*, m.is_comment_enabled, g.nama_lengkap as nama_guru, mp.nama_mapel, k.nama_kelas,
+    (SELECT COUNT(*) FROM tb_komentar_elearning WHERE materi_id = m.id) as total_komentar
     FROM tb_materi m
     JOIN tb_guru g ON m.id_guru = g.id
     LEFT JOIN tb_mata_pelajaran mp ON m.id_mapel = mp.id
@@ -181,19 +182,85 @@ if ($admin_id) {
                                 </div>
                             </div>
                             <div class="bg-gray-50 px-5 py-3 border-t border-gray-100 flex justify-between items-center">
-                                <a href="<?= base_url('uploads/materi/' . $m['file_path']) ?>" download class="text-indigo-600 hover:text-indigo-800 text-sm font-semibold flex items-center">
-                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                                    Download
-                                </a>
+                                <div class="flex items-center space-x-3">
+                                    <a href="<?= base_url('uploads/materi/' . $m['file_path']) ?>" download class="text-indigo-600 hover:text-indigo-800 text-sm font-semibold flex items-center" title="Download">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                    </a>
+                                    
+                                    <!-- Comment Toggle -->
+                                    <?php 
+                                        $can_edit = ($my_guru_id == $m['id_guru']) || ($_SESSION['admin_id'] == 13); // Owner or Master Admin
+                                        $status_color = $m['is_comment_enabled'] ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100';
+                                        $status_icon = $m['is_comment_enabled'] ? 
+                                            '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>' : 
+                                            '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>';
+                                    ?>
+                                    <?php if ($can_edit): ?>
+                                        <button onclick="toggleComment(<?= $m['id'] ?>, <?= (int)$m['is_comment_enabled'] ?>, <?= $m['id_guru'] ?>)" class="flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-semibold <?= $status_color ?> hover:opacity-80 transition" title="<?= $m['is_comment_enabled'] ? 'Matikan Komentar' : 'Aktifkan Komentar' ?>">
+                                            <?= $status_icon ?>
+                                            <span><?= $m['is_comment_enabled'] ? 'Aktif' : 'Nonaktif' ?></span>
+                                        </button>
+                                    <?php else: ?>
+                                        <span class="flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-semibold <?= $status_color ?> opacity-75 cursor-not-allowed">
+                                            <?= $status_icon ?>
+                                            <span><?= $m['is_comment_enabled'] ? 'Aktif' : 'Nonaktif' ?></span>
+                                        </span>
+                                    <?php endif; ?>
+
+                                    <!-- View Comments Button -->
+                                    <a href="komentar.php?id=<?= $m['id'] ?>" class="flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-semibold text-blue-600 bg-blue-100 hover:opacity-80 transition ml-2" title="Lihat Komentar">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                                        <span><?= $m['total_komentar'] ?? 0 ?></span>
+                                    </a>
+                                </div>
+
                                 <form action="delete.php" method="POST" onsubmit="return confirm('Hapus materi ini?');">
                                     <input type="hidden" name="id" value="<?= $m['id'] ?>">
                                     <input type="hidden" name="file" value="<?= $m['file_path'] ?>">
-                                    <button type="submit" class="text-red-500 hover:text-red-700 text-sm font-semibold">Hapus</button>
+                                    <button type="submit" class="text-red-500 hover:text-red-700 text-sm font-semibold" title="Hapus">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                    </button>
                                 </form>
                             </div>
                         </div>
                     <?php endforeach; ?>
                 </div>
+                
+                <script>
+                function toggleComment(materiId, currentStatus, ownerId) {
+                    const newStatus = currentStatus == 1 ? 0 : 1;
+                    const confirmMsg = newStatus == 1 ? "Aktifkan komentar untuk materi ini?" : "Nonaktifkan komentar untuk materi ini?";
+                    
+                    if (!confirm(confirmMsg)) return;
+
+                    // Use the centralized API
+                    fetch('<?= base_url("app/pages/admin/materi/api/toggle_comment.php") ?>', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            materi_id: materiId,
+                            user_id: ownerId, // Pass the material owner's ID
+                            status: newStatus
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Reload to reflect changes (simplest way)
+                            alert('Status komentar berhasil diperbarui!');
+                            location.reload(); 
+                        } else {
+                            alert('Gagal: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Terjadi kesalahan saat menghubungi server.');
+                    });
+                }
+                </script>
             <?php else: ?>
                 <div class="bg-white rounded-xl shadow-sm p-10 text-center">
                     <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>

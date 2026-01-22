@@ -5,7 +5,7 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Headers: Content-Type");
 header("Content-Type: application/json");
 
-require_once '../config/database.php';
+require_once '../../../../config/database.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -68,6 +68,16 @@ if ($method === 'GET') {
     }
 
     try {
+        // Check if comments are enabled
+        $checkMateri = $pdo->prepare("SELECT is_comment_enabled FROM tb_materi WHERE id = ?");
+        $checkMateri->execute([$materi_id]);
+        $materiData = $checkMateri->fetch(PDO::FETCH_ASSOC);
+
+        if ($materiData && $materiData['is_comment_enabled'] == 0) {
+            echo json_encode(['success' => false, 'message' => 'Komentar dinonaktifkan untuk materi ini']);
+            exit;
+        }
+
         $stmt = $pdo->prepare("INSERT INTO tb_komentar_elearning (materi_id, parent_id, user_id, role, komentar) VALUES (?, ?, ?, ?, ?)");
         $stmt->execute([$materi_id, $parent_id, $user_id, $role, $komentar]);
 
