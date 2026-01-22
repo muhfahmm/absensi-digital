@@ -1,0 +1,9 @@
+2026-01-22 19:47:25,971 - INFO - Kamera Aktif: 1280x720
+2026-01-22 19:47:26,062 - INFO - --- SCANNER SIAP DIGUNAKAN ---
+2026-01-22 19:47:30,682 - INFO - --- DETEKSI BARU: 'SISWA-1-69721aac2958c' ---
+2026-01-22 19:47:30,756 - INFO - User Berhasil Diidentifikasi: siswa 1 (siswa)
+2026-01-22 19:47:30,757 - INFO - Memproses Absen MASUK untuk siswa 1 | Status: terlambat
+2026-01-22 19:47:30,762 - INFO - Hasil: BERHASIL MASUK (terlambat)
+2026-01-22 19:47:33,663 - INFO - --- DETEKSI BARU: 'SISWA-1-69721aac2958c' ---
+2026-01-22 19:47:33,668 - INFO - User Berhasil Diidentifikasi: siswa 1 (siswa)
+2026-01-22 19:47:33,669 - INFO - Scan ditolak: Belum 1 jam (Wait: 59m)
