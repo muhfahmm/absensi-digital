@@ -72,7 +72,8 @@ const PATHS = {
 
     chat: "M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z",
     reply: "M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6",
-    send: "M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"
+    send: "M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z",
+    'arrow-right': "M5 12h14M12 5l7 7-7 7"
 };
 
 const WebIcon = ({ name, size = 24, color = "white", strokeWidth = 2, style }) => (
@@ -1777,7 +1778,7 @@ export default function App() {
             );
         };
 
-        const CommentItem = ({ comment, depth = 0 }) => {
+        const CommentItem = ({ comment, depth = 0, parentName = null }) => {
             const isOwner = comment.user_id === userData.user.id && comment.role === userData.role;
             const isEditing = editingCommentId === comment.id;
 
@@ -1807,7 +1808,7 @@ export default function App() {
             const swipeableRef = React.useRef(null);
 
             return (
-                <View style={{ marginLeft: depth > 0 ? 20 : 0, marginTop: 10, borderLeftWidth: depth > 0 ? 2 : 0, borderLeftColor: theme.border, paddingLeft: depth > 0 ? 10 : 0 }}>
+                <View style={{ marginLeft: depth === 1 ? 20 : 0, marginTop: 10, borderLeftWidth: depth === 1 ? 2 : 0, borderLeftColor: theme.border, paddingLeft: depth === 1 ? 10 : 0 }}>
                     <View style={{ flexDirection: 'row' }}>
                         <Image
                             source={{ uri: `${BASE_URL}/uploads/${comment.role === 'siswa' ? 'siswa' : 'guru'}/${comment.foto_profil}` }}
@@ -1835,9 +1836,17 @@ export default function App() {
                                     activeOpacity={0.7}
                                 >
                                     <View style={{ backgroundColor: isDarkMode ? (depth % 2 === 0 ? '#1e293b' : '#0f172a') : (depth % 2 === 0 ? '#f1f5f9' : '#e2e8f0'), padding: 10, borderRadius: 12, borderTopLeftRadius: 0 }}>
-                                        <Text style={{ fontWeight: 'bold', color: theme.text, fontSize: 13 }}>
-                                            {comment.nama_user} <Text style={{ fontWeight: 'normal', fontSize: 11, color: theme.textMuted }}>• {comment.role?.toUpperCase()}</Text>
-                                        </Text>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>
+                                            <Text style={{ fontWeight: 'bold', color: theme.text, fontSize: 13 }}>
+                                                {comment.nama_user}
+                                            </Text>
+                                            {depth > 0 && parentName && (
+                                                <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 4 }}>
+                                                    <WebIcon name="arrow-right" size={12} color={theme.textMuted} style={{ marginHorizontal: 4 }} />
+                                                    <Text style={{ fontSize: 12, color: theme.text, fontWeight: 'bold' }}>{parentName}</Text>
+                                                </View>
+                                            )}
+                                        </View>
 
                                         {isEditing ? (
                                             <View style={{ marginTop: 8 }}>
@@ -1885,13 +1894,12 @@ export default function App() {
                             </View>
                         </View>
                     </View>
-                    {/* Swipeable Close Tag was removed because I am rewriting the block structure */}
 
                     {/* Recursive Children */}
                     {comment.children && comment.children.length > 0 && (
                         <View>
                             {comment.children.map(child => (
-                                <CommentItem key={child.id} comment={child} depth={depth + 1} />
+                                <CommentItem key={child.id} comment={child} depth={depth + 1} parentName={comment.nama_user} />
                             ))}
                         </View>
                     )}
