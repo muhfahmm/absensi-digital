@@ -656,7 +656,7 @@ export default function App() {
 
     const checkAppVersion = async () => {
         try {
-            const response = await fetch(`${BASE_URL}/app/api/app_info.php`);
+            const response = await fetch(`${BASE_URL}/app/pages/admin/dashboard/api/api-app-info.php`);
             const result = await response.json();
             if (result.success && result.version !== CURRENT_APP_VERSION) {
                 showCustomAlert(
@@ -915,7 +915,7 @@ export default function App() {
 
     const fetchAttendanceHistory = async () => {
         try {
-            const response = await fetch(`${BASE_URL}/app/api/attendance_history.php`, {
+            const response = await fetch(`${BASE_URL}/app/pages/admin/rekap-absensi/api/api-attendance-history.php`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -934,7 +934,7 @@ export default function App() {
 
     const fetchAttendanceStatus = async () => {
         try {
-            const response = await fetch(`${BASE_URL}/app/api/attendance_status.php`, {
+            const response = await fetch(`${BASE_URL}/app/pages/admin/rekap-absensi/api/api-attendance-status.php`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -1055,7 +1055,7 @@ export default function App() {
 
         setLoading(true);
         try {
-            const response = await fetch(`${BASE_URL}/app/api/login.php`, {
+            const response = await fetch(`${BASE_URL}/app/pages/auth/api/api-login.php`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password }),

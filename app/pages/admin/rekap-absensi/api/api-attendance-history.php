@@ -3,7 +3,7 @@
 header('Content-Type: application/json');
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Headers: Content-Type");
-require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../../../../config/database.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $input = json_decode(file_get_contents('php://input'), true);
