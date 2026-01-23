@@ -15,7 +15,7 @@ function base_url($path = '') {
     $host = $_SERVER['HTTP_HOST'];
     
     // Sesuaikan jika folder project berbeda
-    $projectDir = '/absensi-digital-2'; // Ubah sesuai nama folder di htdocs
+    $projectDir = '/absensi-digital'; // Ubah sesuai nama folder di htdocs
     
     // Bersihkan slash di awal path
     $path = ltrim($path, '/');

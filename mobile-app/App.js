@@ -285,13 +285,13 @@ export default function App() {
     const [isDarkMode, setIsDarkMode] = useState(systemTheme === 'dark');
 
     // wifi gradasi
-    const [baseUrl, setBaseUrl] = useState('http://192.168.0.105/absensi-digital-2');
+    const [baseUrl, setBaseUrl] = useState('http://192.168.0.105/absensi-digital');
 
     // ip tathering hp
-    // const [baseUrl, setBaseUrl] = useState('http://10.152.126.24/absensi-digital-2');
+    // const [baseUrl, setBaseUrl] = useState('http://10.152.126.24/absensi-digital');
 
     // ip wifiarea
-    // const [baseUrl, setBaseUrl] = useState('http://172.200.2.91/absensi-digital-2');
+    // const [baseUrl, setBaseUrl] = useState('http://172.200.2.91/absensi-digital');
 
     // Shadow global BASE_URL with state for compatibility
     const BASE_URL = baseUrl;
@@ -302,8 +302,8 @@ export default function App() {
             const debuggerHost = Constants.expoConfig?.hostUri;
             if (debuggerHost) {
                 const ip = debuggerHost.split(':')[0];
-                // Default assumption: XAMPP on port 80, project folder 'absensi-digital-2'
-                const detectedUrl = `http://${ip}/absensi-digital-2`;
+                // Default assumption: XAMPP on port 80, project folder 'absensi-digital'
+                const detectedUrl = `http://${ip}/absensi-digital`;
                 console.log('Auto-detected Server URL:', detectedUrl);
                 setBaseUrl(detectedUrl);
             }
